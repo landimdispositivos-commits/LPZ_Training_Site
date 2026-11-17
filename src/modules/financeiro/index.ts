@@ -32,6 +32,7 @@ export async function lotesComVendas() {
   return db
     .select({
       id: lotes.id,
+      tipo: lotes.tipo,
       nome: lotes.nome,
       precoCentavos: lotes.precoCentavos,
       quantidadeTotal: lotes.quantidadeTotal,
@@ -46,7 +47,7 @@ export async function lotesComVendas() {
     .from(lotes)
     .leftJoin(pedidos, eq(pedidos.loteId, lotes.id))
     .groupBy(lotes.id)
-    .orderBy(asc(lotes.precoCentavos), asc(lotes.criadoEm));
+    .orderBy(asc(lotes.tipo), asc(lotes.precoCentavos), asc(lotes.criadoEm));
 }
 
 export async function listarPedidos({ status, limite }: { status?: StatusPedido; limite?: number }) {
@@ -60,6 +61,7 @@ export async function listarPedidos({ status, limite }: { status?: StatusPedido;
       status: pedidos.status,
       criadoEm: pedidos.criadoEm,
       loteNome: lotes.nome,
+      tipo: lotes.tipo,
       checkinEm: ingressos.checkinEm,
     })
     .from(pedidos)

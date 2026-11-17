@@ -4,7 +4,7 @@ import Link from "next/link";
 import { db } from "@/db";
 import { cronogramaItens, professores } from "@/db/schema";
 import { formatarDiaCronograma, formatarPreco } from "@/lib/formatar";
-import { loteVigente } from "@/modules/ingressos";
+import { vitrine } from "@/modules/ingressos";
 import { SiteHeader } from "./_components/site-header";
 
 // Conteúdo vem do admin e o volume de acesso é baixo — renderizar por
@@ -12,7 +12,7 @@ import { SiteHeader } from "./_components/site-header";
 export const dynamic = "force-dynamic";
 
 async function getDadosLanding() {
-  const [cronograma, listaProfessores, loteAtivo] = await Promise.all([
+  const [cronograma, listaProfessores, produtos] = await Promise.all([
     db
       .select({
         id: cronogramaItens.id,
@@ -27,10 +27,10 @@ async function getDadosLanding() {
       .leftJoin(professores, eq(cronogramaItens.professorId, professores.id))
       .orderBy(asc(cronogramaItens.dia), asc(cronogramaItens.horarioInicio), asc(cronogramaItens.ordem)),
     db.select().from(professores).orderBy(asc(professores.ordem), asc(professores.nome)),
-    loteVigente(),
+    vitrine(),
   ]);
 
-  return { cronograma, listaProfessores, loteAtivo };
+  return { cronograma, listaProfessores, produtos };
 }
 
 // Agrupa o cronograma por dia, mantendo a ordem.
@@ -68,7 +68,7 @@ function TituloSecao({ children }: { children: React.ReactNode }) {
 }
 
 export default async function Home() {
-  const { cronograma, listaProfessores, loteAtivo } = await getDadosLanding();
+  const { cronograma, listaProfessores, produtos } = await getDadosLanding();
 
   return (
     <>
@@ -191,12 +191,18 @@ export default async function Home() {
         >
           <div className="mx-auto max-w-md text-center">
             <TituloSecao>Ingressos</TituloSecao>
-            {loteAtivo ? (
+            {produtos.length > 0 ? (
               <div className="mt-6 rounded-lg border border-gold-500/40 bg-petrol-950/70 p-6">
-                <p className="text-sm font-medium text-teal-300">{loteAtivo.nome}</p>
-                <p className="text-gold-metal mt-1 text-4xl font-extrabold">
-                  {formatarPreco(loteAtivo.precoCentavos)}
-                </p>
+                <ul className="space-y-2 text-left">
+                  {produtos.map((p) => (
+                    <li key={p.tipo} className="flex items-baseline justify-between gap-4 border-b border-white/5 pb-2">
+                      <span className="text-sm font-medium text-white">{p.produto.nome}</span>
+                      <span className="font-semibold text-gold-300">
+                        {p.lote ? formatarPreco(p.lote.precoCentavos) : "Esgotado"}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
                 <Link
                   href="/ingressos"
                   className="bg-gold-metal mt-6 inline-block rounded-full px-8 py-3 font-semibold text-gold-ink transition hover:brightness-110"

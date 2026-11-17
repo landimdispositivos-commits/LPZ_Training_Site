@@ -3,6 +3,7 @@ import Link from "next/link";
 import { exigirAdmin } from "@/modules/auth/sessao";
 import { listarPedidos, lotesComVendas, resumoFinanceiro, STATUS_PEDIDO, type StatusPedido } from "@/modules/financeiro";
 import { dateParaDataHoraLocal, formatarDataHora, formatarPreco } from "@/lib/formatar";
+import { PRODUTOS, TIPOS_PRODUTO, type TipoProduto } from "@/modules/ingressos";
 import { Aviso, Campo, classeBotao, classeInput } from "../_components/form-ui";
 import { SiteHeader } from "../_components/site-header";
 import { criarLoteAction, editarLoteAction } from "./actions";
@@ -78,6 +79,7 @@ export default async function Page(props: PageProps<"/financeiro">) {
                   <li key={l.id} className="rounded-xl border border-white/10 bg-petrol-950/60 p-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-gold-300">{PRODUTOS[l.tipo].nome}</p>
                         <p className="font-semibold text-white">
                           {l.nome} · {formatarPreco(l.precoCentavos)}
                         </p>
@@ -137,7 +139,7 @@ export default async function Page(props: PageProps<"/financeiro">) {
                     <tr>
                       <th className="py-2 pr-3 font-medium">Data</th>
                       <th className="py-2 pr-3 font-medium">Comprador</th>
-                      <th className="py-2 pr-3 font-medium">Lote</th>
+                      <th className="py-2 pr-3 font-medium">Produto / lote</th>
                       <th className="py-2 pr-3 font-medium">Valor</th>
                       <th className="py-2 pr-3 font-medium">Situação</th>
                     </tr>
@@ -150,7 +152,10 @@ export default async function Page(props: PageProps<"/financeiro">) {
                           <p className="text-white">{p.nome}</p>
                           <p className="text-xs text-mist/60">{p.email}</p>
                         </td>
-                        <td className="py-2 pr-3 text-mist/80">{p.loteNome}</td>
+                        <td className="py-2 pr-3 text-mist/80">
+                          {PRODUTOS[p.tipo].nome}
+                          <span className="block text-xs text-mist/60">{p.loteNome}</span>
+                        </td>
                         <td className="py-2 pr-3 whitespace-nowrap text-white">{formatarPreco(p.valorCentavos)}</td>
                         <td className="py-2 pr-3 text-mist/80">
                           {ROTULO_STATUS[p.status]}
@@ -190,6 +195,7 @@ function FiltroLink({ href, ativo, children }: { href: string; ativo: boolean; c
 
 type LoteEditavel = {
   id: string;
+  tipo: TipoProduto;
   nome: string;
   precoCentavos: number;
   quantidadeTotal: number;
@@ -203,7 +209,14 @@ function FormLote({ action, lote }: { action: (form: FormData) => Promise<void>;
   return (
     <form action={action} className="mt-4 grid gap-4 sm:grid-cols-2">
       {lote && <input type="hidden" name="id" value={lote.id} />}
-      <Campo id={`${p}-nome`} label="Nome">
+      <Campo id={`${p}-tipo`} label="Produto">
+        <select id={`${p}-tipo`} name="tipo" defaultValue={lote?.tipo ?? "full_pass"} className={classeInput}>
+          {TIPOS_PRODUTO.map((t) => (
+            <option key={t} value={t}>{PRODUTOS[t].nome}</option>
+          ))}
+        </select>
+      </Campo>
+      <Campo id={`${p}-nome`} label="Nome do lote">
         <input id={`${p}-nome`} name="nome" required maxLength={60} defaultValue={lote?.nome} placeholder="1º lote" className={classeInput} />
       </Campo>
       <Campo id={`${p}-preco`} label="Preço (R$)">

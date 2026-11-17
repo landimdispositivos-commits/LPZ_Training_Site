@@ -1,6 +1,7 @@
-import { and, asc, desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { contas, professores, sessoes, usuarios } from "@/db/schema";
+import { contas, ingressos, lotes, pedidos, professores, sessoes, usuarios } from "@/db/schema";
+import { TIPOS_PRODUTO, type TipoProduto } from "@/modules/ingressos/produtos";
 
 export const PAPEIS = ["congressista", "profissional", "portaria", "organizador"] as const;
 export type Papel = (typeof PAPEIS)[number];
@@ -61,8 +62,9 @@ export async function alterarPapel(usuarioId: string, papel: Papel) {
   });
 }
 
-// Cadastro completo de cada pessoa, para a tela "Usuários" (só organizador).
-export async function listarCadastros({ busca, papel }: { busca?: string; papel?: Papel }) {
+// Cadastro completo de cada pessoa + forma de cadastro + compras, para a
+// tela "Usuários" e a exportação para Excel (só organizador).
+export async function listarCadastros({ busca, papel, limite = 500 }: { busca?: string; papel?: Papel; limite?: number }) {
   const filtros = [];
   if (busca && busca.trim().length >= 2) {
     const padrao = `%${escaparLike(busca.trim())}%`;
@@ -70,7 +72,7 @@ export async function listarCadastros({ busca, papel }: { busca?: string; papel?
   }
   if (papel) filtros.push(eq(usuarios.papel, papel));
 
-  return db
+  const lista = await db
     .select({
       id: usuarios.id,
       nome: usuarios.name,
@@ -91,13 +93,51 @@ export async function listarCadastros({ busca, papel }: { busca?: string; papel?
       comoConheceu: usuarios.comoConheceu,
       cadastroCompletoEm: usuarios.cadastroCompletoEm,
       criadoEm: usuarios.createdAt,
-      ingresso: sql<"pago" | "pendente" | null>`(
-        select case when bool_or(p.status = 'pago') then 'pago' when bool_or(p.status = 'pendente') then 'pendente' end
-        from pedidos p where p.email = ${usuarios.email}
-      )`,
     })
     .from(usuarios)
     .where(filtros.length ? and(...filtros) : undefined)
     .orderBy(desc(usuarios.createdAt))
-    .limit(300);
+    .limit(limite);
+
+  if (lista.length === 0) return [];
+
+  const [provedores, compras] = await Promise.all([
+    db
+      .select({ usuarioId: contas.userId, provedor: contas.providerId })
+      .from(contas)
+      .where(inArray(contas.userId, lista.map((u) => u.id))),
+    db
+      .select({
+        email: pedidos.email,
+        status: pedidos.status,
+        valorCentavos: pedidos.valorCentavos,
+        criadoEm: pedidos.criadoEm,
+        tipo: lotes.tipo,
+        loteNome: lotes.nome,
+        checkinEm: ingressos.checkinEm,
+      })
+      .from(pedidos)
+      .innerJoin(lotes, eq(lotes.id, pedidos.loteId))
+      .leftJoin(ingressos, eq(ingressos.pedidoId, pedidos.id))
+      .where(inArray(pedidos.email, lista.map((u) => u.email)))
+      .orderBy(desc(pedidos.criadoEm)),
+  ]);
+
+  return lista.map((u) => {
+    const meus = provedores.filter((p) => p.usuarioId === u.id).map((p) => p.provedor);
+    const formaCadastro = [meus.includes("credential") && "E-mail e senha", meus.includes("google") && "Google"]
+      .filter(Boolean)
+      .join(" + ") || "Convite pendente";
+    const comprasDele = compras.filter((c) => c.email === u.email);
+    const pagos = new Set(comprasDele.filter((c) => c.status === "pago").map((c) => c.tipo));
+    return {
+      ...u,
+      formaCadastro,
+      compras: comprasDele,
+      comprou: Object.fromEntries(TIPOS_PRODUTO.map((t) => [t, pagos.has(t)])) as Record<TipoProduto, boolean>,
+      totalPagoCentavos: comprasDele.filter((c) => c.status === "pago").reduce((t, c) => t + c.valorCentavos, 0),
+    };
+  });
 }
+
+export type Cadastro = Awaited<ReturnType<typeof listarCadastros>>[number];

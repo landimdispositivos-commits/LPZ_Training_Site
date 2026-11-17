@@ -2,6 +2,8 @@ import { and, asc, desc, eq, gte, inArray, isNull, lt, lte, or, sql } from "driz
 import { db } from "@/db";
 import { ingressos, lotes, pedidos } from "@/db/schema";
 import { paymentProvider } from "@/modules/pagamentos";
+import { PRODUTOS, TIPOS_PRODUTO, type TipoProduto } from "./produtos";
+export { PRODUTOS, TIPOS_PRODUTO, type TipoProduto } from "./produtos";
 
 // ---------------------------------------------------------------------------
 // Regras de venda de ingressos.
@@ -17,6 +19,7 @@ import { paymentProvider } from "@/modules/pagamentos";
 
 export const MINUTOS_RESERVA = 30;
 
+
 export class ErroCompra extends Error {
   constructor(public readonly codigo: CodigoErroCompra) {
     super(MENSAGENS_ERRO_COMPRA[codigo]);
@@ -26,38 +29,43 @@ export class ErroCompra extends Error {
 export const MENSAGENS_ERRO_COMPRA = {
   "sem-lote": "Não há lote à venda neste momento.",
   esgotado: "As vagas deste lote acabaram. Atualize a página para ver se abriu outro lote.",
-  "ja-tem-ingresso": "Você já tem um ingresso confirmado. Ele está na sua área.",
+  "ja-tem-ingresso": "Você já comprou este produto. Ele está na sua área.",
   "pedido-invalido": "Pedido não encontrado.",
   pagamento: "Não foi possível abrir o pagamento agora. Tente de novo em alguns minutos.",
 } as const;
 export type CodigoErroCompra = keyof typeof MENSAGENS_ERRO_COMPRA;
 
-// Lote à venda agora: ativo, dentro do período e com vaga. Havendo mais de
-// um, o mais barato (ordem natural de 1º, 2º, 3º lote).
-export async function loteVigente() {
-  const agora = new Date();
+function filtrosVigencia(agora: Date) {
+  return [
+    eq(lotes.ativo, true),
+    or(isNull(lotes.dataInicio), lte(lotes.dataInicio, agora)),
+    or(isNull(lotes.dataFim), gte(lotes.dataFim, agora)),
+  ];
+}
+
+// Lote à venda agora de um produto: ativo, dentro do período e com vaga.
+// Havendo mais de um, o mais barato (ordem natural de 1º, 2º, 3º lote).
+export async function loteVigente(tipo: TipoProduto) {
   return db.query.lotes.findFirst({
-    where: and(
-      eq(lotes.ativo, true),
-      or(isNull(lotes.dataInicio), lte(lotes.dataInicio, agora)),
-      or(isNull(lotes.dataFim), gte(lotes.dataFim, agora)),
-      lt(lotes.quantidadeVendida, lotes.quantidadeTotal),
-    ),
+    where: and(...filtrosVigencia(new Date()), eq(lotes.tipo, tipo), lt(lotes.quantidadeVendida, lotes.quantidadeTotal)),
     orderBy: [asc(lotes.precoCentavos), asc(lotes.criadoEm)],
   });
 }
 
-// Existe lote ativo e no período, mas sem vaga? (para mostrar "esgotado")
-export async function haLoteEsgotado() {
+// Vitrine: para cada produto, o lote vigente ou a indicação de esgotado.
+export async function vitrine() {
   const agora = new Date();
-  const lote = await db.query.lotes.findFirst({
-    where: and(
-      eq(lotes.ativo, true),
-      or(isNull(lotes.dataInicio), lte(lotes.dataInicio, agora)),
-      or(isNull(lotes.dataFim), gte(lotes.dataFim, agora)),
-    ),
+  const ativos = await db
+    .select()
+    .from(lotes)
+    .where(and(...filtrosVigencia(agora)))
+    .orderBy(asc(lotes.precoCentavos), asc(lotes.criadoEm));
+  return TIPOS_PRODUTO.flatMap((tipo) => {
+    const doTipo = ativos.filter((l) => l.tipo === tipo);
+    if (doTipo.length === 0) return [];
+    const comVaga = doTipo.find((l) => l.quantidadeVendida < l.quantidadeTotal) ?? null;
+    return [{ tipo, produto: PRODUTOS[tipo], lote: comVaga, esgotado: !comVaga }];
   });
-  return Boolean(lote);
 }
 
 // Devolve ao lote as vagas de pedidos pendentes vencidos.
@@ -93,29 +101,38 @@ export interface Comprador {
   cpf: string | null;
 }
 
-// Situação do comprador: ingresso pago e/ou pedido pendente em aberto.
+// Situação do comprador por produto: pago e/ou pedido pendente em aberto.
 export async function situacaoDoComprador(email: string) {
   await liberarReservasVencidas();
   const lista = await db
-    .select({ id: pedidos.id, status: pedidos.status, criadoEm: pedidos.criadoEm })
+    .select({ id: pedidos.id, status: pedidos.status, tipo: lotes.tipo })
     .from(pedidos)
+    .innerJoin(lotes, eq(lotes.id, pedidos.loteId))
     .where(and(eq(pedidos.email, email), inArray(pedidos.status, ["pago", "pendente"])))
     .orderBy(desc(pedidos.criadoEm));
-  return {
-    pago: lista.find((p) => p.status === "pago") ?? null,
-    pendente: lista.find((p) => p.status === "pendente") ?? null,
-  };
+  const porTipo = {} as Record<TipoProduto, { pago: string | null; pendente: string | null }>;
+  for (const tipo of TIPOS_PRODUTO) {
+    porTipo[tipo] = {
+      pago: lista.find((p) => p.tipo === tipo && p.status === "pago")?.id ?? null,
+      pendente: lista.find((p) => p.tipo === tipo && p.status === "pendente")?.id ?? null,
+    };
+  }
+  return porTipo;
 }
 
-// Cria o pedido reservando uma vaga do lote vigente. Um ingresso por pessoa:
-// se já houver pedido pago, recusa; se houver um pendente, reaproveita.
-export async function criarPedido(comprador: Comprador) {
-  const situacao = await situacaoDoComprador(comprador.email);
+// Cria o pedido de um produto reservando uma vaga do lote vigente dele.
+// Um de cada produto por pessoa: se já pagou aquele produto, recusa; se há um
+// pedido pendente dele, reaproveita.
+export async function criarPedido(comprador: Comprador, tipo: TipoProduto) {
+  const situacao = (await situacaoDoComprador(comprador.email))[tipo];
   if (situacao.pago) throw new ErroCompra("ja-tem-ingresso");
-  if (situacao.pendente) return situacao.pendente.id;
+  if (situacao.pendente) return situacao.pendente;
 
-  const lote = await loteVigente();
-  if (!lote) throw new ErroCompra((await haLoteEsgotado()) ? "esgotado" : "sem-lote");
+  const lote = await loteVigente(tipo);
+  if (!lote) {
+    const item = (await vitrine()).find((v) => v.tipo === tipo);
+    throw new ErroCompra(item?.esgotado ? "esgotado" : "sem-lote");
+  }
 
   return db.transaction(async (tx) => {
     const [reservado] = await tx
@@ -149,7 +166,13 @@ export async function criarPedido(comprador: Comprador) {
 // Abre (ou reabre) o checkout do gateway para um pedido pendente do comprador.
 export async function iniciarPagamento(pedidoId: string, email: string) {
   const pedido = await db
-    .select({ id: pedidos.id, status: pedidos.status, valorCentavos: pedidos.valorCentavos, loteNome: lotes.nome })
+    .select({
+      id: pedidos.id,
+      status: pedidos.status,
+      valorCentavos: pedidos.valorCentavos,
+      loteNome: lotes.nome,
+      tipo: lotes.tipo,
+    })
     .from(pedidos)
     .innerJoin(lotes, eq(lotes.id, pedidos.loteId))
     .where(and(eq(pedidos.id, pedidoId), eq(pedidos.email, email)))
@@ -160,7 +183,7 @@ export async function iniciarPagamento(pedidoId: string, email: string) {
   try {
     resultado = await paymentProvider.criarPreferencia({
       pedidoId: pedido.id,
-      descricao: `LPZ Training — ${pedido.loteNome}`,
+      descricao: `LPZ Training — ${PRODUTOS[pedido.tipo].nome} (${pedido.loteNome})`,
       valorCentavos: pedido.valorCentavos,
       compradorEmail: email,
     });
@@ -189,6 +212,7 @@ export async function confirmarPagamento(pedidoId: string) {
   await db.transaction(async (tx) => {
     const [atual] = await tx.select().from(pedidos).where(eq(pedidos.id, pedidoId)).for("update");
     if (!atual || atual.status === "pago" || atual.status === "reembolsado") return;
+    const lote = await tx.query.lotes.findFirst({ where: eq(lotes.id, atual.loteId) });
 
     // Pagamento aprovado depois de a reserva vencer: o dinheiro entrou, então
     // o ingresso é emitido e a vaga volta a ser contada.
@@ -199,7 +223,8 @@ export async function confirmarPagamento(pedidoId: string) {
         .where(eq(lotes.id, atual.loteId));
     }
     await tx.update(pedidos).set({ status: "pago", atualizadoEm: new Date() }).where(eq(pedidos.id, pedidoId));
-    await tx.insert(ingressos).values({ pedidoId });
+    // Só produtos de entrada geram ingresso com QR (paparazzi não).
+    if (!lote || PRODUTOS[lote.tipo].entrada) await tx.insert(ingressos).values({ pedidoId });
   });
   return "pago" as const;
 }
@@ -225,6 +250,7 @@ export async function pedidosDoComprador(email: string) {
       valorCentavos: pedidos.valorCentavos,
       criadoEm: pedidos.criadoEm,
       loteNome: lotes.nome,
+      tipo: lotes.tipo,
       ingressoId: ingressos.id,
       ingressoStatus: ingressos.status,
       checkinEm: ingressos.checkinEm,

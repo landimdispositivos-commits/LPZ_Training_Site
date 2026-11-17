@@ -153,8 +153,19 @@ export const cronogramaItens = pgTable("cronograma_itens", {
 // Ingressos: lotes, pedidos, ingressos emitidos, eventos de pagamento
 // ---------------------------------------------------------------------------
 
+// Tipo de produto vendido em cada lote. Os de entrada (full pass e bailes)
+// geram ingresso com QR; os paparazzi são serviços de foto/vídeo, sem QR.
+export const tipoProdutoEnum = pgEnum("tipo_produto", [
+  "full_pass",
+  "pacote_baile",
+  "baile_avulso",
+  "paparazzi_video",
+  "paparazzi_foto",
+]);
+
 export const lotes = pgTable("lotes", {
   id: uuid("id").primaryKey().defaultRandom(),
+  tipo: tipoProdutoEnum("tipo").notNull().default("full_pass"),
   nome: text("nome").notNull(), // ex: "1º lote"
   precoCentavos: integer("preco_centavos").notNull(),
   quantidadeTotal: integer("quantidade_total").notNull(),

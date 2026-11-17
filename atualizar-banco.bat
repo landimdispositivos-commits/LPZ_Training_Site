@@ -8,7 +8,9 @@ set DB_PORT=5433
 set DATABASE_URL=postgres://lpz:lpz_dev_local@localhost:5433/lpz_training
 
 echo [1/2] Gerando migration a partir do schema...
-call npx drizzle-kit generate --name fornecedores_e_audio
+set NOME=%~1
+if "%NOME%"=="" set NOME=atualizacao
+call npx drizzle-kit generate --name %NOME%
 if errorlevel 1 (
   echo ERRO ao gerar a migration. Mande um print desta tela para o Claude.
   pause

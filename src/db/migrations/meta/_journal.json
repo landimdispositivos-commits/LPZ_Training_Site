@@ -50,6 +50,13 @@
       "when": 1794879453273,
       "tag": "0006_fornecedores_e_audio",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794880343953,
+      "tag": "0007_atualizacao",
+      "breakpoints": true
     }
   ]
 }

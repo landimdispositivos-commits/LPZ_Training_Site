@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { codigoCurto, pedidosDoComprador } from "@/modules/ingressos";
+import { codigoCurto, pedidosDoComprador, PRODUTOS } from "@/modules/ingressos";
 import { formatarDataHora, formatarPreco } from "@/lib/formatar";
 import { QrIngresso } from "./qr-ingresso";
 
@@ -11,7 +11,7 @@ export async function MeusIngressos({ email }: { email: string }) {
       <>
         <p className="mt-3 text-sm text-mist/70">Você ainda não tem ingresso.</p>
         <Link href="/ingressos" className="mt-4 inline-block text-sm font-medium text-teal-300 hover:underline">
-          Comprar ingresso
+          Comprar ingresso ou pacote
         </Link>
       </>
     );
@@ -21,6 +21,7 @@ export async function MeusIngressos({ email }: { email: string }) {
     <ul className="mt-4 space-y-6">
       {lista.map((p) => (
         <li key={p.pedidoId} className="rounded-xl border border-white/10 bg-petrol-950/60 p-4 text-center">
+          <p className="font-display text-sm uppercase tracking-[0.15em] text-gold-300">{PRODUTOS[p.tipo].nome}</p>
           <p className="text-sm font-medium text-teal-300">{p.loteNome}</p>
           <p className="text-sm text-mist/70">
             {formatarPreco(p.valorCentavos)} · pedido em {formatarDataHora(p.criadoEm)}
@@ -33,6 +34,10 @@ export async function MeusIngressos({ email }: { email: string }) {
                 Continuar pagamento
               </Link>
             </div>
+          )}
+
+          {p.status === "pago" && !PRODUTOS[p.tipo].entrada && (
+            <p className="mt-3 text-sm text-teal-300">Compra confirmada. A equipe entra em contato sobre o serviço.</p>
           )}
 
           {p.status === "pago" && p.ingressoId && (

@@ -8,11 +8,13 @@ import { db } from "@/db";
 import { lotes } from "@/db/schema";
 import { dataHoraLocalParaDate, reaisParaCentavos } from "@/lib/formatar";
 import { exigirAdmin } from "@/modules/auth/sessao";
+import { TIPOS_PRODUTO, type TipoProduto } from "@/modules/ingressos/produtos";
 
 // Só organizadores mexem em lotes. Autorização refeita em cada action.
 
 const loteSchema = z
   .object({
+    tipo: z.enum(TIPOS_PRODUTO as [TipoProduto, ...TipoProduto[]]),
     nome: z.string().trim().min(1, "Informe o nome do lote.").max(60),
     precoCentavos: z.number({ error: "Preço inválido." }).int().min(0).max(10_000_000),
     quantidadeTotal: z.number({ error: "Quantidade inválida." }).int().min(1).max(10_000),
@@ -25,6 +27,7 @@ const loteSchema = z
 function lerLote(form: FormData) {
   const texto = (campo: string) => String(form.get(campo) ?? "");
   return loteSchema.safeParse({
+    tipo: texto("tipo") || "full_pass",
     nome: texto("nome"),
     precoCentavos: reaisParaCentavos(texto("preco")) ?? Number.NaN,
     quantidadeTotal: Number.parseInt(texto("quantidadeTotal"), 10),

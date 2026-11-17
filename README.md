@@ -78,12 +78,20 @@ credenciais de sandbox/produção configuradas corretamente.
 | `/pagamento/simulado` | só com `TEST_MODE=true` | Faz o papel do Mercado Pago em dev (aprovar/recusar) |
 | `/congressistas/minha-area` | congressista | Dados e ingresso com QR code + código curto de 8 caracteres |
 | `/galeria` | todos | Fotos e vídeos (YouTube sem cookies) |
+| `/administradores/usuarios` | organizador | Grade de usuários (forma de cadastro, compras por produto), detalhe no olhinho e exportação .xlsx com escolha de colunas |
 | `/administradores/checkin` | organizador e portaria | Lê o QR pela câmera (Chrome/Android) ou busca por código/nome e confirma a entrada |
 | `/financeiro` | organizador | Arrecadação, lotes (criar/editar/abrir/fechar), pedidos e exportação CSV |
 | `/administradores/conteudo` | organizador | Professores (com foto) e cronograma |
 | `/administradores/galeria` | organizador | Envio de fotos e vídeos |
 
-Regras de venda (`src/modules/ingressos`): um ingresso por pessoa; a vaga é
+Produtos à venda (`src/modules/ingressos/produtos.ts`): Full pass, Pacote de
+bailes, Baile avulso, Paparazzi — vídeo e Paparazzi — fotos. Cada lote é de um
+produto (criado em `/financeiro`). **Regra para novos desenvolvimentos:** todo
+produto ou compra nova precisa aparecer na tela `/administradores/usuarios`
+(coluna "Comprou", detalhe do usuário e exportação para Excel em
+`src/modules/usuarios/colunas.ts`).
+
+Regras de venda (`src/modules/ingressos`): um de cada produto por pessoa; a vaga é
 reservada no pedido e devolvida se o pagamento não sair em 30 minutos; o
 ingresso só é emitido depois de o status ser confirmado **consultando o
 gateway**. No check-in o QR só localiza o ingresso — a entrada é validada no
