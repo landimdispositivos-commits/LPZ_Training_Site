@@ -92,6 +92,13 @@
       "when": 1794884100000,
       "tag": "0012_lotes_iniciais",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794884700000,
+      "tag": "0013_professores_e_djs",
+      "breakpoints": true
     }
   ]
 }

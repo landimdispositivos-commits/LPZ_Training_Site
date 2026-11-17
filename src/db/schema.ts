@@ -134,8 +134,12 @@ export const professores = pgTable("professores", {
   id: uuid("id").primaryKey().defaultRandom(),
   nome: text("nome").notNull(),
   bio: text("bio"),
+  // Bio em inglês (opcional): sem ela, a versão em inglês mostra a bio em português.
+  bioEn: text("bio_en"),
   fotoUrl: text("foto_url"),
   instagram: text("instagram"),
+  // "professor" (casal de professores) ou "dj": cada um tem sua página no site.
+  categoria: text("categoria").notNull().default("professor"),
   ordem: integer("ordem").notNull().default(0),
   criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
 });

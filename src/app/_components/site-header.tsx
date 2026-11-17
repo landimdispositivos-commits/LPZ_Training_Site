@@ -19,6 +19,7 @@ const TEXTOS = traducoes(
     links: [
       { href: "/cronograma", label: "Cronograma" },
       { href: "/professores", label: "Professores" },
+      { href: "/djs", label: "DJs" },
       { href: "/ingressos", label: "Ingressos" },
       { href: "/galeria", label: "Galeria" },
     ],
@@ -34,6 +35,7 @@ const TEXTOS = traducoes(
     links: [
       { href: "/cronograma", label: "Schedule" },
       { href: "/professores", label: "Teachers" },
+      { href: "/djs", label: "DJs" },
       { href: "/ingressos", label: "Tickets" },
       { href: "/galeria", label: "Gallery" },
     ],

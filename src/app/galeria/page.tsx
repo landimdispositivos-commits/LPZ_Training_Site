@@ -1,96 +1,67 @@
 import type { Metadata } from "next";
-import { ehSpotify } from "@/modules/midia/audio";
-import { itensDaGaleria } from "@/modules/midia/galeria";
+import Link from "next/link";
+import { traducoes } from "@/i18n";
 import { obterIdioma } from "@/i18n/servidor";
+import { CabecalhoPagina } from "../_components/cabecalho-pagina";
+import { RodapeSite } from "../_components/rodape-site";
 import { SiteHeader } from "../_components/site-header";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: (await obterIdioma()) === "en" ? "Gallery — LPZ Training" : "Galeria — LPZ Training" };
 }
-export const dynamic = "force-dynamic";
 
+const TEXTOS = traducoes(
+  {
+    titulo: "Galeria",
+    subtitulo: "Escolha o que você quer ver.",
+    caixas: [
+      { href: "/galeria/videos", titulo: "Vídeos", texto: "Vídeos e músicas do LPZ." },
+      { href: "/galeria/fotos", titulo: "Fotos", texto: "Fotos dos eventos." },
+      { href: "/galeria/paparazzi", titulo: "Paparazzi", texto: "Seus melhores momentos dançando, em vídeo e foto." },
+    ],
+    abrir: "Abrir",
+  },
+  {
+    titulo: "Gallery",
+    subtitulo: "Choose what you want to see.",
+    caixas: [
+      { href: "/galeria/videos", titulo: "Videos", texto: "LPZ videos and music." },
+      { href: "/galeria/fotos", titulo: "Photos", texto: "Photos from the events." },
+      { href: "/galeria/paparazzi", titulo: "Paparazzi", texto: "Your best dancing moments, on video and in photos." },
+    ],
+    abrir: "Open",
+  },
+);
+
+// Três caixinhas no mesmo estilo das de Ingressos; cada uma abre sua seção.
 export default async function Page() {
-  const itens = await itensDaGaleria();
-  const en = (await obterIdioma()) === "en";
-  const fotos = itens.filter((i) => i.tipo === "foto");
-  const videos = itens.filter((i) => i.tipo === "video");
-  const audios = itens.filter((i) => i.tipo === "audio");
-
+  const t = TEXTOS[await obterIdioma()];
   return (
     <>
       <SiteHeader />
-      <main className="bg-city-glow min-h-[80vh] px-4 py-16">
-        <div className="mx-auto max-w-5xl space-y-12">
-          <h1 className="text-center font-display text-2xl uppercase tracking-[0.2em] text-gold-metal sm:text-3xl">{en ? "Gallery" : "Galeria"}</h1>
-
-          {itens.length === 0 && <p className="text-center text-mist/70">{en ? "Photos and videos coming soon." : "Fotos e vídeos em breve."}</p>}
-
-          {videos.length > 0 && (
-            <section aria-labelledby="titulo-videos">
-              <h2 id="titulo-videos" className="font-display text-lg uppercase tracking-[0.2em] text-gold-metal">{en ? "Videos" : "Vídeos"}</h2>
-              <ul className="mt-6 grid gap-6 sm:grid-cols-2">
-                {videos.map((v) => (
-                  <li key={v.id}>
-                    <div className="aspect-video overflow-hidden rounded-xl border border-white/10 bg-black">
-                      <iframe
-                        src={v.url}
-                        title={v.titulo ?? (en ? "LPZ video" : "Vídeo do LPZ")}
-                        loading="lazy"
-                        allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                        className="h-full w-full"
-                      />
-                    </div>
-                    {v.titulo && <p className="mt-2 text-sm text-mist/80">{v.titulo}</p>}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {audios.length > 0 && (
-            <section aria-labelledby="titulo-audios">
-              <h2 id="titulo-audios" className="font-display text-lg uppercase tracking-[0.2em] text-gold-metal">{en ? "Audio" : "Áudios"}</h2>
-              <ul className="mt-6 grid gap-6 sm:grid-cols-2">
-                {audios.map((a) => (
-                  <li key={a.id}>
-                    <iframe
-                      src={a.url}
-                      title={a.titulo ?? (en ? "LPZ audio" : "Áudio do LPZ")}
-                      loading="lazy"
-                      allow="encrypted-media"
-                      className={`w-full rounded-xl ${ehSpotify(a.url) ? "h-[152px]" : "h-[166px]"}`}
-                    />
-                    {a.titulo && <p className="mt-2 text-sm text-mist/80">{a.titulo}</p>}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-
-          {fotos.length > 0 && (
-            <section aria-labelledby="titulo-fotos">
-              <h2 id="titulo-fotos" className="font-display text-lg uppercase tracking-[0.2em] text-gold-metal">{en ? "Photos" : "Fotos"}</h2>
-              <ul className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-                {fotos.map((f) => (
-                  <li key={f.id}>
-                    <a href={f.url} target="_blank" rel="noopener" className="block overflow-hidden rounded-xl border border-white/10">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={f.url}
-                        alt={f.titulo ?? (en ? "LPZ event photo" : "Foto do evento LPZ")}
-                        loading="lazy"
-                        className="aspect-square w-full object-cover transition hover:scale-105"
-                      />
-                    </a>
-                    {f.titulo && <p className="mt-1 truncate text-xs text-mist/70">{f.titulo}</p>}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          )}
-        </div>
+      <main>
+        <CabecalhoPagina titulo={t.titulo} subtitulo={t.subtitulo} />
+        <ul className="mx-auto grid max-w-4xl gap-4 px-4 py-16 sm:grid-cols-3">
+          {t.caixas.map((c) => (
+            <li
+              key={c.href}
+              className="relative flex flex-col rounded-2xl border border-gold-500/40 bg-petrol-950/70 p-6 text-center transition hover:border-gold-300 hover:shadow-[0_0_24px_rgb(230_181_74/0.25)]"
+            >
+              <p className="font-display text-sm uppercase tracking-[0.15em] text-gold-300">{c.titulo}</p>
+              <p className="mt-3 text-sm text-mist/80">{c.texto}</p>
+              <div className="mt-auto pt-5">
+                <Link
+                  href={c.href}
+                  className="bg-gold-metal inline-block w-full rounded-full px-6 py-3 font-semibold text-gold-ink transition hover:brightness-110 after:absolute after:inset-0 after:rounded-2xl after:content-['']"
+                >
+                  {t.abrir}
+                </Link>
+              </div>
+            </li>
+          ))}
+        </ul>
       </main>
+      <RodapeSite />
     </>
   );
 }

@@ -1,0 +1,240 @@
+import Link from "next/link";
+import { traducoes, type Idioma } from "@/i18n";
+import { ehGestor } from "@/modules/auth/papeis";
+import { obterSessao } from "@/modules/auth/sessao";
+import { linkInstagram, ROTA_CATEGORIA, type Categoria } from "@/modules/perfis";
+import type { professores } from "@/db/schema";
+import { Aviso, Campo, classeBotao, classeInput } from "./form-ui";
+import { salvarPerfilAction } from "./perfis-actions";
+
+// Caixinhas e página de bio dos casais de professores e dos DJs.
+type Perfil = typeof professores.$inferSelect;
+
+export const TEXTOS_PERFIS = traducoes(
+  {
+    verBio: "Ver bio",
+    bioEmBreve: "Bio em breve.",
+    editar: "Editar",
+    voltar: (c: Categoria): string => (c === "dj" ? "Voltar para os DJs" : "Voltar para os professores"),
+    salvo: "Operação realizada com sucesso!",
+    erro: "Confira os campos: nome obrigatório e Instagram só com letras, números, ponto e _.",
+    editando: "Editar perfil (só a organização vê)",
+    nome: "Nome",
+    bio: "Bio em português",
+    bioEn: "Bio em inglês (opcional — sem ela, aparece a bio em português)",
+    instagram: "Instagram",
+    salvar: "Salvar",
+    fotoDica: "A foto é trocada em Painel → Professores.",
+    fotoDe: (n: string) => `Foto de ${n}`,
+  },
+  {
+    verBio: "See bio",
+    bioEmBreve: "Bio coming soon.",
+    editar: "Edit",
+    voltar: (c: Categoria): string => (c === "dj" ? "Back to DJs" : "Back to teachers"),
+    salvo: "Saved successfully!",
+    erro: "Check the fields: name is required and Instagram only allows letters, numbers, dot and _.",
+    editando: "Edit profile (organizers only)",
+    nome: "Name",
+    bio: "Bio in Portuguese",
+    bioEn: "Bio in English (optional — without it, the Portuguese bio is shown)",
+    instagram: "Instagram",
+    salvar: "Save",
+    fotoDica: "The photo is changed in Dashboard → Teachers.",
+    fotoDe: (n: string) => `Photo of ${n}`,
+  },
+);
+
+export async function podeEditar() {
+  const sessao = await obterSessao().catch(() => null);
+  return ehGestor(sessao?.user.papel);
+}
+
+function bioDoIdioma(p: Perfil, idioma: Idioma) {
+  return idioma === "en" ? (p.bioEn ?? p.bio) : p.bio;
+}
+
+function IconeCamera() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+export function BotaoInstagram({ instagram, className = "" }: { instagram: string | null; className?: string }) {
+  const url = linkInstagram(instagram);
+  if (!url) return null;
+  return (
+    <a
+      href={url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`relative z-10 inline-flex items-center gap-2 rounded-full border border-teal-300/60 px-4 py-1.5 text-sm font-medium text-teal-300 hover:bg-teal-300/10 ${className}`}
+    >
+      <IconeCamera />
+      Instagram
+    </a>
+  );
+}
+
+function IconeCaneta() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 20h9" />
+      <path d="M16.5 3.5a2.1 2.1 0 1 1 3 3L7 19l-4 1 1-4Z" />
+    </svg>
+  );
+}
+
+function Foto({ perfil, idioma, grande = false }: { perfil: Perfil; idioma: Idioma; grande?: boolean }) {
+  const tamanho = grande ? "h-40 w-40" : "h-24 w-24";
+  if (perfil.fotoUrl) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={perfil.fotoUrl}
+        alt={TEXTOS_PERFIS[idioma].fotoDe(perfil.nome)}
+        loading="lazy"
+        className={`${tamanho} rounded-full border-2 border-gold-400/70 object-cover`}
+      />
+    );
+  }
+  const iniciais = perfil.nome
+    .split(/\s+/)
+    .filter((p) => /^[A-Za-zÀ-ú]/.test(p))
+    .slice(0, 2)
+    .map((p) => p[0]!.toUpperCase())
+    .join("");
+  return (
+    <div
+      aria-hidden="true"
+      className={`${tamanho} flex items-center justify-center rounded-full border-2 border-gold-400/40 bg-petrol-800 font-display text-xl text-gold-300`}
+    >
+      {iniciais || "LPZ"}
+    </div>
+  );
+}
+
+// Grade de caixinhas. A caixinha inteira leva à bio; o Instagram e a
+// canetinha (só organização) ficam por cima.
+export function GradePerfis({
+  perfis,
+  categoria,
+  idioma,
+  editavel,
+}: {
+  perfis: Perfil[];
+  categoria: Categoria;
+  idioma: Idioma;
+  editavel: boolean;
+}) {
+  const t = TEXTOS_PERFIS[idioma];
+  const base = ROTA_CATEGORIA[categoria];
+  return (
+    <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {perfis.map((p) => (
+        <li
+          key={p.id}
+          className="relative flex flex-col items-center rounded-2xl border border-gold-500/40 bg-petrol-950/70 p-6 text-center transition hover:border-gold-300 hover:shadow-[0_0_24px_rgb(230_181_74/0.25)]"
+        >
+          {editavel && (
+            <Link
+              href={`${base}/${p.id}?editar=1`}
+              aria-label={`${t.editar}: ${p.nome}`}
+              title={t.editar}
+              className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-gold-400/15 text-gold-300 hover:bg-gold-400/30"
+            >
+              <IconeCaneta />
+            </Link>
+          )}
+          <Foto perfil={p} idioma={idioma} />
+          <Link
+            href={`${base}/${p.id}`}
+            className="mt-4 font-display text-sm uppercase tracking-[0.15em] text-gold-300 after:absolute after:inset-0 after:rounded-2xl after:content-['']"
+          >
+            {p.nome}
+          </Link>
+          <p className="mt-2 line-clamp-2 text-sm text-mist/70">{bioDoIdioma(p, idioma) ?? t.bioEmBreve}</p>
+          <div className="mt-auto flex flex-wrap items-center justify-center gap-2 pt-4">
+            <span className="text-xs font-medium text-teal-300">{t.verBio} →</span>
+          </div>
+          {p.instagram && <BotaoInstagram instagram={p.instagram} className="mt-3" />}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+// Página da bio de um perfil; com ?editar=1 a organização vê o formulário.
+export function DetalhePerfil({
+  perfil,
+  categoria,
+  idioma,
+  editavel,
+  editar,
+  ok,
+  erro,
+}: {
+  perfil: Perfil;
+  categoria: Categoria;
+  idioma: Idioma;
+  editavel: boolean;
+  editar: boolean;
+  ok: boolean;
+  erro: boolean;
+}) {
+  const t = TEXTOS_PERFIS[idioma];
+  const base = ROTA_CATEGORIA[categoria];
+  const bio = bioDoIdioma(perfil, idioma);
+  return (
+    <div className="mx-auto max-w-2xl space-y-6">
+      {ok && <Aviso tipo="ok">{t.salvo}</Aviso>}
+      {erro && <Aviso tipo="erro">{t.erro}</Aviso>}
+      <article className="relative flex flex-col items-center rounded-2xl border border-gold-500/40 bg-petrol-950/70 p-8 text-center">
+        {editavel && !editar && (
+          <Link
+            href={`${base}/${perfil.id}?editar=1`}
+            aria-label={t.editar}
+            title={t.editar}
+            className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-gold-400/15 text-gold-300 hover:bg-gold-400/30"
+          >
+            <IconeCaneta />
+          </Link>
+        )}
+        <Foto perfil={perfil} idioma={idioma} grande />
+        <h1 className="mt-5 font-display text-xl uppercase tracking-[0.2em] text-gold-metal sm:text-2xl">{perfil.nome}</h1>
+        <p className="mt-5 whitespace-pre-line text-left text-mist/90 sm:text-center">{bio ?? t.bioEmBreve}</p>
+        <BotaoInstagram instagram={perfil.instagram} className="mt-6" />
+      </article>
+
+      {editavel && editar && (
+        <form action={salvarPerfilAction} className="space-y-4 rounded-2xl border border-white/10 bg-petrol-900/80 p-6">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-teal-300">{t.editando}</h2>
+          <input type="hidden" name="id" value={perfil.id} />
+          <input type="hidden" name="categoria" value={categoria} />
+          <Campo id="perfil-nome" label={t.nome}>
+            <input id="perfil-nome" name="nome" required maxLength={100} defaultValue={perfil.nome} className={classeInput} />
+          </Campo>
+          <Campo id="perfil-bio" label={t.bio}>
+            <textarea id="perfil-bio" name="bio" rows={6} maxLength={2000} defaultValue={perfil.bio ?? ""} className={classeInput} />
+          </Campo>
+          <Campo id="perfil-bio-en" label={t.bioEn}>
+            <textarea id="perfil-bio-en" name="bioEn" rows={6} maxLength={2000} defaultValue={perfil.bioEn ?? ""} className={classeInput} />
+          </Campo>
+          <Campo id="perfil-insta" label={t.instagram}>
+            <input id="perfil-insta" name="instagram" maxLength={31} defaultValue={perfil.instagram ?? ""} placeholder="@perfil" className={classeInput} />
+          </Campo>
+          <p className="text-xs text-mist/60">{t.fotoDica}</p>
+          <button type="submit" className={classeBotao}>{t.salvar}</button>
+        </form>
+      )}
+
+      <p className="text-center">
+        <Link href={base} className="text-sm text-teal-300 hover:underline">← {t.voltar(categoria)}</Link>
+      </p>
+    </div>
+  );
+}
