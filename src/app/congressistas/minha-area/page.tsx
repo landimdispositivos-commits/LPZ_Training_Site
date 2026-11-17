@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/modules/auth/auth";
 import { areaDoPapel } from "@/modules/auth/papeis";
@@ -13,22 +14,40 @@ function mascararCpf(cpf: string) {
   return `${cpf.slice(0, 3)}.***.***-**`;
 }
 
+// "AAAA-MM-DD" → "DD/MM/AAAA" (sem passar por Date, para não sofrer com fuso).
+function formatarData(data: string) {
+  const [a, m, d] = data.split("-");
+  return `${d}/${m}/${a}`;
+}
+
 export default async function Page(props: PageProps<"/congressistas/minha-area">) {
   const sessao = await auth.api.getSession({ headers: await headers() });
-  const { bemvindo, error } = await props.searchParams;
+  const { bemvindo, atualizado, error } = await props.searchParams;
 
   // Link de confirmação inválido/expirado chega aqui com ?error=...
   if (!sessao) redirect(error ? "/congressistas?erro=link" : "/congressistas");
 
   const { user } = sessao;
   if (user.papel !== "congressista") redirect(areaDoPapel(user.papel));
+  // Ficha obrigatória antes da área logada (cadastro novo ou pelo Google).
+  if (!user.cadastroCompletoEm) redirect("/congressistas/completar-cadastro");
+
+  const local = [user.cidade, user.uf ?? (user.pais !== "Brasil" ? user.pais : null)].filter(Boolean).join(" — ");
+  const endereco = user.logradouro
+    ? [`${user.logradouro}, ${user.numero}`, user.complemento, user.bairro, user.cep].filter(Boolean).join(" · ")
+    : null;
+  const naturalidade = [user.naturalidadeCidade, user.naturalidadeEstado].filter(Boolean).join(" — ");
 
   const dados = [
     { rotulo: "Nome", valor: user.name },
     { rotulo: "E-mail", valor: user.email },
+    { rotulo: "Nascimento", valor: user.dataNascimento ? formatarData(user.dataNascimento) : "—" },
     { rotulo: "Celular", valor: user.celular ?? "—" },
-    { rotulo: "País", valor: user.uf ? `${user.pais} — ${user.uf}` : (user.pais ?? "—") },
+    { rotulo: "Mora em", valor: local || "—" },
     ...(user.cpf ? [{ rotulo: "CPF", valor: mascararCpf(user.cpf) }] : []),
+    ...(endereco ? [{ rotulo: "Endereço", valor: endereco }] : []),
+    ...(naturalidade ? [{ rotulo: "Naturalidade", valor: naturalidade }] : []),
+    ...(user.comoConheceu ? [{ rotulo: "Como conheceu", valor: user.comoConheceu }] : []),
   ];
 
   return (
@@ -39,7 +58,12 @@ export default async function Page(props: PageProps<"/congressistas/minha-area">
           <h1 className="font-display text-2xl uppercase tracking-[0.2em] text-gold-metal">Minha área</h1>
           {bemvindo && (
             <p role="status" className="mt-4 rounded-lg border border-teal-400/50 bg-teal-400/10 px-4 py-3 text-sm">
-              E-mail confirmado. Bem-vindo(a) ao LPZ Training!
+              Cadastro concluído. Bem-vindo(a) ao LPZ Training!
+            </p>
+          )}
+          {atualizado && !bemvindo && (
+            <p role="status" className="mt-4 rounded-lg border border-teal-400/50 bg-teal-400/10 px-4 py-3 text-sm">
+              Seus dados foram atualizados.
             </p>
           )}
           <p className="mt-4 text-mist/90">Olá, {user.name.split(" ")[0]}!</p>
@@ -54,6 +78,12 @@ export default async function Page(props: PageProps<"/congressistas/minha-area">
                 </div>
               ))}
             </dl>
+            <Link
+              href="/congressistas/completar-cadastro"
+              className="mt-5 inline-block text-sm font-medium text-teal-300 hover:underline"
+            >
+              Editar meus dados
+            </Link>
           </section>
 
           <section className="mt-6 rounded-2xl border border-white/10 bg-petrol-900/80 p-6">

@@ -5,6 +5,7 @@ import {
   integer,
   boolean,
   timestamp,
+  date,
   pgEnum,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
@@ -39,13 +40,27 @@ export const usuarios = pgTable("usuarios", {
   // Perfil público do profissional (foto, bio, aulas no cronograma).
   professorId: uuid("professor_id").unique().references(() => professores.id, { onDelete: "set null" }),
   // Dados do cadastro de congressista — obrigatórios para congressistas
-  // (validado no hook do Better Auth), vazios para profissionais convidados.
+  // (validados na ação de completar cadastro), vazios para profissionais.
   // CPF é exigido pelo Mercado Pago no pagamento de brasileiros; guardado só
   // com dígitos. O unique permite vários NULL.
   celular: text("celular"),
   cpf: text("cpf").unique(),
   pais: text("pais"),
   uf: text("uf"),
+  // Ficha completada em /congressistas/completar-cadastro (obrigatória para
+  // congressistas antes da área logada — inclusive quem entra pelo Google).
+  cidade: text("cidade"),
+  dataNascimento: date("data_nascimento", { mode: "string" }), // "AAAA-MM-DD"
+  // Opcionais (LGPD: o titular escolhe informar).
+  cep: text("cep"),
+  logradouro: text("logradouro"),
+  numero: text("numero"),
+  complemento: text("complemento"),
+  bairro: text("bairro"),
+  naturalidadeCidade: text("naturalidade_cidade"),
+  naturalidadeEstado: text("naturalidade_estado"), // UF ou país
+  comoConheceu: text("como_conheceu"),
+  cadastroCompletoEm: timestamp("cadastro_completo_em", { withTimezone: true }),
   // Momento em que o titular aceitou a Política de Privacidade (LGPD).
   privacidadeAceitaEm: timestamp("privacidade_aceita_em", { withTimezone: true }),
   // Verificação em duas etapas (app autenticador) — obrigatória para

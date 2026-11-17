@@ -36,6 +36,13 @@
       "when": 1790547996693,
       "tag": "0004_duas_etapas",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794871454155,
+      "tag": "0005_ficha_congressista_e_google",
+      "breakpoints": true
     }
   ]
 }

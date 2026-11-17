@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { auth } from "@/modules/auth/auth";
+import { auth, GOOGLE_ATIVO } from "@/modules/auth/auth";
+import { mensagemErroGoogle } from "@/modules/auth/erros-google";
 import { areaDoPapel } from "@/modules/auth/papeis";
 import { SiteHeader } from "../_components/site-header";
 import { AcessoCongressista } from "./_components/acesso-congressista";
@@ -18,8 +19,10 @@ export default async function Page(props: PageProps<"/congressistas">) {
     redirect(areaDoPapel(sessao.user.papel));
   }
 
-  const { erro } = await props.searchParams;
-  const avisoInicial = typeof erro === "string" ? AVISOS[erro] : undefined;
+  const { erro, error } = await props.searchParams;
+  const avisoInicial =
+    (typeof erro === "string" ? AVISOS[erro] : undefined) ??
+    mensagemErroGoogle(typeof error === "string" ? error : undefined, "congressistas");
 
   return (
     <>
@@ -34,7 +37,7 @@ export default async function Page(props: PageProps<"/congressistas">) {
           </p>
         </div>
         <div className="mt-10">
-          <AcessoCongressista avisoInicial={avisoInicial} />
+          <AcessoCongressista avisoInicial={avisoInicial} googleAtivo={GOOGLE_ATIVO} />
         </div>
       </main>
     </>

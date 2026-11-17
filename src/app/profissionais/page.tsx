@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { auth } from "@/modules/auth/auth";
+import { auth, GOOGLE_ATIVO } from "@/modules/auth/auth";
+import { mensagemErroGoogle } from "@/modules/auth/erros-google";
 import { SiteHeader } from "../_components/site-header";
 import { AcessoProfissional } from "./_components/acesso-profissional";
 
@@ -15,8 +16,10 @@ export default async function Page(props: PageProps<"/profissionais">) {
   const sessao = await auth.api.getSession({ headers: await headers() });
   if (sessao?.user.papel === "profissional") redirect("/profissionais/minha-area");
 
-  const { erro } = await props.searchParams;
-  const avisoInicial = typeof erro === "string" ? AVISOS[erro] : undefined;
+  const { erro, error } = await props.searchParams;
+  const avisoInicial =
+    (typeof erro === "string" ? AVISOS[erro] : undefined) ??
+    mensagemErroGoogle(typeof error === "string" ? error : undefined, "profissionais");
 
   return (
     <>
@@ -29,7 +32,7 @@ export default async function Page(props: PageProps<"/profissionais">) {
           <p className="mt-4 text-mist/90">Área de professores e DJs do LPZ Training.</p>
         </div>
         <div className="mt-10">
-          <AcessoProfissional avisoInicial={avisoInicial} />
+          <AcessoProfissional avisoInicial={avisoInicial} googleAtivo={GOOGLE_ATIVO} />
         </div>
       </main>
     </>

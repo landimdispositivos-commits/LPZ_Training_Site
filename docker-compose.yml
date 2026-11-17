@@ -19,6 +19,10 @@ services:
   mailpit:
     image: axllent/mailpit:latest
     restart: unless-stopped
+    environment:
+      # Serve a interface em /emails — o `next dev` repassa
+      # http://localhost:3001/emails para cá (ver next.config.ts).
+      MP_WEBROOT: emails
     ports:
       - "8025:8025" # UI web para ver e-mails capturados
       - "1025:1025" # SMTP
