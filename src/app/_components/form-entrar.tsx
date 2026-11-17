@@ -2,9 +2,64 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { traducoes } from "@/i18n";
+import { useIdioma } from "@/i18n/cliente";
 import { authClient } from "@/modules/auth/auth-client";
 import { areaDoPapel } from "@/modules/auth/papeis";
 import { Aviso, Campo, classeBotao, classeInput, traduzirErro } from "./form-ui";
+
+const TEXTOS = traducoes(
+  {
+    codigoInvalido: "Código inválido.",
+    tempoEsgotado: "Tempo esgotado. Entre com e-mail e senha de novo.",
+    acessoRestrito: "Acesso restrito.",
+    explicaCodigo:
+      "Sua conta usa verificação em duas etapas. Abra o app autenticador no celular e digite o código de 6 dígitos do LPZ Training.",
+    explicaRecuperacao:
+      "Digite um dos códigos de recuperação que você guardou ao ativar as duas etapas. Cada código funciona uma vez.",
+    codigo6: "Código de 6 dígitos",
+    codigoRecuperacao: "Código de recuperação",
+    verificando: "Verificando...",
+    entrar: "Entrar",
+    entrando: "Entrando...",
+    usarRecuperacao: "Perdi o acesso ao app — usar código de recuperação",
+    usarApp: "Usar o código do app",
+    email: "E-mail",
+    senha: "Senha",
+    esqueci: "Esqueci minha senha",
+    linkEnviado:
+      "Se houver uma conta com esse e-mail, você vai receber um link para redefinir a senha. O link vale por 1 hora.",
+    informeEmail: "Informe o e-mail da sua conta e enviaremos um link para criar uma nova senha.",
+    enviando: "Enviando...",
+    enviarLink: "Enviar link",
+    voltar: "Voltar para entrar",
+  },
+  {
+    codigoInvalido: "Invalid code.",
+    tempoEsgotado: "Time ran out. Sign in with email and password again.",
+    acessoRestrito: "Restricted access.",
+    explicaCodigo:
+      "Your account uses two-step verification. Open the authenticator app on your phone and enter the 6-digit LPZ Training code.",
+    explicaRecuperacao:
+      "Enter one of the recovery codes you saved when you turned on two-step verification. Each code works once.",
+    codigo6: "6-digit code",
+    codigoRecuperacao: "Recovery code",
+    verificando: "Verifying...",
+    entrar: "Sign in",
+    entrando: "Signing in...",
+    usarRecuperacao: "I lost access to the app — use a recovery code",
+    usarApp: "Use the app code",
+    email: "Email",
+    senha: "Password",
+    esqueci: "Forgot my password",
+    linkEnviado:
+      "If there is an account with this email, you will receive a link to reset your password. The link is valid for 1 hour.",
+    informeEmail: "Enter your account email and we will send you a link to create a new password.",
+    enviando: "Sending...",
+    enviarLink: "Send link",
+    voltar: "Back to sign in",
+  },
+);
 
 // Login único por e-mail/senha. Depois de entrar, cada pessoa vai para a área
 // do SEU perfil (definido pela organização em Permissões). Contas com
@@ -25,6 +80,8 @@ export function FormEntrar({
   painelProps?: React.ComponentProps<"form">;
 }) {
   const router = useRouter();
+  const idioma = useIdioma();
+  const t = TEXTOS[idioma];
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string>();
   const [etapa, setEtapa] = useState<"senha" | "codigo" | "recuperacao">("senha");
@@ -47,10 +104,10 @@ export function FormEntrar({
     if (error) {
       setErro(
         error.code === "INVALID_CODE" || error.code === "INVALID_BACKUP_CODE"
-          ? "Código inválido."
+          ? t.codigoInvalido
           : error.status === 401
-            ? "Tempo esgotado. Entre com e-mail e senha de novo."
-            : traduzirErro(error),
+            ? t.tempoEsgotado
+            : traduzirErro(error, idioma),
       );
       if (error.status === 401) setEtapa("senha");
       return;
@@ -69,7 +126,7 @@ export function FormEntrar({
       callbackURL: destino,
     });
     if (error) {
-      setErro(traduzirErro(error));
+      setErro(traduzirErro(error, idioma));
       setEnviando(false);
       return;
     }
@@ -81,7 +138,7 @@ export function FormEntrar({
     }
     if (papelExigido && data?.user.papel !== papelExigido) {
       await authClient.signOut();
-      setErro(msgPapelRecusado ?? "Acesso restrito.");
+      setErro(msgPapelRecusado ?? t.acessoRestrito);
       setEnviando(false);
       return;
     }
@@ -94,10 +151,10 @@ export function FormEntrar({
         {erro && <Aviso tipo="erro">{erro}</Aviso>}
         <p className="text-sm text-mist/90">
           {etapa === "codigo"
-            ? "Sua conta usa verificação em duas etapas. Abra o app autenticador no celular e digite o código de 6 dígitos do LPZ Training."
-            : "Digite um dos códigos de recuperação que você guardou ao ativar as duas etapas. Cada código funciona uma vez."}
+            ? t.explicaCodigo
+            : t.explicaRecuperacao}
         </p>
-        <Campo id="login-codigo" label={etapa === "codigo" ? "Código de 6 dígitos" : "Código de recuperação"}>
+        <Campo id="login-codigo" label={etapa === "codigo" ? t.codigo6 : t.codigoRecuperacao}>
           <input
             id="login-codigo"
             name="codigo"
@@ -110,7 +167,7 @@ export function FormEntrar({
           />
         </Campo>
         <button type="submit" disabled={enviando} className={classeBotao}>
-          {enviando ? "Verificando..." : "Entrar"}
+          {enviando ? t.verificando : t.entrar}
         </button>
         <button
           type="button"
@@ -120,7 +177,7 @@ export function FormEntrar({
           }}
           className="block w-full text-center text-sm text-teal-300 hover:underline"
         >
-          {etapa === "codigo" ? "Perdi o acesso ao app — usar código de recuperação" : "Usar o código do app"}
+          {etapa === "codigo" ? t.usarRecuperacao : t.usarApp}
         </button>
       </form>
     );
@@ -129,23 +186,25 @@ export function FormEntrar({
   return (
     <form {...painelProps} onSubmit={enviar} className="space-y-4">
       {erro && <Aviso tipo="erro">{erro}</Aviso>}
-      <Campo id="login-email" label="E-mail">
+      <Campo id="login-email" label={t.email}>
         <input id="login-email" name="email" type="email" autoComplete="email" required className={classeInput} />
       </Campo>
-      <Campo id="login-senha" label="Senha">
+      <Campo id="login-senha" label={t.senha}>
         <input id="login-senha" name="senha" type="password" autoComplete="current-password" required className={classeInput} />
       </Campo>
       <button type="submit" disabled={enviando} className={classeBotao}>
-        {enviando ? "Entrando..." : "Entrar"}
+        {enviando ? t.entrando : t.entrar}
       </button>
       <button type="button" onClick={onEsqueci} className="block w-full text-center text-sm text-teal-300 hover:underline">
-        Esqueci minha senha
+        {t.esqueci}
       </button>
     </form>
   );
 }
 
 export function FormEsqueci({ redirectTo, onVoltar }: { redirectTo: string; onVoltar: () => void }) {
+  const idioma = useIdioma();
+  const t = TEXTOS[idioma];
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string>();
   const [enviado, setEnviado] = useState(false);
@@ -161,7 +220,7 @@ export function FormEsqueci({ redirectTo, onVoltar }: { redirectTo: string; onVo
     });
     setEnviando(false);
     if (error) {
-      setErro(traduzirErro(error));
+      setErro(traduzirErro(error, idioma));
       return;
     }
     setEnviado(true);
@@ -172,22 +231,22 @@ export function FormEsqueci({ redirectTo, onVoltar }: { redirectTo: string; onVo
       {enviado ? (
         // Mesma resposta exista ou não a conta — não revela quem é cadastrado.
         <Aviso tipo="ok">
-          Se houver uma conta com esse e-mail, você vai receber um link para redefinir a senha. O link vale por 1 hora.
+          {t.linkEnviado}
         </Aviso>
       ) : (
         <form onSubmit={enviar} className="space-y-4">
-          <p className="text-sm text-mist/80">Informe o e-mail da sua conta e enviaremos um link para criar uma nova senha.</p>
+          <p className="text-sm text-mist/80">{t.informeEmail}</p>
           {erro && <Aviso tipo="erro">{erro}</Aviso>}
-          <Campo id="esqueci-email" label="E-mail">
+          <Campo id="esqueci-email" label={t.email}>
             <input id="esqueci-email" name="email" type="email" autoComplete="email" required className={classeInput} />
           </Campo>
           <button type="submit" disabled={enviando} className={classeBotao}>
-            {enviando ? "Enviando..." : "Enviar link"}
+            {enviando ? t.enviando : t.enviarLink}
           </button>
         </form>
       )}
       <button type="button" onClick={onVoltar} className="block w-full text-center text-sm text-teal-300 hover:underline">
-        Voltar para entrar
+        {t.voltar}
       </button>
     </div>
   );

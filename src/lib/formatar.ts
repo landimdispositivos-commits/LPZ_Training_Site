@@ -1,13 +1,15 @@
-// Formatação compartilhada (pt-BR, horário de Brasília).
+// Formatação compartilhada (horário de Brasília). Português por padrão; as
+// telas públicas passam o idioma do visitante.
+import { LOCALE, type Idioma } from "@/i18n";
 
 const FUSO = "America/Sao_Paulo";
 
-export function formatarPreco(centavos: number) {
-  return (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+export function formatarPreco(centavos: number, idioma: Idioma = "pt") {
+  return (centavos / 100).toLocaleString(LOCALE[idioma], { style: "currency", currency: "BRL" });
 }
 
-export function formatarDataHora(data: Date) {
-  return data.toLocaleString("pt-BR", {
+export function formatarDataHora(data: Date, idioma: Idioma = "pt") {
+  return data.toLocaleString(LOCALE[idioma], {
     timeZone: FUSO,
     day: "2-digit",
     month: "2-digit",
@@ -17,11 +19,15 @@ export function formatarDataHora(data: Date) {
   });
 }
 
-// "AAAA-MM-DD" → "sexta-feira, 24/09" (sem fuso: a data é só texto).
-export function formatarDiaCronograma(dia: string) {
+// "AAAA-MM-DD" → "sexta-feira, 24/09" ou "Friday, Sep 24" (sem fuso: a data é só texto).
+export function formatarDiaCronograma(dia: string, idioma: Idioma = "pt") {
   const [a, m, d] = dia.split("-").map(Number);
   if (!a || !m || !d) return dia;
-  const semana = new Date(Date.UTC(a, m - 1, d)).toLocaleDateString("pt-BR", { weekday: "long", timeZone: "UTC" });
+  const data = new Date(Date.UTC(a, m - 1, d));
+  if (idioma === "en") {
+    return data.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric", timeZone: "UTC" });
+  }
+  const semana = data.toLocaleDateString("pt-BR", { weekday: "long", timeZone: "UTC" });
   return `${semana}, ${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}`;
 }
 

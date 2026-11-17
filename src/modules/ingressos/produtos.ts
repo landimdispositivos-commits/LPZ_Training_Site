@@ -2,11 +2,16 @@
 // `entrada`: gera ingresso com QR para a portaria; paparazzi é serviço, sem QR.
 // Arquivo sem dependências, para ser usado em qualquer tela (usuários, financeiro…).
 export const PRODUTOS = {
-  full_pass: { nome: "Full pass", entrada: true },
-  pacote_baile: { nome: "Pacote de bailes", entrada: true },
-  baile_avulso: { nome: "Baile avulso", entrada: true },
-  paparazzi_video: { nome: "Paparazzi — vídeo", entrada: false },
-  paparazzi_foto: { nome: "Paparazzi — fotos", entrada: false },
+  full_pass: { nome: "Full pass", nomeEn: "Full pass", entrada: true },
+  pacote_baile: { nome: "Pacote de bailes", nomeEn: "Party package", entrada: true },
+  baile_avulso: { nome: "Baile avulso", nomeEn: "Single party", entrada: true },
+  paparazzi_video: { nome: "Paparazzi — vídeo", nomeEn: "Paparazzi — video", entrada: false },
+  paparazzi_foto: { nome: "Paparazzi — fotos", nomeEn: "Paparazzi — photos", entrada: false },
 } as const;
 export type TipoProduto = keyof typeof PRODUTOS;
 export const TIPOS_PRODUTO = Object.keys(PRODUTOS) as TipoProduto[];
+
+// Nome do produto no idioma do visitante (telas públicas).
+export function nomeDoProduto(tipo: TipoProduto, idioma: "pt" | "en" = "pt") {
+  return idioma === "en" ? PRODUTOS[tipo].nomeEn : PRODUTOS[tipo].nome;
+}

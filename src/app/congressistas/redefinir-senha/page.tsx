@@ -1,11 +1,15 @@
 import type { Metadata } from "next";
+import { obterIdioma } from "@/i18n/servidor";
 import { SiteHeader } from "../../_components/site-header";
 import { FormRedefinirSenha } from "../../_components/form-redefinir-senha";
 
-export const metadata: Metadata = { title: "Redefinir senha — LPZ Training" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await obterIdioma()) === "en" ? "Reset password — LPZ Training" : "Redefinir senha — LPZ Training" };
+}
 
 export default async function Page(props: PageProps<"/congressistas/redefinir-senha">) {
   const { token, error } = await props.searchParams;
+  const en = (await obterIdioma()) === "en";
 
   return (
     <>
@@ -13,7 +17,7 @@ export default async function Page(props: PageProps<"/congressistas/redefinir-se
       <main className="bg-city-glow min-h-[80vh] px-4 py-16">
         <div className="mx-auto max-w-md">
           <h1 className="text-center font-display text-xl uppercase tracking-[0.2em] text-gold-metal sm:text-2xl">
-            Redefinir senha
+            {en ? "Reset password" : "Redefinir senha"}
           </h1>
           <div className="mt-8 rounded-2xl border border-white/10 bg-petrol-900/80 p-6">
             <FormRedefinirSenha

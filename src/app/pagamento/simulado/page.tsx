@@ -6,10 +6,13 @@ import { lotes, pedidos } from "@/db/schema";
 import { formatarPreco } from "@/lib/formatar";
 import { obterSessao } from "@/modules/auth/sessao";
 import { classeBotao } from "../../_components/form-ui";
+import { obterIdioma } from "@/i18n/servidor";
 import { SiteHeader } from "../../_components/site-header";
 import { decidirPagamentoSimuladoAction } from "./actions";
 
-export const metadata: Metadata = { title: "Pagamento simulado — LPZ Training" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: (await obterIdioma()) === "en" ? "Test payment — LPZ Training" : "Pagamento simulado — LPZ Training" };
+}
 
 // Página de desenvolvimento (TEST_MODE): faz o papel da tela do Mercado Pago.
 export default async function Page(props: PageProps<"/pagamento/simulado">) {
@@ -29,6 +32,8 @@ export default async function Page(props: PageProps<"/pagamento/simulado">) {
     .then((r) => r[0]);
   if (!pedido) notFound();
   if (pedido.status !== "pendente") redirect("/ingressos");
+  const idioma = await obterIdioma();
+  const en = idioma === "en";
 
   return (
     <>
@@ -36,18 +41,27 @@ export default async function Page(props: PageProps<"/pagamento/simulado">) {
       <main className="bg-city-glow min-h-[80vh] px-4 py-16">
         <div className="mx-auto max-w-md space-y-6 text-center">
           <p className="rounded-lg border border-ember-500/50 bg-ember-500/10 px-4 py-3 text-sm">
-            <strong>Modo de teste.</strong> Esta tela substitui o Mercado Pago enquanto a integração real não está
-            ligada. Nenhum dinheiro é cobrado.
+            {en ? (
+              <>
+                <strong>Test mode.</strong> This screen replaces Mercado Pago until the real integration is turned on.
+                No money is charged.
+              </>
+            ) : (
+              <>
+                <strong>Modo de teste.</strong> Esta tela substitui o Mercado Pago enquanto a integração real não está
+                ligada. Nenhum dinheiro é cobrado.
+              </>
+            )}
           </p>
-          <h1 className="font-display text-xl uppercase tracking-[0.2em] text-gold-metal">Pagamento simulado</h1>
+          <h1 className="font-display text-xl uppercase tracking-[0.2em] text-gold-metal">{en ? "Test payment" : "Pagamento simulado"}</h1>
           <div className="rounded-2xl border border-white/10 bg-petrol-900/80 p-6">
             <p className="text-sm text-teal-300">{pedido.loteNome}</p>
-            <p className="text-gold-metal mt-1 text-3xl font-extrabold">{formatarPreco(pedido.valorCentavos)}</p>
+            <p className="text-gold-metal mt-1 text-3xl font-extrabold">{formatarPreco(pedido.valorCentavos, idioma)}</p>
           </div>
           <form action={decidirPagamentoSimuladoAction} className="space-y-3">
             <input type="hidden" name="pedidoId" value={pedido.id} />
             <button type="submit" name="decisao" value="aprovar" className={classeBotao}>
-              Aprovar pagamento
+              {en ? "Approve payment" : "Aprovar pagamento"}
             </button>
             <button
               type="submit"
@@ -55,7 +69,7 @@ export default async function Page(props: PageProps<"/pagamento/simulado">) {
               value="recusar"
               className="w-full rounded-full border border-gold-500/60 px-6 py-3 text-sm font-semibold text-gold-300 hover:bg-gold-500/10"
             >
-              Recusar / desistir
+              {en ? "Decline / cancel" : "Recusar / desistir"}
             </button>
           </form>
         </div>

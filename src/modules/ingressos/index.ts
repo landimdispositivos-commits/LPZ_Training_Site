@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { ingressos, lotes, pedidos } from "@/db/schema";
 import { paymentProvider } from "@/modules/pagamentos";
 import { PRODUTOS, TIPOS_PRODUTO, type TipoProduto } from "./produtos";
-export { PRODUTOS, TIPOS_PRODUTO, type TipoProduto } from "./produtos";
+export { nomeDoProduto, PRODUTOS, TIPOS_PRODUTO, type TipoProduto } from "./produtos";
 
 // ---------------------------------------------------------------------------
 // Regras de venda de ingressos.

@@ -2,28 +2,36 @@ import type { Metadata } from "next";
 import { asc } from "drizzle-orm";
 import { db } from "@/db";
 import { professores } from "@/db/schema";
+import { obterIdioma } from "@/i18n/servidor";
 import { SiteHeader } from "../_components/site-header";
 import { RodapeSite } from "../_components/rodape-site";
 import { CabecalhoPagina } from "../_components/cabecalho-pagina";
 
-export const metadata: Metadata = {
-  title: "Professores — LPZ Training",
-  description: "Conheça os professores do LPZ Training.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const en = (await obterIdioma()) === "en";
+  return {
+    title: en ? "Teachers — LPZ Training" : "Professores — LPZ Training",
+    description: en ? "Meet the LPZ Training teachers." : "Conheça os professores do LPZ Training.",
+  };
+}
 
 export const dynamic = "force-dynamic";
 
 export default async function Page() {
+  const en = (await obterIdioma()) === "en";
   const lista = await db.select().from(professores).orderBy(asc(professores.ordem), asc(professores.nome));
 
   return (
     <>
       <SiteHeader />
       <main>
-        <CabecalhoPagina titulo="Professores" subtitulo="Quem vai dar aula no congresso." />
+        <CabecalhoPagina
+          titulo={en ? "Teachers" : "Professores"}
+          subtitulo={en ? "Who is teaching at the congress." : "Quem vai dar aula no congresso."}
+        />
         <div className="mx-auto max-w-3xl px-4 py-16">
           {lista.length === 0 ? (
-            <p className="text-center text-mist/70">Professores em breve.</p>
+            <p className="text-center text-mist/70">{en ? "Teachers coming soon." : "Professores em breve."}</p>
           ) : (
             <ul className="grid gap-6 sm:grid-cols-2">
               {lista.map((professor) => (
@@ -32,7 +40,7 @@ export default async function Page() {
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={professor.fotoUrl}
-                      alt={`Foto de ${professor.nome}`}
+                      alt={en ? `Photo of ${professor.nome}` : `Foto de ${professor.nome}`}
                       loading="lazy"
                       className="h-20 w-20 shrink-0 rounded-full object-cover"
                     />

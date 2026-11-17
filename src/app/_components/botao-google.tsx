@@ -1,8 +1,29 @@
 "use client";
 
 import { useState } from "react";
+import { traducoes } from "@/i18n";
+import { useIdioma } from "@/i18n/cliente";
 import { authClient } from "@/modules/auth/auth-client";
 import { Aviso } from "./form-ui";
+
+const TEXTOS = traducoes(
+  {
+    configurando: "O login com o Google está sendo configurado pela organização. Por enquanto, entre com e-mail e senha.",
+    limite: "Muitas tentativas em pouco tempo. Aguarde um minuto e tente de novo.",
+    falhou: "Não foi possível abrir o login do Google. Tente de novo.",
+    abrindo: "Abrindo o Google...",
+    entrar: "Entrar com o Google",
+    ou: "ou",
+  },
+  {
+    configurando: "Google sign-in is being set up by the organizers. For now, sign in with email and password.",
+    limite: "Too many attempts in a short time. Wait a minute and try again.",
+    falhou: "We could not open Google sign-in. Please try again.",
+    abrindo: "Opening Google...",
+    entrar: "Sign in with Google",
+    ou: "or",
+  },
+);
 
 // Botão "Entrar com Google" no padrão visual exigido pelo Google
 // (fundo branco, logotipo "G" oficial, texto "Entrar com o Google").
@@ -20,12 +41,13 @@ export function BotaoGoogle({
   // false = credenciais do Google ainda não configuradas no servidor (.env).
   ativo?: boolean;
 }) {
+  const t = TEXTOS[useIdioma()];
   const [indo, setIndo] = useState(false);
   const [erro, setErro] = useState<string>();
 
   async function entrar() {
     if (!ativo) {
-      setErro("O login com o Google está sendo configurado pela organização. Por enquanto, entre com e-mail e senha.");
+      setErro(t.configurando);
       return;
     }
     setIndo(true);
@@ -40,8 +62,8 @@ export function BotaoGoogle({
     if (error) {
       setErro(
         error.status === 429
-          ? "Muitas tentativas em pouco tempo. Aguarde um minuto e tente de novo."
-          : "Não foi possível abrir o login do Google. Tente de novo.",
+          ? t.limite
+          : t.falhou,
       );
       setIndo(false);
     }
@@ -62,7 +84,7 @@ export function BotaoGoogle({
           <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z" />
           <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z" />
         </svg>
-        {indo ? "Abrindo o Google..." : "Entrar com o Google"}
+        {indo ? t.abrindo : t.entrar}
       </button>
     </div>
   );
@@ -70,10 +92,11 @@ export function BotaoGoogle({
 
 // Separador "ou" entre o Google e o formulário de e-mail/senha.
 export function SeparadorOu() {
+  const t = TEXTOS[useIdioma()];
   return (
     <div className="my-6 flex items-center gap-3 text-xs uppercase tracking-widest text-mist/50" aria-hidden="true">
       <span className="h-px flex-1 bg-white/10" />
-      ou
+      {t.ou}
       <span className="h-px flex-1 bg-white/10" />
     </div>
   );

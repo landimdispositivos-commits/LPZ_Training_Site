@@ -1,4 +1,5 @@
 // Peças visuais compartilhadas pelos formulários de congressista.
+import type { Idioma } from "@/i18n";
 
 export const classeInput =
   "w-full rounded-lg border border-white/15 bg-petrol-950/70 px-3 py-2.5 text-white placeholder:text-mist/40 focus:border-gold-400 focus:outline-none focus:ring-2 focus:ring-gold-400/40 aria-[invalid=true]:border-ember-400";
@@ -47,7 +48,29 @@ export function Aviso({ tipo, children }: { tipo: "erro" | "ok"; children: React
 }
 
 // Mensagens do Better Auth vêm em inglês; traduzimos pelos códigos.
-export function traduzirErro(erro: { code?: string; status?: number; message?: string } | null | undefined) {
+const ERROS_EN: Record<string, string> = {
+  generico: "Something went wrong. Please try again.",
+  limite: "Too many attempts in a short time. Wait a minute and try again.",
+  INVALID_EMAIL_OR_PASSWORD: "Incorrect email or password.",
+  EMAIL_NOT_VERIFIED:
+    "Your email has not been confirmed yet. We sent you a new confirmation link — check your inbox (and spam folder).",
+  PASSWORD_TOO_SHORT: "The password must have at least 8 characters.",
+  PASSWORD_TOO_LONG: "Password is too long.",
+  INVALID_EMAIL: "Invalid email.",
+  INVALID_TOKEN: "Invalid or expired link. Request a new one.",
+};
+
+export function traduzirErro(
+  erro: { code?: string; status?: number; message?: string } | null | undefined,
+  idioma: Idioma = "pt",
+) {
+  if (idioma === "en") {
+    if (!erro) return ERROS_EN.generico;
+    if (erro.status === 429) return ERROS_EN.limite;
+    // Validações do nosso servidor chegam em português.
+    if (erro.code === "LPZ_VALIDACAO" && erro.message) return erro.message;
+    return ERROS_EN[erro.code ?? ""] ?? ERROS_EN.generico;
+  }
   if (!erro) return "Algo deu errado. Tente novamente.";
   if (erro.status === 429) return "Muitas tentativas em pouco tempo. Aguarde um minuto e tente de novo.";
   switch (erro.code) {

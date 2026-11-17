@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { SiteHeader } from "./_components/site-header";
 import { RodapeSite } from "./_components/rodape-site";
+import { obterIdioma } from "@/i18n/servidor";
 
 // Página inicial: só a apresentação. Cronograma, Professores, Ingressos e
 // Galeria são subpáginas, abertas pelo menu do topo.
@@ -25,14 +26,15 @@ function LinhasDecorativas() {
   );
 }
 
-export default function Home() {
+export default async function Home() {
+  const en = (await obterIdioma()) === "en";
   return (
     <>
       <a
         href="#conteudo"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-gold-300 focus:px-4 focus:py-2 focus:text-gold-ink focus:shadow"
       >
-        Pular para o conteúdo
+        {en ? "Skip to content" : "Pular para o conteúdo"}
       </a>
 
       <SiteHeader />
@@ -59,15 +61,24 @@ export default function Home() {
               </span>
             </h1>
             <p className="mx-auto mt-10 max-w-xl text-base text-mist/90 sm:text-lg">
-              É um <strong className="font-semibold text-white">congresso de zouk</strong> que
-              tem como foco uma linha de{" "}
-              <strong className="font-semibold text-white">treinamento e prática continuada</strong>.
+              {en ? (
+                <>
+                  A <strong className="font-semibold text-white">zouk congress</strong> focused on{" "}
+                  <strong className="font-semibold text-white">training and continuous practice</strong>.
+                </>
+              ) : (
+                <>
+                  É um <strong className="font-semibold text-white">congresso de zouk</strong> que
+                  tem como foco uma linha de{" "}
+                  <strong className="font-semibold text-white">treinamento e prática continuada</strong>.
+                </>
+              )}
             </p>
             <Link
               href="/quem-somos"
               className="bg-gold-metal mt-10 inline-block rounded-full px-8 py-3 font-semibold text-gold-ink shadow-[0_0_30px_rgb(230_181_74/0.35)] transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold-300"
             >
-              Quem somos
+              {en ? "About us" : "Quem somos"}
             </Link>
           </div>
         </section>
