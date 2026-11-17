@@ -159,11 +159,13 @@ export const cronogramaItens = pgTable("cronograma_itens", {
 // ---------------------------------------------------------------------------
 
 // Tipo de produto vendido em cada lote. Os de entrada (full pass e bailes)
-// geram ingresso com QR; os paparazzi são serviços de foto/vídeo, sem QR.
+// geram ingresso com QR; Jack and Jill (inscrição na competição) e paparazzi
+// (serviços de foto/vídeo) não geram QR.
 export const tipoProdutoEnum = pgEnum("tipo_produto", [
   "full_pass",
   "pacote_baile",
   "baile_avulso",
+  "jack_and_jill",
   "paparazzi_video",
   "paparazzi_foto",
 ]);

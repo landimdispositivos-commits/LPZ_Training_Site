@@ -52,7 +52,8 @@ export async function loteVigente(tipo: TipoProduto) {
   });
 }
 
-// Vitrine: para cada produto, o lote vigente ou a indicação de esgotado.
+// Vitrine: todos os produtos, cada um com o lote vigente, a indicação de
+// esgotado ou, se ainda não tem lote aberto, "valor em breve" (emBreve).
 export async function vitrine() {
   const agora = new Date();
   const ativos = await db
@@ -60,11 +61,10 @@ export async function vitrine() {
     .from(lotes)
     .where(and(...filtrosVigencia(agora)))
     .orderBy(asc(lotes.precoCentavos), asc(lotes.criadoEm));
-  return TIPOS_PRODUTO.flatMap((tipo) => {
+  return TIPOS_PRODUTO.map((tipo) => {
     const doTipo = ativos.filter((l) => l.tipo === tipo);
-    if (doTipo.length === 0) return [];
     const comVaga = doTipo.find((l) => l.quantidadeVendida < l.quantidadeTotal) ?? null;
-    return [{ tipo, produto: PRODUTOS[tipo], lote: comVaga, esgotado: !comVaga }];
+    return { tipo, produto: PRODUTOS[tipo], lote: comVaga, esgotado: doTipo.length > 0 && !comVaga, emBreve: doTipo.length === 0 };
   });
 }
 

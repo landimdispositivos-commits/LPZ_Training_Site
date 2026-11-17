@@ -1,0 +1,1 @@
+ALTER TYPE "public"."tipo_produto" ADD VALUE 'jack_and_jill' BEFORE 'paparazzi_video';

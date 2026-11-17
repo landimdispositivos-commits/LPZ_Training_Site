@@ -31,6 +31,7 @@ const TEXTOS = traducoes(
     naoAbertas: "Vendas ainda não abertas. Volte em breve.",
     restam: (n: number) => `Restam ${n} vagas neste lote.`,
     esgotado: "Esgotado. O próximo lote abre em breve.",
+    emBreve: "Valor e vendas em breve.",
     comprado: "Comprado — ver na minha área",
     continuar: "Continuar pagamento",
     desistir: "Desistir",
@@ -47,6 +48,7 @@ const TEXTOS = traducoes(
     naoAbertas: "Sales are not open yet. Come back soon.",
     restam: (n: number) => `${n} spots left in this batch.`,
     esgotado: "Sold out. The next batch opens soon.",
+    emBreve: "Price and sales coming soon.",
     comprado: "Purchased — see it in my area",
     continuar: "Continue payment",
     desistir: "Cancel",
@@ -99,7 +101,7 @@ export default async function Page(props: PageProps<"/ingressos">) {
           )}
           {user && !congressista && <Aviso tipo="erro">{t.soCongressista}</Aviso>}
 
-          {itens.length === 0 ? (
+          {itens.every((i) => i.emBreve) ? (
             <p className="text-center text-mist/80">{t.naoAbertas}</p>
           ) : (
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -117,7 +119,7 @@ export default async function Page(props: PageProps<"/ingressos">) {
                         </p>
                       </>
                     ) : (
-                      <p className="mt-4 text-sm text-mist/80">{t.esgotado}</p>
+                      <p className="mt-4 text-sm text-mist/80">{item.emBreve ? t.emBreve : t.esgotado}</p>
                     )}
 
                     <div className="mt-auto space-y-2 pt-5">
