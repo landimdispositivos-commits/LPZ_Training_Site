@@ -47,9 +47,9 @@ export function AcessoCongressista({ avisoInicial, googleAtivo }: { avisoInicial
         {avisoInicial && <div className="mb-4"><Aviso tipo="erro">{avisoInicial}</Aviso></div>}
 
         {/* Google serve tanto para entrar quanto para criar conta. */}
-        {googleAtivo && aba !== "esqueci" && (
+        {aba !== "esqueci" && (
           <>
-            <BotaoGoogle destino={AREA} paginaErro="/congressistas" criarConta />
+            <BotaoGoogle destino={AREA} paginaErro="/congressistas" criarConta ativo={googleAtivo} />
             {aba === "criar" && (
               <p className="mt-3 text-center text-xs text-mist/60">
                 No primeiro acesso pelo Google, pediremos seus dados e o aceite da Política de Privacidade.

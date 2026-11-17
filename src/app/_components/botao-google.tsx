@@ -12,15 +12,22 @@ export function BotaoGoogle({
   destino,
   paginaErro,
   criarConta = false,
+  ativo = true,
 }: {
   destino: string;
   paginaErro: string;
   criarConta?: boolean;
+  // false = credenciais do Google ainda não configuradas no servidor (.env).
+  ativo?: boolean;
 }) {
   const [indo, setIndo] = useState(false);
   const [erro, setErro] = useState<string>();
 
   async function entrar() {
+    if (!ativo) {
+      setErro("O login com o Google está sendo configurado pela organização. Por enquanto, entre com e-mail e senha.");
+      return;
+    }
     setIndo(true);
     setErro(undefined);
     const { error } = await authClient.signIn.social({
