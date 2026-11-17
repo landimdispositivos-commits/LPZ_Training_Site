@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth, GOOGLE_ATIVO } from "@/modules/auth/auth";
@@ -39,6 +40,13 @@ export default async function Page(props: PageProps<"/congressistas">) {
         <div className="mt-10">
           <AcessoCongressista avisoInicial={avisoInicial} googleAtivo={GOOGLE_ATIVO} />
         </div>
+        <p className="mx-auto mt-8 max-w-md text-center text-sm text-mist/70">
+          É professor(a) ou DJ?{" "}
+          <Link href="/profissionais" className="font-medium text-teal-300 hover:underline">Entre aqui</Link>
+          {" · "}
+          Organização ou portaria?{" "}
+          <Link href="/administradores" className="font-medium text-teal-300 hover:underline">Entre aqui</Link>
+        </p>
       </main>
     </>
   );
