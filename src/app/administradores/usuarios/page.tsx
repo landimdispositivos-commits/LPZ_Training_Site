@@ -17,6 +17,7 @@ import { ACOES, descreverEvento, historicoDos, type RegistroAuditoria } from "@/
 export const metadata: Metadata = { title: "Usuários — LPZ Training" };
 
 const COR_PAPEL: Record<string, string> = {
+  acesso_total: "bg-gold-metal text-gold-ink",
   organizador: "bg-gold-400/20 text-gold-300",
   portaria: "bg-ember-500/15 text-ember-400",
   profissional: "bg-teal-400/15 text-teal-300",
@@ -67,7 +68,7 @@ export default async function Page(props: PageProps<"/administradores/usuarios">
   const ERROS: Record<string, string> = {
     dados: "Não foi possível alterar. Atualize a página e tente de novo.",
     proprio: "Você não pode mudar o seu próprio perfil. Peça a outro organizador.",
-    confirmar: "Para dar acesso de Portaria ou Organizador, marque a caixa de confirmação.",
+    confirmar: "Para dar acesso de Portaria, Organizador ou Acesso total, marque a caixa de confirmação.",
     edicao: "Confira os dados: nome (mín. 2 letras), e-mail válido e data no formato certo.",
     cpf: "CPF inválido.",
     celular: "Celular inválido (use DDD + número, ex.: 11 91234-5678).",
@@ -109,7 +110,7 @@ export default async function Page(props: PageProps<"/administradores/usuarios">
           )}
           {typeof erro === "string" && ERROS[erro] && <Aviso tipo="erro">{ERROS[erro]}</Aviso>}
 
-          <div className="grid gap-3 sm:grid-cols-5">
+          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
             <Contador rotulo="Total" valor={total} destaque />
             {PAPEIS.map((p) => (
               <Contador key={p} rotulo={ROTULO_PAPEL[p]} valor={totais[p] ?? 0} />
@@ -312,7 +313,7 @@ function LinhaUsuario({
                 </select>
                 <label className="flex items-center gap-2 text-xs text-mist/80">
                   <input type="checkbox" name="confirmo" className="h-4 w-4 accent-gold-400" />
-                  Confirmo (obrigatório para Portaria ou Organizador)
+                  Confirmo (obrigatório para Portaria, Organizador ou Acesso total)
                 </label>
                 <BotaoSalvar>Salvar permissão</BotaoSalvar>
               </form>

@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/db";
 import { usuarios } from "@/db/schema";
+import { ehAdmin } from "@/modules/auth/papeis";
 import { exigirAdmin } from "@/modules/auth/sessao";
 import { alterarPapel, PAPEIS } from "@/modules/usuarios";
 import { registrarAuditoria } from "@/modules/auditoria";
@@ -42,7 +43,7 @@ export async function alterarPapelAction(form: FormData) {
   if (!alvo) redirect(comAviso("erro=dados"));
   if (alvo.papel === dados.data.papel) redirect(comAviso(`ok=sem-mudanca&alvo=${alvo.id}`));
 
-  const viraAdmin = dados.data.papel === "organizador" || dados.data.papel === "portaria";
+  const viraAdmin = ehAdmin(dados.data.papel);
   if (viraAdmin && form.get("confirmo") !== "on") redirect(comAviso("erro=confirmar"));
 
   await alterarPapel(alvo.id, dados.data.papel);

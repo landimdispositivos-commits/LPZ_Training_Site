@@ -25,11 +25,14 @@ import {
 // - profissional: professor/DJ
 // - organizador: administrador com acesso total (duas etapas obrigatória)
 // - portaria: administrador restrito ao check-in (duas etapas obrigatória)
+// - acesso_total: tudo o que o organizador faz, em qualquer área nova
+//   (duas etapas obrigatória)
 export const papelUsuarioEnum = pgEnum("papel_usuario", [
   "congressista",
   "profissional",
   "organizador",
   "portaria",
+  "acesso_total",
 ]);
 
 export const usuarios = pgTable("usuarios", {

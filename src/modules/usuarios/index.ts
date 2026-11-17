@@ -3,14 +3,15 @@ import { db } from "@/db";
 import { contas, ingressos, lotes, pedidos, professores, sessoes, usuarios } from "@/db/schema";
 import { TIPOS_PRODUTO, type TipoProduto } from "@/modules/ingressos/produtos";
 
-export const PAPEIS = ["congressista", "profissional", "portaria", "organizador"] as const;
+export const PAPEIS = ["congressista", "profissional", "portaria", "organizador", "acesso_total"] as const;
 export type Papel = (typeof PAPEIS)[number];
 
 export const DESCRICAO_PAPEL: Record<Papel, string> = {
   congressista: "Usuário comum: compra ingresso e vê a própria área.",
   profissional: "Professor(a)/DJ: vê a área do profissional e as próprias aulas.",
   portaria: "Faz check-in na entrada. Exige verificação em duas etapas.",
-  organizador: "Acesso total: painel, usuários, financeiro, check-in e conteúdo. Exige duas etapas.",
+  organizador: "Gestão do evento: painel, usuários, financeiro, check-in e conteúdo. Exige duas etapas.",
+  acesso_total: "Acesso total a todas as áreas do site, inclusive as que forem criadas. Exige duas etapas.",
 };
 
 function escaparLike(texto: string) {

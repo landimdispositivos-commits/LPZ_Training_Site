@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { ehAdmin } from "@/modules/auth/papeis";
 import { exigirAdmin } from "@/modules/auth/sessao";
 import { ROTULO_PAPEL } from "@/modules/auth/menu";
 import { contarPorPapel, DESCRICAO_PAPEL, listarUsuarios, PAPEIS, type Papel } from "@/modules/usuarios";
@@ -14,10 +15,11 @@ export const metadata: Metadata = { title: "Permissões — LPZ Training" };
 const ERROS: Record<string, string> = {
   dados: "Não foi possível alterar. Atualize a página e tente de novo.",
   proprio: "Você não pode mudar o seu próprio perfil. Peça a outro organizador.",
-  confirmar: "Para dar acesso de Portaria ou Organizador, marque a caixa de confirmação.",
+  confirmar: "Para dar acesso de Portaria, Organizador ou Acesso total, marque a caixa de confirmação.",
 };
 
 const COR_PAPEL: Record<string, string> = {
+  acesso_total: "bg-gold-metal text-gold-ink",
   organizador: "bg-gold-400/20 text-gold-300",
   portaria: "bg-ember-500/15 text-ember-400",
   profissional: "bg-teal-400/15 text-teal-300",
@@ -128,7 +130,7 @@ export default async function Page(props: PageProps<"/administradores/permissoes
                         </span>
                       </div>
 
-                      {(u.papel === "organizador" || u.papel === "portaria") && !u.duasEtapas && (
+                      {ehAdmin(u.papel) && !u.duasEtapas && (
                         <p className="mt-2 text-xs text-ember-400">
                           Ainda não ativou a verificação em duas etapas — será pedida no próximo acesso.
                         </p>
@@ -160,7 +162,7 @@ export default async function Page(props: PageProps<"/administradores/permissoes
                             )}
                             <label className="flex items-center gap-2 text-xs text-mist/80">
                               <input type="checkbox" name="confirmo" className="h-4 w-4 accent-gold-400" />
-                              Confirmo (obrigatório para dar acesso de Portaria ou Organizador)
+                              Confirmo (obrigatório para Portaria, Organizador ou Acesso total)
                             </label>
                             <BotaoSalvar>Salvar perfil</BotaoSalvar>
                           </form>

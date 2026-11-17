@@ -17,6 +17,7 @@ export async function exigirAdmin(papeisPermitidos: readonly PapelAdmin[] = PAPE
   const { papel, twoFactorEnabled } = sessao.user;
   if (!ehAdmin(papel)) redirect("/administradores?erro=restrito");
   if (!twoFactorEnabled) redirect("/administradores/ativar-duas-etapas");
-  if (!papeisPermitidos.includes(papel)) redirect("/administradores/painel?erro=sem-permissao");
+  // "Acesso total" entra em qualquer área administrativa.
+  if (papel !== "acesso_total" && !papeisPermitidos.includes(papel)) redirect("/administradores/painel?erro=sem-permissao");
   return { ...sessao, user: { ...sessao.user, papel } };
 }

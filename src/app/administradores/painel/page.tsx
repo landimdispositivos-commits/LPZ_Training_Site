@@ -3,6 +3,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { db } from "@/db";
 import { contas, professores, usuarios } from "@/db/schema";
+import { ROTULO_PAPEL } from "@/modules/auth/menu";
+import { ehGestor } from "@/modules/auth/papeis";
 import { exigirAdmin } from "@/modules/auth/sessao";
 import { BotaoSair } from "../../_components/botao-sair";
 import { SiteHeader } from "../../_components/site-header";
@@ -10,7 +12,6 @@ import { FormConvidarProfissional } from "./form-convidar-profissional";
 
 export const metadata: Metadata = { title: "Painel — LPZ Training" };
 
-const ROTULO_PAPEL = { organizador: "Organizador(a)", portaria: "Portaria" } as const;
 
 const ATALHOS = [
   { href: "/administradores/checkin", titulo: "Check-in", descricao: "Validar ingressos na entrada do evento.", portaria: true },
@@ -23,7 +24,10 @@ const ATALHOS = [
   { href: "/administradores/fornecedores", titulo: "Fornecedores", descricao: "Contatos, valores e situação.", portaria: false },
   { href: "/administradores/galeria", titulo: "Fotos", descricao: "Fotos da galeria pública.", portaria: false },
   { href: "/administradores/audio-video", titulo: "Áudio e vídeo", descricao: "Vídeos do YouTube e músicas/playlists.", portaria: false },
-] as const;
+  { href: "/administradores/dj", titulo: "DJ", descricao: "Área dos DJs do evento.", portaria: false },
+  { href: "/administradores/mc", titulo: "MC", descricao: "Área dos MCs do evento.", portaria: false },
+  { href: "/administradores/jack-and-jill", titulo: "Jack and Jill", descricao: "Competição Jack and Jill.", portaria: false },
+].sort((a, b) => a.titulo.localeCompare(b.titulo, "pt-BR", { sensitivity: "base" }));
 
 async function dadosOrganizador() {
   const [totais, profissionais, professoresLivres] = await Promise.all([
@@ -90,7 +94,7 @@ export default async function Page(props: PageProps<"/administradores/painel">) 
           )}
 
           <nav aria-label="Áreas do painel" className="grid gap-3 sm:grid-cols-2">
-            {ATALHOS.filter((a) => user.papel === "organizador" || a.portaria).map((a) => (
+            {ATALHOS.filter((a) => ehGestor(user.papel) || a.portaria).map((a) => (
               <Link
                 key={a.href}
                 href={a.href}
@@ -102,7 +106,7 @@ export default async function Page(props: PageProps<"/administradores/painel">) 
             ))}
           </nav>
 
-          {user.papel === "organizador" && <PainelOrganizador />}
+          {ehGestor(user.papel) && <PainelOrganizador />}
 
           <BotaoSair destino="/administradores" />
         </div>
