@@ -31,7 +31,6 @@ const TEXTOS = traducoes(
     cadastreLogin: "Cadastre-se ou faça login",
     soCongressista: "A compra é feita pela conta de congressista.",
     naoAbertas: "Vendas ainda não abertas. Volte em breve.",
-    restam: (n: number) => `Restam ${n} vagas neste lote.`,
     esgotado: "Esgotado. O próximo lote abre em breve.",
     emBreve: "Valor e vendas em breve.",
     comprado: "Comprado — ver na minha área",
@@ -52,7 +51,6 @@ const TEXTOS = traducoes(
     cadastreLogin: "Sign up or log in",
     soCongressista: "Purchases are made with an attendee account.",
     naoAbertas: "Sales are not open yet. Come back soon.",
-    restam: (n: number) => `${n} spots left in this batch.`,
     esgotado: "Sold out. The next batch opens soon.",
     emBreve: "Price and sales coming soon.",
     comprado: "Purchased — see it in my area",
@@ -136,9 +134,6 @@ export default async function Page(props: PageProps<"/ingressos">) {
                       <>
                         <p className="mt-1 text-sm text-teal-300">{item.lote.nome}</p>
                         <p className="text-gold-metal mt-1 text-3xl font-extrabold">{formatarPreco(item.lote.precoCentavos, idioma)}</p>
-                        <p className="mt-2 text-xs text-mist/60">
-                          {t.restam(item.lote.quantidadeTotal - item.lote.quantidadeVendida)}
-                        </p>
                       </>
                     ) : (
                       <p className="mt-4 text-sm text-mist/80">{item.emBreve ? t.emBreve : t.esgotado}</p>
