@@ -1,7 +1,7 @@
 import nodemailer from "nodemailer";
 
 // SMTP genérico: em dev aponta para o Mailpit (captura tudo em
-// http://localhost:8025, nada sai para a internet); em produção, para o
+// /emails no próprio site em dev, nada sai para a internet); em produção, para o
 // provedor de e-mail transacional escolhido.
 const porta = Number(process.env.SMTP_PORT || 1025);
 

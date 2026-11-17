@@ -55,8 +55,9 @@ regem este projeto.
    npm run dev
    ```
 
-   Acesse http://localhost:3000. E-mails capturados aparecem em
-   http://localhost:8025 (Mailpit).
+   Acesse http://localhost:3000 (ou a porta usada no `next dev -p`). Os e-mails
+   capturados aparecem no próprio site, em `/emails` (ex: http://localhost:3000/emails
+   — repasse para o Mailpit, só em desenvolvimento).
 
 Alternativa: `docker compose up` (sem especificar serviços) sobe app + banco
 + mailpit inteiramente em containers — reproduz a topologia da VPS, mas o

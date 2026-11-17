@@ -3,14 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 import { authClient } from "@/modules/auth/auth-client";
-import {
-  dadosCongressistaSchema,
-  PAIS_BRASIL,
-  SENHA_MAX,
-  SENHA_MIN,
-  somenteDigitos,
-  UFS,
-} from "@/modules/auth/cadastro";
+import { SENHA_MAX, SENHA_MIN } from "@/modules/auth/cadastro";
+import { BotaoGoogle, SeparadorOu } from "../../_components/botao-google";
 import { FormEntrar, FormEsqueci } from "../../_components/form-entrar";
 import { Aviso, Campo, classeBotao, classeInput, traduzirErro } from "../../_components/form-ui";
 
@@ -18,15 +12,7 @@ type Aba = "entrar" | "criar" | "esqueci";
 
 const AREA = "/congressistas/minha-area";
 
-function mascararCpf(valor: string) {
-  const d = somenteDigitos(valor).slice(0, 11);
-  return d
-    .replace(/^(\d{3})(\d)/, "$1.$2")
-    .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
-    .replace(/\.(\d{3})(\d)/, ".$1-$2");
-}
-
-export function AcessoCongressista({ avisoInicial }: { avisoInicial?: string }) {
+export function AcessoCongressista({ avisoInicial, googleAtivo }: { avisoInicial?: string; googleAtivo: boolean }) {
   const [aba, setAba] = useState<Aba>("entrar");
 
   const abas: { id: Aba; label: string }[] = [
@@ -59,6 +45,20 @@ export function AcessoCongressista({ avisoInicial }: { avisoInicial?: string }) 
 
       <div className="mt-6 rounded-2xl border border-white/10 bg-petrol-900/80 p-6 shadow-xl backdrop-blur">
         {avisoInicial && <div className="mb-4"><Aviso tipo="erro">{avisoInicial}</Aviso></div>}
+
+        {/* Google serve tanto para entrar quanto para criar conta. */}
+        {googleAtivo && aba !== "esqueci" && (
+          <>
+            <BotaoGoogle destino={AREA} paginaErro="/congressistas" criarConta />
+            {aba === "criar" && (
+              <p className="mt-3 text-center text-xs text-mist/60">
+                No primeiro acesso pelo Google, pediremos seus dados e o aceite da Política de Privacidade.
+              </p>
+            )}
+            <SeparadorOu />
+          </>
+        )}
+
         {aba === "entrar" && (
           <FormEntrar
             destino={AREA}
@@ -75,15 +75,15 @@ export function AcessoCongressista({ avisoInicial }: { avisoInicial?: string }) 
   );
 }
 
-type ErrosCadastro = Partial<Record<"nome" | "email" | "celular" | "cpf" | "pais" | "uf" | "senha" | "confirmacao" | "aceite", string>>;
+type ErrosCadastro = Partial<Record<"nome" | "email" | "senha" | "confirmacao" | "aceite", string>>;
 
+// Cadastro curto: os dados pessoais são pedidos depois, na ficha
+// (/congressistas/completar-cadastro) — a mesma de quem entra pelo Google.
 function FormCriarConta() {
   const [enviando, setEnviando] = useState(false);
   const [erroGeral, setErroGeral] = useState<string>();
   const [erros, setErros] = useState<ErrosCadastro>({});
   const [emailEnviado, setEmailEnviado] = useState<string>();
-  const [origem, setOrigem] = useState<"brasil" | "outro">("brasil");
-  const [cpf, setCpf] = useState("");
 
   async function enviar(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -93,7 +93,6 @@ function FormCriarConta() {
     const senha = String(form.get("senha") ?? "");
     const confirmacao = String(form.get("confirmacao") ?? "");
     const aceite = form.get("aceite") === "on";
-    const pais = origem === "brasil" ? PAIS_BRASIL : String(form.get("pais") ?? "").trim();
 
     const novosErros: ErrosCadastro = {};
     if (nome.length < 2) novosErros.nome = "Informe seu nome completo.";
@@ -102,34 +101,18 @@ function FormCriarConta() {
     if (senha !== confirmacao) novosErros.confirmacao = "As senhas não conferem.";
     if (!aceite) novosErros.aceite = "É preciso aceitar a Política de Privacidade.";
 
-    const dados = dadosCongressistaSchema.safeParse({
-      celular: String(form.get("celular") ?? ""),
-      pais,
-      uf: origem === "brasil" ? String(form.get("uf") ?? "") : null,
-      cpf: origem === "brasil" ? cpf : null,
-    });
-    if (!dados.success) {
-      for (const issue of dados.error.issues) {
-        const campo = issue.path[0] as keyof ErrosCadastro;
-        novosErros[campo] ??= issue.message;
-      }
-    }
-
     setErros(novosErros);
     setErroGeral(undefined);
-    if (Object.keys(novosErros).length > 0 || !dados.success) return;
+    if (Object.keys(novosErros).length > 0) return;
 
     setEnviando(true);
     const { error } = await authClient.signUp.email({
       name: nome,
       email,
       password: senha,
-      ...dados.data,
-      cpf: dados.data.cpf ?? undefined,
-      uf: dados.data.uf ?? undefined,
       // Campo lido só pelo hook do servidor (registro do consentimento).
       aceitePrivacidade: true,
-      callbackURL: `${AREA}?bemvindo=1`,
+      callbackURL: AREA,
     } as Parameters<typeof authClient.signUp.email>[0]);
     setEnviando(false);
 
@@ -146,7 +129,8 @@ function FormCriarConta() {
         <p className="font-display text-sm uppercase tracking-[0.2em] text-gold-metal">Quase lá!</p>
         <p className="text-mist">
           Enviamos um link de confirmação para <strong className="text-white">{emailEnviado}</strong>.
-          Abra o e-mail e clique em <strong className="text-white">Confirmar e-mail</strong> para ativar sua conta.
+          Abra o e-mail e clique em <strong className="text-white">Confirmar e-mail</strong> — em seguida você
+          completa seus dados.
         </p>
         <p className="text-sm text-mist/60">Não chegou? Confira o spam. O link vale por 24 horas.</p>
       </div>
@@ -168,79 +152,6 @@ function FormCriarConta() {
 
       <Campo id="cad-email" label="E-mail" erro={erros.email}>
         <input id="cad-email" name="email" type="email" autoComplete="email" className={classeInput} {...aria("email", "cad-email")} />
-      </Campo>
-
-      <fieldset>
-        <legend className="mb-1.5 block text-sm font-medium text-mist">Onde você mora?</legend>
-        <div className="grid grid-cols-2 gap-2 text-sm">
-          {(["brasil", "outro"] as const).map((opcao) => (
-            <label
-              key={opcao}
-              className="flex cursor-pointer items-center gap-2 rounded-lg border border-white/15 px-3 py-2.5 has-[:checked]:border-gold-400 has-[:checked]:bg-gold-400/10"
-            >
-              <input
-                type="radio"
-                name="origem"
-                value={opcao}
-                checked={origem === opcao}
-                onChange={() => setOrigem(opcao)}
-                className="accent-gold-400"
-              />
-              {opcao === "brasil" ? "No Brasil" : "Em outro país"}
-            </label>
-          ))}
-        </div>
-      </fieldset>
-
-      {origem === "brasil" ? (
-        <>
-          <Campo id="cad-uf" label="Estado" erro={erros.uf}>
-            <select id="cad-uf" name="uf" defaultValue="" className={classeInput} {...aria("uf", "cad-uf")}>
-              <option value="" disabled>Selecione</option>
-              {UFS.map((uf) => <option key={uf} value={uf}>{uf}</option>)}
-            </select>
-          </Campo>
-          <Campo
-            id="cad-cpf"
-            label="CPF"
-            erro={erros.cpf}
-            dica="Necessário para o pagamento do ingresso via Mercado Pago."
-          >
-            <input
-              id="cad-cpf"
-              name="cpf"
-              inputMode="numeric"
-              autoComplete="off"
-              placeholder="000.000.000-00"
-              value={cpf}
-              onChange={(e) => setCpf(mascararCpf(e.target.value))}
-              className={classeInput}
-              aria-invalid={erros.cpf ? true : undefined}
-              aria-describedby={erros.cpf ? "cad-cpf-erro" : "cad-cpf-dica"}
-            />
-          </Campo>
-        </>
-      ) : (
-        <Campo id="cad-pais" label="País" erro={erros.pais}>
-          <input id="cad-pais" name="pais" autoComplete="country-name" maxLength={60} className={classeInput} {...aria("pais", "cad-pais")} />
-        </Campo>
-      )}
-
-      <Campo
-        id="cad-celular"
-        label="Celular (WhatsApp)"
-        erro={erros.celular}
-        dica={origem === "brasil" ? "Com DDD, ex: (11) 91234-5678." : "Com código do país, ex: +351 912 345 678."}
-      >
-        <input
-          id="cad-celular"
-          name="celular"
-          type="tel"
-          autoComplete="tel"
-          className={classeInput}
-          aria-invalid={erros.celular ? true : undefined}
-          aria-describedby={erros.celular ? "cad-celular-erro" : "cad-celular-dica"}
-        />
       </Campo>
 
       <Campo id="cad-senha" label="Senha" erro={erros.senha} dica={`Mínimo de ${SENHA_MIN} caracteres.`}>
@@ -284,6 +195,7 @@ function FormCriarConta() {
       <button type="submit" disabled={enviando} className={classeBotao}>
         {enviando ? "Criando conta..." : "Criar conta"}
       </button>
+      <p className="text-center text-xs text-mist/60">Depois de confirmar o e-mail, você completa seus dados pessoais.</p>
     </form>
   );
 }

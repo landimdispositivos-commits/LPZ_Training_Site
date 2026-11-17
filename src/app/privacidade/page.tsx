@@ -30,7 +30,12 @@ export default function Page() {
             <li><strong className="text-white">Nome e e-mail</strong> — identificar você, dar acesso à sua conta e enviar comunicações sobre o seu ingresso e o evento.</li>
             <li><strong className="text-white">Celular</strong> — contato sobre o evento (ex: mudanças de horário) e suporte.</li>
             <li><strong className="text-white">CPF</strong> (só para quem mora no Brasil) — exigido pelo Mercado Pago para processar o pagamento do ingresso.</li>
-            <li><strong className="text-white">Estado ou país</strong> — organização do evento (ex: saber de onde vêm os participantes).</li>
+            <li><strong className="text-white">Estado ou país e cidade onde mora</strong> — organização do evento (ex: saber de onde vêm os participantes).</li>
+            <li><strong className="text-white">Data de nascimento</strong> — confirmar a idade do participante (regras de acesso ao evento e de compra do ingresso).</li>
+            <li><strong className="text-white">Endereço</strong> (opcional) — envio de materiais do evento, quando houver. Você pode deixar em branco.</li>
+            <li><strong className="text-white">Cidade e estado/país de nascimento</strong> (opcional) — estatística sobre o público do evento. Você pode deixar em branco.</li>
+            <li><strong className="text-white">Como conheceu o LPZ</strong> (opcional) — saber quais canais de divulgação funcionam.</li>
+            <li><strong className="text-white">Login com Google</strong> (se você escolher) — recebemos do Google apenas seu nome, e-mail e foto de perfil. Não temos acesso à sua senha do Google nem a outros dados da sua conta.</li>
             <li><strong className="text-white">Dados técnicos de acesso</strong> (endereço IP e navegador) — segurança da conta e prevenção de fraudes.</li>
           </ul>
           <p>
@@ -44,12 +49,15 @@ export default function Page() {
             Tratamos esses dados para executar o contrato de compra do ingresso e os procedimentos
             que o antecedem (art. 7º, V, da LGPD), para cumprir obrigações legais (art. 7º, II) e,
             no caso dos dados técnicos de acesso, por legítimo interesse na segurança do site
-            (art. 7º, IX).
+            (art. 7º, IX). Os dados marcados como opcionais são tratados com base no seu
+            consentimento (art. 7º, I), que você pode revogar a qualquer momento apagando-os em
+            Minha área → Editar meus dados.
           </p>
 
           <h2>Com quem compartilhamos</h2>
           <ul className="space-y-2">
             <li><strong className="text-white">Mercado Pago</strong> — processamento do pagamento. Os dados do seu cartão são informados diretamente ao Mercado Pago; o LPZ Training não os recebe nem armazena.</li>
+            <li><strong className="text-white">Google</strong> — só se você escolher entrar com o Google: ele confirma sua identidade e nos informa nome, e-mail e foto.</li>
             <li><strong className="text-white">Provedores de infraestrutura</strong> — hospedagem do site e envio de e-mails, apenas para operar o serviço.</li>
           </ul>
           <p>Não vendemos seus dados.</p>
@@ -64,7 +72,8 @@ export default function Page() {
           <p>
             Você pode, a qualquer momento, pedir: confirmação e acesso aos seus dados, correção,
             exclusão, informação sobre compartilhamento e revogação de consentimento (art. 18 da
-            LGPD). Para isso, escreva para <strong className="text-white">[e-mail de contato de
+            LGPD). Você mesmo pode corrigir seus dados em Minha área → Editar meus dados. Para os
+            demais pedidos, escreva para <strong className="text-white">[e-mail de contato de
             privacidade]</strong>. Respondemos em até 15 dias.
           </p>
 
