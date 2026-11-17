@@ -10,6 +10,7 @@ import { Aviso, classeInput } from "../../_components/form-ui";
 import { SiteHeader } from "../../_components/site-header";
 import { MarcarColunas } from "./marcar-colunas";
 import { alterarPapelAction } from "../permissoes/actions";
+import { editarCadastroAction, excluirUsuarioAction } from "./actions";
 import { BotaoSalvar } from "../../_components/botao-salvar";
 import { ACOES, descreverEvento, historicoDos, type RegistroAuditoria } from "@/modules/auditoria";
 
@@ -67,6 +68,13 @@ export default async function Page(props: PageProps<"/administradores/usuarios">
     dados: "Não foi possível alterar. Atualize a página e tente de novo.",
     proprio: "Você não pode mudar o seu próprio perfil. Peça a outro organizador.",
     confirmar: "Para dar acesso de Portaria ou Organizador, marque a caixa de confirmação.",
+    edicao: "Confira os dados: nome (mín. 2 letras), e-mail válido e data no formato certo.",
+    cpf: "CPF inválido.",
+    celular: "Celular inválido (use DDD + número, ex.: 11 91234-5678).",
+    "email-em-uso": "Este e-mail já é usado por outra conta.",
+    "cpf-em-uso": "Este CPF já é usado por outra conta.",
+    "confirmar-exclusao": "Para excluir, digite EXCLUIR no campo de confirmação.",
+    "excluir-proprio": "Você não pode excluir a sua própria conta.",
   };
 
   return (
@@ -87,7 +95,18 @@ export default async function Page(props: PageProps<"/administradores/usuarios">
               <strong>Operação realizada com sucesso!</strong> O perfil foi salvo e registrado na auditoria.
             </Aviso>
           )}
-          {ok === "sem-mudanca" && <Aviso tipo="ok">Nada foi alterado: a pessoa já tinha esse perfil.</Aviso>}
+          {ok === "sem-mudanca" && <Aviso tipo="ok">Nada foi alterado.</Aviso>}
+          {ok === "editado" && (
+            <Aviso tipo="ok">
+              <strong>Operação realizada com sucesso!</strong> Cadastro atualizado e registrado na auditoria.
+            </Aviso>
+          )}
+          {ok === "excluido" && (
+            <Aviso tipo="ok">
+              <strong>Operação realizada com sucesso!</strong> Usuário excluído. Os pedidos dele continuam no Financeiro e a
+              exclusão ficou registrada na auditoria.
+            </Aviso>
+          )}
           {typeof erro === "string" && ERROS[erro] && <Aviso tipo="erro">{ERROS[erro]}</Aviso>}
 
           <div className="grid gap-3 sm:grid-cols-5">
@@ -170,7 +189,7 @@ export default async function Page(props: PageProps<"/administradores/usuarios">
                       u={u}
                       euMesmo={u.id === user.id}
                       aberto={alvo === u.id}
-                      salvo={alvo === u.id && ok === "1"}
+                      salvo={alvo === u.id && (ok === "1" || ok === "editado")}
                       voltar={voltar}
                       historico={historico.filter((h) => h.alvoId === u.id)}
                     />
@@ -298,6 +317,32 @@ function LinhaUsuario({
                 <BotaoSalvar>Salvar permissão</BotaoSalvar>
               </form>
             )}
+
+            <details className="mt-5 rounded-lg border border-white/10 p-3">
+              <summary className="cursor-pointer text-sm font-semibold text-gold-300">Editar cadastro</summary>
+              <FormEdicao u={u} voltar={voltar} />
+            </details>
+
+            {!euMesmo && (
+              <details className="mt-3 rounded-lg border border-ember-500/40 p-3">
+                <summary className="cursor-pointer text-sm font-semibold text-ember-400">Excluir usuário</summary>
+                <form action={excluirUsuarioAction} className="mt-3 space-y-2">
+                  <input type="hidden" name="usuarioId" value={u.id} />
+                  <input type="hidden" name="voltar" value={voltar} />
+                  <p className="text-xs text-mist/80">
+                    Apaga a conta (login, senha e acesso) de forma <strong>definitiva</strong>. Os pedidos e ingressos
+                    continuam no Financeiro. A exclusão fica registrada na auditoria.
+                  </p>
+                  <label htmlFor={`excluir-${u.id}`} className="block text-xs text-mist">
+                    Para confirmar, digite <strong>EXCLUIR</strong>:
+                  </label>
+                  <input id={`excluir-${u.id}`} name="confirmacao" required autoComplete="off" className={classeInput} />
+                  <BotaoSalvar className="rounded-full border border-ember-500/70 bg-ember-500/15 px-5 py-2 text-sm font-semibold text-ember-400 hover:bg-ember-500/25 disabled:opacity-60">
+                    Excluir definitivamente
+                  </BotaoSalvar>
+                </form>
+              </details>
+            )}
           </section>
 
           <section>
@@ -368,5 +413,40 @@ function LinhaUsuario({
         </div>
       </details>
     </li>
+  );
+}
+
+function FormEdicao({ u, voltar }: { u: Cadastro; voltar: string }) {
+  const campo = (id: string, rotulo: string, valor: string | null, extra: React.InputHTMLAttributes<HTMLInputElement> = {}) => (
+    <div>
+      <label htmlFor={`${id}-${u.id}`} className="mb-1 block text-xs text-mist/80">{rotulo}</label>
+      <input id={`${id}-${u.id}`} name={id} defaultValue={valor ?? ""} className={classeInput} {...extra} />
+    </div>
+  );
+  return (
+    <form action={editarCadastroAction} className="mt-3 grid gap-3 sm:grid-cols-2">
+      <input type="hidden" name="usuarioId" value={u.id} />
+      <input type="hidden" name="voltar" value={voltar} />
+      {campo("nome", "Nome", u.nome, { required: true, maxLength: 100 })}
+      {campo("email", "E-mail (login)", u.email, { type: "email", required: true })}
+      {campo("celular", "Celular", u.celular, { type: "tel" })}
+      {campo("dataNascimento", "Nascimento", u.dataNascimento, { type: "date" })}
+      {campo("pais", "País", u.pais ?? "Brasil")}
+      {campo("uf", "UF", u.uf, { maxLength: 2 })}
+      {campo("cidade", "Cidade", u.cidade)}
+      {campo("cpf", "CPF", u.cpf, { inputMode: "numeric" })}
+      {campo("cep", "CEP", u.cep)}
+      {campo("logradouro", "Endereço", u.logradouro)}
+      {campo("numero", "Número", u.numero)}
+      {campo("complemento", "Complemento", u.complemento)}
+      {campo("bairro", "Bairro", u.bairro)}
+      {campo("comoConheceu", "Como conheceu", u.comoConheceu)}
+      <p className="text-xs text-mist/60 sm:col-span-2">
+        Se trocar o e-mail, o login da pessoa passa a ser o novo e-mail e as compras acompanham a troca.
+      </p>
+      <div className="sm:col-span-2">
+        <BotaoSalvar>Salvar cadastro</BotaoSalvar>
+      </div>
+    </form>
   );
 }

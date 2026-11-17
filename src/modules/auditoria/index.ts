@@ -13,6 +13,8 @@ export const ACOES = {
   convite_enviado: "Convite enviado",
   cadastro_concluido: "Cadastro concluído",
   ficha_atualizada: "Dados pessoais atualizados",
+  cadastro_editado: "Cadastro editado pela organização",
+  usuario_excluido: "Usuário excluído",
 } as const;
 export type Acao = keyof typeof ACOES;
 
@@ -35,6 +37,7 @@ export const NOME_CAMPO: Record<string, string> = {
   naturalidadeCidade: "Naturalidade (cidade)",
   naturalidadeEstado: "Naturalidade (estado)",
   comoConheceu: "Como conheceu",
+  email: "E-mail",
 };
 
 async function origemDaRequisicao() {
@@ -121,7 +124,10 @@ export function descreverEvento(r: RegistroAuditoria, rotuloPapel: (p: string) =
       return `Perfil: ${rotuloPapel(String(d.antes))} → ${rotuloPapel(String(d.depois))}`;
     case "convite_enviado":
       return `Convite como ${rotuloPapel(String(d.papel))}${d.reenvio ? " (reenvio)" : ""}`;
+    case "usuario_excluido":
+      return `Perfil era ${rotuloPapel(String(d.papel))}${d.pedidos ? ` · ${d.pedidos} pedido(s) mantidos no financeiro` : ""}`;
     case "ficha_atualizada":
+    case "cadastro_editado":
     case "cadastro_concluido": {
       const campos = Array.isArray(d.campos) ? (d.campos as string[]).map((c) => NOME_CAMPO[c] ?? c) : [];
       return campos.length ? `Campos: ${campos.join(", ")}` : "";
