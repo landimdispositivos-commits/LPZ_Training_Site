@@ -8,6 +8,7 @@ import { obterIdioma } from "@/i18n/servidor";
 import { MENSAGENS_ERRO_COMPRA, MINUTOS_RESERVA, nomeDoProduto, situacaoDoComprador, vitrine } from "@/modules/ingressos";
 import { formatarPreco } from "@/lib/formatar";
 import { Aviso, classeBotao } from "../_components/form-ui";
+import { RodapeSite } from "../_components/rodape-site";
 import { SiteHeader } from "../_components/site-header";
 import { comprarAction, desistirAction, retomarPagamentoAction } from "./actions";
 
@@ -181,6 +182,7 @@ export default async function Page(props: PageProps<"/ingressos">) {
           </p>
         </div>
       </main>
+      <RodapeSite />
     </>
   );
 }

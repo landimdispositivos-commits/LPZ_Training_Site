@@ -2,11 +2,10 @@ import type { Metadata } from "next";
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { cronogramaItens, professores } from "@/db/schema";
-import { formatarDiaCronograma } from "@/lib/formatar";
 import { obterIdioma } from "@/i18n/servidor";
 import { SiteHeader } from "../_components/site-header";
 import { RodapeSite } from "../_components/rodape-site";
-import { CabecalhoPagina } from "../_components/cabecalho-pagina";
+import { PaginaPublica } from "../_components/pagina-publica";
 
 export async function generateMetadata(): Promise<Metadata> {
   const en = (await obterIdioma()) === "en";
@@ -18,10 +17,22 @@ export async function generateMetadata(): Promise<Metadata> {
 
 export const dynamic = "force-dynamic";
 
-function agruparPorDia<T extends { dia: string }>(itens: T[]) {
-  const dias = new Map<string, T[]>();
-  for (const item of itens) dias.set(item.dia, [...(dias.get(item.dia) ?? []), item]);
-  return [...dias.entries()];
+// Os três dias do congresso ficam sempre na tela (sexta, sábado e domingo),
+// mesmo antes de ter horários. Cada aula entra no dia da semana da sua data.
+const DIAS = [
+  { semana: 5, pt: "Sexta-feira", en: "Friday" },
+  { semana: 6, pt: "Sábado", en: "Saturday" },
+  { semana: 0, pt: "Domingo", en: "Sunday" },
+] as const;
+
+function diaDaSemana(dia: string) {
+  const [a, m, d] = dia.split("-").map(Number);
+  return new Date(Date.UTC(a, (m ?? 1) - 1, d ?? 1)).getUTCDay();
+}
+
+function dataCurta(dia: string, en: boolean) {
+  const [, m, d] = dia.split("-");
+  return en ? `${m}/${d}` : `${d}/${m}`;
 }
 
 export default async function Page() {
@@ -44,26 +55,29 @@ export default async function Page() {
   return (
     <>
       <SiteHeader />
-      <main>
-        <CabecalhoPagina
-          titulo={en ? "Schedule" : "Cronograma"}
-          subtitulo={en ? "Congress classes and activities, day by day." : "Aulas e atividades do congresso, dia a dia."}
-        />
-        <div className="mx-auto max-w-3xl px-4 py-16">
-          {cronograma.length === 0 ? (
-            <p className="text-center text-mist/70">{en ? "Schedule coming soon." : "Cronograma em breve."}</p>
-          ) : (
-            <div className="space-y-8">
-              {agruparPorDia(cronograma).map(([dia, itens]) => (
-                <div key={dia}>
-                  <h2 className="text-sm font-semibold uppercase tracking-wider text-gold-300 first-letter:uppercase">
-                    {formatarDiaCronograma(dia, idioma)}
-                  </h2>
-                  <ol className="mt-3 space-y-3">
+      <PaginaPublica
+        titulo={en ? "Schedule" : "Cronograma"}
+        subtitulo={en ? "Congress classes and activities, day by day." : "Aulas e atividades do congresso, dia a dia."}
+        largura="max-w-3xl"
+      >
+        <div className="space-y-6">
+          {DIAS.map((d) => {
+            const itens = cronograma.filter((i) => diaDaSemana(i.dia) === d.semana);
+            const datas = [...new Set(itens.map((i) => dataCurta(i.dia, en)))];
+            return (
+              <section key={d.semana} className="rounded-2xl border border-gold-500/40 bg-petrol-950/70 p-6">
+                <h2 className="font-display text-sm uppercase tracking-[0.15em] text-gold-300">
+                  {en ? d.en : d.pt}
+                  {datas.length > 0 && <span className="ml-2 text-teal-300">{datas.join(" · ")}</span>}
+                </h2>
+                {itens.length === 0 ? (
+                  <p className="mt-3 text-sm text-mist/70">{en ? "Times coming soon." : "Horários em breve."}</p>
+                ) : (
+                  <ol className="mt-4 space-y-3">
                     {itens.map((item) => (
                       <li
                         key={item.id}
-                        className="rounded-lg border border-white/10 border-l-gold-400 border-l-2 bg-petrol-950/60 p-4"
+                        className="rounded-lg border border-white/10 border-l-2 border-l-gold-400 bg-petrol-900/60 p-4"
                       >
                         <p className="text-sm font-medium text-teal-300">
                           {item.horarioInicio}
@@ -76,12 +90,12 @@ export default async function Page() {
                       </li>
                     ))}
                   </ol>
-                </div>
-              ))}
-            </div>
-          )}
+                )}
+              </section>
+            );
+          })}
         </div>
-      </main>
+      </PaginaPublica>
       <RodapeSite />
     </>
   );

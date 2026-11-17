@@ -16,6 +16,7 @@ export const TEXTOS_PERFIS = traducoes(
     instagramEmBreve: "Instagram em breve",
     bioEmBreve: "Bio em breve.",
     editar: "Editar",
+    editarBio: "Editar bio",
     voltar: (c: Categoria): string => (c === "dj" ? "Voltar para os DJs" : "Voltar para os professores"),
     salvo: "Operação realizada com sucesso!",
     erro: "Confira os campos: nome obrigatório e Instagram só com letras, números, ponto e _.",
@@ -33,6 +34,7 @@ export const TEXTOS_PERFIS = traducoes(
     instagramEmBreve: "Instagram coming soon",
     bioEmBreve: "Bio coming soon.",
     editar: "Edit",
+    editarBio: "Edit bio",
     voltar: (c: Categoria): string => (c === "dj" ? "Back to DJs" : "Back to teachers"),
     salvo: "Saved successfully!",
     erro: "Check the fields: name is required and Instagram only allows letters, numbers, dot and _.",
@@ -140,8 +142,8 @@ function Foto({ perfil, idioma, grande = false }: { perfil: Perfil; idioma: Idio
   );
 }
 
-// Grade de caixinhas. A caixinha inteira leva à bio; o Instagram e a
-// canetinha (só organização) ficam por cima.
+// Grade de caixinhas. A caixinha inteira leva à bio (onde fica o Instagram);
+// a canetinha (só organização) fica por cima, no canto inferior esquerdo.
 export function GradePerfis({
   perfis,
   categoria,
@@ -170,7 +172,6 @@ export function GradePerfis({
             {p.nome}
           </Link>
           <p className="mt-2 line-clamp-2 flex-1 text-sm text-mist/70">{bioDoIdioma(p, idioma) ?? t.bioEmBreve}</p>
-          <BotaoInstagram instagram={p.instagram} textoEmBreve={t.instagramEmBreve} className="mt-4" />
           {/* Rodapé da caixinha: canetinha (só organização) à esquerda, "Bio" à direita. */}
           {editavel && (
             <Link
@@ -218,11 +219,10 @@ export function DetalhePerfil({
         {editavel && !editar && (
           <Link
             href={`${base}/${perfil.id}?editar=1#editar`}
-            aria-label={t.editar}
-            title={t.editar}
-            className="absolute bottom-4 left-4 flex h-10 w-10 items-center justify-center rounded-full bg-gold-400/15 text-gold-300 hover:bg-gold-400/30"
+            className="absolute bottom-4 left-4 inline-flex items-center gap-2 rounded-full bg-gold-400/15 px-4 py-2 text-sm font-semibold text-gold-300 hover:bg-gold-400/30"
           >
             <IconeCaneta />
+            {t.editarBio}
           </Link>
         )}
         <Foto perfil={perfil} idioma={idioma} grande />

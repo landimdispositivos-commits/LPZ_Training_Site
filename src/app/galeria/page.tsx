@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { traducoes } from "@/i18n";
 import { obterIdioma } from "@/i18n/servidor";
-import { CabecalhoPagina } from "../_components/cabecalho-pagina";
+import { PaginaPublica } from "../_components/pagina-publica";
 import { RodapeSite } from "../_components/rodape-site";
 import { SiteHeader } from "../_components/site-header";
 
@@ -39,9 +39,8 @@ export default async function Page() {
   return (
     <>
       <SiteHeader />
-      <main>
-        <CabecalhoPagina titulo={t.titulo} subtitulo={t.subtitulo} />
-        <ul className="mx-auto grid max-w-4xl gap-4 px-4 py-16 sm:grid-cols-3">
+      <PaginaPublica titulo={t.titulo} subtitulo={t.subtitulo}>
+        <ul className="grid gap-4 pt-4 sm:grid-cols-3">
           {t.caixas.map((c) => (
             <li
               key={c.href}
@@ -60,7 +59,7 @@ export default async function Page() {
             </li>
           ))}
         </ul>
-      </main>
+      </PaginaPublica>
       <RodapeSite />
     </>
   );

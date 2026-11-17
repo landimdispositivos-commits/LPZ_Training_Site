@@ -10,6 +10,11 @@ export async function RodapeSite() {
         <Link href="/privacidade" className="hover:text-gold-300 hover:underline">
           {idioma === "en" ? "Privacy Policy" : "Política de Privacidade"}
         </Link>
+        <span aria-hidden="true" className="mx-2">·</span>
+        {/* Entrada da organização: depois de entrar, aparecem as canetinhas de edição. */}
+        <Link href="/administradores" className="hover:text-gold-300 hover:underline">
+          {idioma === "en" ? "Organizers area" : "Área da organização"}
+        </Link>
       </p>
     </footer>
   );
