@@ -12,7 +12,8 @@ type Perfil = typeof professores.$inferSelect;
 
 export const TEXTOS_PERFIS = traducoes(
   {
-    verBio: "Ver bio",
+    verBio: "Bio",
+    instagramEmBreve: "Instagram em breve",
     bioEmBreve: "Bio em breve.",
     editar: "Editar",
     voltar: (c: Categoria): string => (c === "dj" ? "Voltar para os DJs" : "Voltar para os professores"),
@@ -28,7 +29,8 @@ export const TEXTOS_PERFIS = traducoes(
     fotoDe: (n: string) => `Foto de ${n}`,
   },
   {
-    verBio: "See bio",
+    verBio: "Bio",
+    instagramEmBreve: "Instagram coming soon",
     bioEmBreve: "Bio coming soon.",
     editar: "Edit",
     voltar: (c: Categoria): string => (c === "dj" ? "Back to DJs" : "Back to teachers"),
@@ -64,9 +66,29 @@ function IconeCamera() {
   );
 }
 
-export function BotaoInstagram({ instagram, className = "" }: { instagram: string | null; className?: string }) {
+// Aparece em todos os perfis; sem @ cadastrado, fica apagado até preencherem.
+export function BotaoInstagram({
+  instagram,
+  className = "",
+  textoEmBreve,
+}: {
+  instagram: string | null;
+  className?: string;
+  textoEmBreve: string;
+}) {
   const url = linkInstagram(instagram);
-  if (!url) return null;
+  if (!url) {
+    return (
+      <span
+        title={textoEmBreve}
+        aria-label={textoEmBreve}
+        className={`relative z-10 inline-flex cursor-default items-center gap-2 rounded-full border border-teal-300/25 px-4 py-1.5 text-sm font-medium text-teal-300/40 ${className}`}
+      >
+        <IconeCamera />
+        Instagram
+      </span>
+    );
+  }
   return (
     <a
       href={url}
@@ -138,18 +160,8 @@ export function GradePerfis({
       {perfis.map((p) => (
         <li
           key={p.id}
-          className="relative flex flex-col items-center rounded-2xl border border-gold-500/40 bg-petrol-950/70 p-6 text-center transition hover:border-gold-300 hover:shadow-[0_0_24px_rgb(230_181_74/0.25)]"
+          className="relative flex flex-col items-center rounded-2xl border border-gold-500/40 bg-petrol-950/70 p-6 pb-16 text-center transition hover:border-gold-300 hover:shadow-[0_0_24px_rgb(230_181_74/0.25)]"
         >
-          {editavel && (
-            <Link
-              href={`${base}/${p.id}?editar=1`}
-              aria-label={`${t.editar}: ${p.nome}`}
-              title={t.editar}
-              className="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-gold-400/15 text-gold-300 hover:bg-gold-400/30"
-            >
-              <IconeCaneta />
-            </Link>
-          )}
           <Foto perfil={p} idioma={idioma} />
           <Link
             href={`${base}/${p.id}`}
@@ -157,11 +169,20 @@ export function GradePerfis({
           >
             {p.nome}
           </Link>
-          <p className="mt-2 line-clamp-2 text-sm text-mist/70">{bioDoIdioma(p, idioma) ?? t.bioEmBreve}</p>
-          <div className="mt-auto flex flex-wrap items-center justify-center gap-2 pt-4">
-            <span className="text-xs font-medium text-teal-300">{t.verBio} →</span>
-          </div>
-          {p.instagram && <BotaoInstagram instagram={p.instagram} className="mt-3" />}
+          <p className="mt-2 line-clamp-2 flex-1 text-sm text-mist/70">{bioDoIdioma(p, idioma) ?? t.bioEmBreve}</p>
+          <BotaoInstagram instagram={p.instagram} textoEmBreve={t.instagramEmBreve} className="mt-4" />
+          {/* Rodapé da caixinha: canetinha (só organização) à esquerda, "Bio" à direita. */}
+          {editavel && (
+            <Link
+              href={`${base}/${p.id}?editar=1#editar`}
+              aria-label={`${t.editar}: ${p.nome}`}
+              title={t.editar}
+              className="absolute bottom-3 left-3 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-gold-400/15 text-gold-300 hover:bg-gold-400/30"
+            >
+              <IconeCaneta />
+            </Link>
+          )}
+          <span className="absolute bottom-4 right-5 text-sm font-semibold text-teal-300">{t.verBio}</span>
         </li>
       ))}
     </ul>
@@ -193,13 +214,13 @@ export function DetalhePerfil({
     <div className="mx-auto max-w-2xl space-y-6">
       {ok && <Aviso tipo="ok">{t.salvo}</Aviso>}
       {erro && <Aviso tipo="erro">{t.erro}</Aviso>}
-      <article className="relative flex flex-col items-center rounded-2xl border border-gold-500/40 bg-petrol-950/70 p-8 text-center">
+      <article className="relative flex flex-col items-center rounded-2xl border border-gold-500/40 bg-petrol-950/70 p-8 pb-16 text-center">
         {editavel && !editar && (
           <Link
-            href={`${base}/${perfil.id}?editar=1`}
+            href={`${base}/${perfil.id}?editar=1#editar`}
             aria-label={t.editar}
             title={t.editar}
-            className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full bg-gold-400/15 text-gold-300 hover:bg-gold-400/30"
+            className="absolute bottom-4 left-4 flex h-10 w-10 items-center justify-center rounded-full bg-gold-400/15 text-gold-300 hover:bg-gold-400/30"
           >
             <IconeCaneta />
           </Link>
@@ -207,11 +228,11 @@ export function DetalhePerfil({
         <Foto perfil={perfil} idioma={idioma} grande />
         <h1 className="mt-5 font-display text-xl uppercase tracking-[0.2em] text-gold-metal sm:text-2xl">{perfil.nome}</h1>
         <p className="mt-5 whitespace-pre-line text-left text-mist/90 sm:text-center">{bio ?? t.bioEmBreve}</p>
-        <BotaoInstagram instagram={perfil.instagram} className="mt-6" />
+        <BotaoInstagram instagram={perfil.instagram} textoEmBreve={t.instagramEmBreve} className="mt-6" />
       </article>
 
       {editavel && editar && (
-        <form action={salvarPerfilAction} className="space-y-4 rounded-2xl border border-white/10 bg-petrol-900/80 p-6">
+        <form id="editar" action={salvarPerfilAction} className="scroll-mt-24 space-y-4 rounded-2xl border border-white/10 bg-petrol-900/80 p-6">
           <h2 className="text-sm font-semibold uppercase tracking-wider text-teal-300">{t.editando}</h2>
           <input type="hidden" name="id" value={perfil.id} />
           <input type="hidden" name="categoria" value={categoria} />
@@ -233,7 +254,7 @@ export function DetalhePerfil({
       )}
 
       <p className="text-center">
-        <Link href={base} className="text-sm text-teal-300 hover:underline">← {t.voltar(categoria)}</Link>
+        <Link href={base} className="text-sm text-teal-300 hover:underline">{t.voltar(categoria)}</Link>
       </p>
     </div>
   );
