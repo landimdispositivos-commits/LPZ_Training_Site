@@ -302,3 +302,11 @@ export const auditoria = pgTable("auditoria", {
   alvoIdx: index("auditoria_alvo_idx").on(t.alvoId, t.criadoEm),
   criadoIdx: index("auditoria_criado_idx").on(t.criadoEm),
 }));
+
+// Configurações simples do site editadas pela organização no próprio site
+// (ex.: contatos do Fale conosco). Chave → valor em texto.
+export const configuracoes = pgTable("configuracoes", {
+  chave: text("chave").primaryKey(),
+  valor: text("valor").notNull(),
+  atualizadoEm: timestamp("atualizado_em", { withTimezone: true }).notNull().defaultNow(),
+});

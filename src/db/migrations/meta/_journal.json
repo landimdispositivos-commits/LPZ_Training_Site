@@ -99,6 +99,13 @@
       "when": 1794884700000,
       "tag": "0013_professores_e_djs",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1794885300000,
+      "tag": "0014_configuracoes",
+      "breakpoints": true
     }
   ]
 }

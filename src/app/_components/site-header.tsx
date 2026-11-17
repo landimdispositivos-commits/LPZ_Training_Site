@@ -16,6 +16,7 @@ const TEXTOS = traducoes(
     facaLogin: "faça login",
     abrirMenu: "Abrir menu",
     fecharMenu: "Fechar menu",
+    faleConosco: "Fale conosco",
     links: [
       { href: "/cronograma", label: "Cronograma" },
       { href: "/professores", label: "Professores" },
@@ -32,6 +33,7 @@ const TEXTOS = traducoes(
     facaLogin: "log in",
     abrirMenu: "Open menu",
     fecharMenu: "Close menu",
+    faleConosco: "Contact us",
     links: [
       { href: "/cronograma", label: "Schedule" },
       { href: "/professores", label: "Teachers" },
@@ -136,6 +138,12 @@ export async function SiteHeader() {
         <div className="flex shrink-0 items-center gap-2">
           <SeletorIdioma />
           <MenuConta idioma={idioma} />
+          <Link
+            href="/fale-conosco"
+            className="hidden h-11 items-center whitespace-nowrap rounded-full border border-gold-500/60 px-4 text-sm font-semibold text-gold-300 hover:bg-gold-500/10 lg:flex"
+          >
+            {t.faleConosco}
+          </Link>
 
           {/* Menu mobile sem JavaScript: <details> abre/fecha nativamente. */}
           <MenuSuspenso
@@ -163,6 +171,11 @@ export async function SiteHeader() {
                     </Link>
                   </li>
                 ))}
+                <li>
+                  <Link href="/fale-conosco" className="block rounded px-3 py-2.5 font-semibold text-gold-300 hover:bg-white/10">
+                    {t.faleConosco}
+                  </Link>
+                </li>
               </ul>
             </div>
           </MenuSuspenso>
