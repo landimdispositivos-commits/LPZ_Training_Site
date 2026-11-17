@@ -78,6 +78,13 @@
       "when": 1794882995364,
       "tag": "0010_atualizacao",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794883574108,
+      "tag": "0011_atualizacao",
+      "breakpoints": true
     }
   ]
 }

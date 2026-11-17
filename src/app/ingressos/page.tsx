@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { urlLoginParaComprar } from "@/modules/auth/proximo";
 import { obterSessao } from "@/modules/auth/sessao";
+import { TIPOS_PRODUTO, type TipoProduto } from "@/modules/ingressos/produtos";
 import { traducoes } from "@/i18n";
 import { obterIdioma } from "@/i18n/servidor";
 import { MENSAGENS_ERRO_COMPRA, MINUTOS_RESERVA, nomeDoProduto, situacaoDoComprador, vitrine } from "@/modules/ingressos";
@@ -35,7 +37,11 @@ const TEXTOS = traducoes(
     comprado: "Comprado — ver na minha área",
     continuar: "Continuar pagamento",
     desistir: "Desistir",
-    comprar: "Comprar",
+    comprar: "Ir para o pagamento",
+    comprarVisitante: "Comprar",
+    escolheu: (nome: string) => `Você escolheu ${nome}. Clique em “Ir para o pagamento” para pagar no Mercado Pago.`,
+    aguardando: "Recebemos seu pedido e o pagamento está em processamento (o Pix pode levar alguns minutos). Assim que for aprovado, você recebe um e-mail de confirmação.",
+    meios: "Pix, cartão de crédito, cartão de débito virtual Caixa ou saldo do Mercado Pago.",
     rodape: (min: number) =>
       `Pagamento processado pelo Mercado Pago — os dados do seu cartão não passam pelo nosso site. A vaga fica reservada por ${min} minutos enquanto você paga.`,
   },
@@ -52,7 +58,11 @@ const TEXTOS = traducoes(
     comprado: "Purchased — see it in my area",
     continuar: "Continue payment",
     desistir: "Cancel",
-    comprar: "Buy",
+    comprar: "Go to payment",
+    comprarVisitante: "Buy",
+    escolheu: (nome: string) => `You chose ${nome}. Click “Go to payment” to pay with Mercado Pago.`,
+    aguardando: "We received your order and the payment is being processed (Pix may take a few minutes). As soon as it is approved, you will receive a confirmation email.",
+    meios: "Pix, credit card, Caixa virtual debit card or Mercado Pago balance.",
     rodape: (min: number) =>
       `Payment processed by Mercado Pago — your card details never pass through our site. Your spot is held for ${min} minutes while you pay.`,
   },
@@ -63,7 +73,8 @@ const classeBotaoSecundario =
   "w-full rounded-full border border-gold-500/60 px-6 py-3 text-sm font-semibold text-gold-300 hover:bg-gold-500/10";
 
 export default async function Page(props: PageProps<"/ingressos">) {
-  const { erro, cancelado } = await props.searchParams;
+  const { erro, cancelado, comprar, aguardando } = await props.searchParams;
+  const escolhido = TIPOS_PRODUTO.includes(comprar as TipoProduto) ? (comprar as TipoProduto) : null;
   const idioma = await obterIdioma();
   const t = TEXTOS[idioma];
   const sessao = await obterSessao();
@@ -90,6 +101,10 @@ export default async function Page(props: PageProps<"/ingressos">) {
 
           {mensagemErro && <Aviso tipo="erro">{mensagemErro}</Aviso>}
           {cancelado && <Aviso tipo="ok">{t.cancelado}</Aviso>}
+          {aguardando && <Aviso tipo="ok">{t.aguardando}</Aviso>}
+          {escolhido && congressista && !situacao?.[escolhido]?.pago && (
+            <Aviso tipo="ok">{t.escolheu(nomeDoProduto(escolhido, idioma))}</Aviso>
+          )}
 
           {!user && (
             <div className="mx-auto max-w-md space-y-3 text-center">
@@ -108,7 +123,14 @@ export default async function Page(props: PageProps<"/ingressos">) {
               {itens.map((item) => {
                 const minha = situacao?.[item.tipo];
                 return (
-                  <li key={item.tipo} className="flex flex-col rounded-2xl border border-gold-500/40 bg-petrol-950/70 p-6 text-center">
+                  <li
+                    key={item.tipo}
+                    className={`relative flex flex-col rounded-2xl border bg-petrol-950/70 p-6 text-center transition ${
+                      escolhido === item.tipo
+                        ? "border-gold-300 shadow-[0_0_30px_rgb(230_181_74/0.35)] ring-2 ring-gold-400"
+                        : "border-gold-500/40"
+                    } ${!user && item.lote ? "hover:border-gold-300 hover:shadow-[0_0_24px_rgb(230_181_74/0.25)]" : ""}`}
+                  >
                     <p className="font-display text-sm uppercase tracking-[0.15em] text-gold-300">{nomeDoProduto(item.tipo, idioma)}</p>
                     {item.lote ? (
                       <>
@@ -143,6 +165,14 @@ export default async function Page(props: PageProps<"/ingressos">) {
                           <input type="hidden" name="tipo" value={item.tipo} />
                           <button type="submit" className={classeBotao}>{t.comprar}</button>
                         </form>
+                      ) : !user && item.lote ? (
+                        // A caixinha inteira é clicável: leva ao login e volta para esta compra.
+                        <Link
+                          href={urlLoginParaComprar(item.tipo)}
+                          className={`${classeBotao} inline-block after:absolute after:inset-0 after:rounded-2xl after:content-['']`}
+                        >
+                          {t.comprarVisitante}
+                        </Link>
                       ) : null}
                     </div>
                   </li>
@@ -152,7 +182,7 @@ export default async function Page(props: PageProps<"/ingressos">) {
           )}
 
           <p className="text-center text-xs text-mist/60">
-            {t.rodape(MINUTOS_RESERVA)}
+            {t.meios} {t.rodape(MINUTOS_RESERVA)}
           </p>
         </div>
       </main>

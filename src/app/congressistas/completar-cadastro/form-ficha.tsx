@@ -125,7 +125,15 @@ function separarComoConheceu(valor: string) {
   return { opcao: (COMO_CONHECEU as readonly string[]).includes(valor) ? valor : "", outro: "" };
 }
 
-export function FormFicha({ valores, precisaAceite }: { valores: ValoresFicha; precisaAceite: boolean }) {
+export function FormFicha({
+  valores,
+  precisaAceite,
+  proximo,
+}: {
+  valores: ValoresFicha;
+  precisaAceite: boolean;
+  proximo?: string;
+}) {
   const idioma = useIdioma();
   const en = idioma === "en";
   const t = TEXTOS[idioma];
@@ -204,6 +212,7 @@ export function FormFicha({ valores, precisaAceite }: { valores: ValoresFicha; p
 
   return (
     <form onSubmit={enviar} noValidate className="space-y-6">
+      {proximo && <input type="hidden" name="proximo" value={proximo} />}
       {erroGeral && <Aviso tipo="erro">{erroGeral}</Aviso>}
       {Object.keys(erros).length > 0 && !erroGeral && (
         <Aviso tipo="erro">{t.confira}</Aviso>

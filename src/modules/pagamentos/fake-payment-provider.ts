@@ -2,6 +2,7 @@ import type {
   CriarPreferenciaInput,
   CriarPreferenciaResultado,
   PaymentProvider,
+  ReferenciaPagamento,
   StatusPagamento,
 } from "./payment-provider";
 
@@ -28,7 +29,7 @@ export class FakePaymentProvider implements PaymentProvider {
     };
   }
 
-  async consultarStatus(preferenceId: string): Promise<StatusPagamento> {
+  async consultarStatus({ preferenceId }: ReferenciaPagamento): Promise<StatusPagamento> {
     return this.status.get(preferenceId) ?? "pendente";
   }
 

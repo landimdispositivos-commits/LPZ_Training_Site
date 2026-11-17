@@ -16,7 +16,10 @@ const transporte = nodemailer.createTransport({
     : undefined,
 });
 
-type Mensagem = { para: string; assunto: string; texto: string; html: string };
+// Anexos embutidos (ex: QR code do ingresso): `cid` permite usar a imagem
+// no HTML com <img src="cid:...">, que funciona no Gmail/Outlook (data: URL não).
+type Anexo = { nomeArquivo: string; conteudo: Buffer; tipo: string; cid?: string };
+type Mensagem = { para: string; assunto: string; texto: string; html: string; anexos?: Anexo[] };
 
 // Lança erro se o envio falhar — use quando quem chama precisa saber (ex:
 // script de convite). Em callbacks de requisição, use enviarEmailEmSegundoPlano.
@@ -30,6 +33,12 @@ export async function enviarEmail(msg: Mensagem) {
     subject: msg.assunto,
     text: msg.texto,
     html: msg.html,
+    attachments: msg.anexos?.map((a) => ({
+      filename: a.nomeArquivo,
+      content: a.conteudo,
+      contentType: a.tipo,
+      cid: a.cid,
+    })),
   });
 }
 
@@ -41,7 +50,7 @@ export function enviarEmailEmSegundoPlano(msg: Mensagem) {
   });
 }
 
-function escaparHtml(texto: string) {
+export function escaparHtml(texto: string) {
   return texto.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 

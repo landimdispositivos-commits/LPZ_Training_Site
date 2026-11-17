@@ -5,8 +5,9 @@ import { listarPedidos, lotesComVendas, resumoFinanceiro, STATUS_PEDIDO, type St
 import { dateParaDataHoraLocal, formatarDataHora, formatarPreco } from "@/lib/formatar";
 import { PRODUTOS, TIPOS_PRODUTO, type TipoProduto } from "@/modules/ingressos";
 import { Aviso, Campo, classeBotao, classeInput } from "../_components/form-ui";
+import { BotaoSalvar } from "../_components/botao-salvar";
 import { SiteHeader } from "../_components/site-header";
-import { criarLoteAction, editarLoteAction } from "./actions";
+import { reenviarIngressosAction, criarLoteAction, editarLoteAction } from "./actions";
 
 export const metadata: Metadata = { title: "Financeiro — LPZ Training" };
 
@@ -22,11 +23,13 @@ const MENSAGENS: Record<string, { tipo: "ok" | "erro"; texto: string }> = {
   "lote-salvo": { tipo: "ok", texto: "Lote atualizado." },
   lote: { tipo: "erro", texto: "Confira os dados do lote: nome, preço (ex.: 350,00), quantidade e datas." },
   quantidade: { tipo: "erro", texto: "A quantidade total não pode ficar abaixo do que já foi vendido ou reservado." },
+  "ingressos-enviados": { tipo: "ok", texto: "E-mails com o QR code enviados." },
+  "confirmar-envio": { tipo: "erro", texto: "Para enviar, digite ENVIAR no campo de confirmação." },
 };
 
 export default async function Page(props: PageProps<"/financeiro">) {
   await exigirAdmin(["organizador"]);
-  const { status, ok, erro } = await props.searchParams;
+  const { status, ok, erro, qtd } = await props.searchParams;
   const filtro = STATUS_PEDIDO.find((s) => s === status);
   const mensagem = MENSAGENS[String(ok ?? erro ?? "")];
 
@@ -49,7 +52,12 @@ export default async function Page(props: PageProps<"/financeiro">) {
             </div>
           </div>
 
-          {mensagem && <Aviso tipo={mensagem.tipo}>{mensagem.texto}</Aviso>}
+          {mensagem && (
+            <Aviso tipo={mensagem.tipo}>
+              {mensagem.texto}
+              {ok === "ingressos-enviados" && typeof qtd === "string" ? ` Total: ${qtd}.` : ""}
+            </Aviso>
+          )}
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
@@ -170,6 +178,21 @@ export default async function Page(props: PageProps<"/financeiro">) {
                 )}
               </div>
             )}
+          </section>
+
+          <section className="rounded-2xl border border-white/10 bg-petrol-900/80 p-6">
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-teal-300">Enviar ingressos por e-mail</h2>
+            <p className="mt-2 text-sm text-mist/80">
+              O e-mail com o QR code já sai sozinho assim que o pagamento é aprovado. Use este botão para mandar de novo
+              a todos os compradores com ingresso válido — por exemplo, alguns dias antes do evento. Cada pessoa recebe
+              no idioma em que comprou.
+            </p>
+            <form action={reenviarIngressosAction} className="mt-4 flex flex-wrap items-end gap-3">
+              <Campo id="confirmar-envio" label="Digite ENVIAR para confirmar">
+                <input id="confirmar-envio" name="confirmacao" autoComplete="off" className={classeInput} />
+              </Campo>
+              <BotaoSalvar>Enviar a todos</BotaoSalvar>
+            </form>
           </section>
         </div>
       </main>

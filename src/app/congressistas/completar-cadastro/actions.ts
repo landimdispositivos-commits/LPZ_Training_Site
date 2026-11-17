@@ -8,6 +8,7 @@ import { type CampoFicha, fichaCongressistaSchema, PAIS_BRASIL } from "@/modules
 import { areaDoPapel } from "@/modules/auth/papeis";
 import { obterSessao } from "@/modules/auth/sessao";
 import { registrarAuditoria } from "@/modules/auditoria";
+import { proximoSeguro } from "@/modules/auth/proximo";
 
 export type ResultadoFicha = { erros: Partial<Record<CampoFicha, string>>; erroGeral?: string };
 
@@ -104,5 +105,8 @@ export async function salvarFichaAction(form: FormData): Promise<ResultadoFicha>
     });
   }
 
+  // Veio de uma compra (caixinha de ingresso)? Volta para ela.
+  const proximo = proximoSeguro(texto(form, "proximo"));
+  if (proximo) redirect(proximo);
   redirect(primeiraVez ? "/congressistas/minha-area?bemvindo=1" : "/congressistas/minha-area?atualizado=1");
 }

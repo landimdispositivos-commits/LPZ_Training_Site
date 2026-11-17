@@ -200,6 +200,9 @@ export const pedidos = pgTable("pedidos", {
   valorCentavos: integer("valor_centavos").notNull(),
   status: statusPedidoEnum("status").notNull().default("pendente"),
   gatewayPreferenceId: text("gateway_preference_id"),
+  // Idioma em que o comprador estava no site ("pt"/"en"): usado nos e-mails
+  // de confirmação e do ingresso, que podem sair depois (webhook do Pix).
+  idioma: text("idioma").notNull().default("pt"),
   criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
   atualizadoEm: timestamp("atualizado_em", { withTimezone: true }).notNull().defaultNow(),
 });

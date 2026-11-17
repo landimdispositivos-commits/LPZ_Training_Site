@@ -9,6 +9,7 @@ import { lotes } from "@/db/schema";
 import { dataHoraLocalParaDate, reaisParaCentavos } from "@/lib/formatar";
 import { exigirAdmin } from "@/modules/auth/sessao";
 import { TIPOS_PRODUTO, type TipoProduto } from "@/modules/ingressos/produtos";
+import { reenviarTodosOsIngressos } from "@/modules/ingressos/emails";
 
 // Só organizadores mexem em lotes. Autorização refeita em cada action.
 
@@ -60,4 +61,13 @@ export async function editarLoteAction(form: FormData) {
   await db.update(lotes).set(lote.data).where(eq(lotes.id, id.data));
   revalidatePath("/financeiro");
   redirect("/financeiro?ok=lote-salvo");
+}
+
+// Envia de novo, para todos os compradores, o e-mail com o QR do ingresso
+// (ex: alguns dias antes do evento). Ação em massa: exige digitar ENVIAR.
+export async function reenviarIngressosAction(form: FormData) {
+  await exigirAdmin(["organizador"]);
+  if (String(form.get("confirmacao") ?? "").trim().toUpperCase() !== "ENVIAR") redirect("/financeiro?erro=confirmar-envio");
+  const { enviados } = await reenviarTodosOsIngressos();
+  redirect(`/financeiro?ok=ingressos-enviados&qtd=${enviados}`);
 }

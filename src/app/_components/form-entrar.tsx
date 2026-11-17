@@ -72,8 +72,11 @@ export function FormEntrar({
   papelExigido,
   msgPapelRecusado,
   painelProps,
+  destinoCongressista,
 }: {
   destino: string;
+  // Congressista que veio de uma compra volta para ela (em vez da Minha área).
+  destinoCongressista?: string;
   onEsqueci: () => void;
   papelExigido?: "congressista" | "profissional";
   msgPapelRecusado?: string;
@@ -87,7 +90,9 @@ export function FormEntrar({
   const [etapa, setEtapa] = useState<"senha" | "codigo" | "recuperacao">("senha");
 
   function irParaArea(papel: string | null | undefined) {
-    router.push(papelExigido ? destino : areaDoPapel(papel));
+    router.push(
+      papelExigido ? destino : papel === "congressista" && destinoCongressista ? destinoCongressista : areaDoPapel(papel),
+    );
     router.refresh();
   }
 

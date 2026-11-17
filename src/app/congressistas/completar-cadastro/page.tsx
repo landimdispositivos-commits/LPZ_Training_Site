@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { areaDoPapel } from "@/modules/auth/papeis";
+import { proximoSeguro } from "@/modules/auth/proximo";
 import { obterSessao } from "@/modules/auth/sessao";
 import { BotaoSair } from "../../_components/botao-sair";
 import { obterIdioma } from "@/i18n/servidor";
@@ -13,7 +14,8 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // Ficha do congressista: obrigatória no primeiro acesso (e-mail/senha ou
 // Google) e usada depois para corrigir os dados (direito do titular — LGPD).
-export default async function Page() {
+export default async function Page(props: PageProps<"/congressistas/completar-cadastro">) {
+  const proximo = proximoSeguro((await props.searchParams).proximo);
   const sessao = await obterSessao();
   if (!sessao) redirect("/congressistas");
   const { user } = sessao;
@@ -44,6 +46,7 @@ export default async function Page() {
           <div className="mt-8">
             <FormFicha
               precisaAceite={!user.privacidadeAceitaEm}
+              proximo={proximo}
               valores={{
                 nome: user.name,
                 email: user.email,

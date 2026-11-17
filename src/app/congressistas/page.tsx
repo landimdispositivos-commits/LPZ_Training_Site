@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { auth, GOOGLE_ATIVO } from "@/modules/auth/auth";
 import { mensagemErroGoogle } from "@/modules/auth/erros-google";
 import { areaDoPapel } from "@/modules/auth/papeis";
+import { proximoSeguro } from "@/modules/auth/proximo";
 import { obterIdioma } from "@/i18n/servidor";
 import { SiteHeader } from "../_components/site-header";
 import { AcessoCongressista } from "./_components/acesso-congressista";
@@ -20,12 +21,13 @@ const AVISOS_EN: Record<string, string> = {
 };
 
 export default async function Page(props: PageProps<"/congressistas">) {
+  const { erro, error, proximo: proximoBruto } = await props.searchParams;
+  const proximo = proximoSeguro(proximoBruto);
   const sessao = await auth.api.getSession({ headers: await headers() });
   if (sessao) {
-    redirect(areaDoPapel(sessao.user.papel));
+    redirect(sessao.user.papel === "congressista" && proximo ? proximo : areaDoPapel(sessao.user.papel));
   }
 
-  const { erro, error } = await props.searchParams;
   const idioma = await obterIdioma();
   const en = idioma === "en";
   const avisoInicial =
@@ -47,7 +49,7 @@ export default async function Page(props: PageProps<"/congressistas">) {
           </p>
         </div>
         <div className="mt-10">
-          <AcessoCongressista avisoInicial={avisoInicial} googleAtivo={GOOGLE_ATIVO} />
+          <AcessoCongressista avisoInicial={avisoInicial} googleAtivo={GOOGLE_ATIVO} proximo={proximo} />
         </div>
       </main>
     </>

@@ -12,6 +12,15 @@ export interface CriarPreferenciaInput {
   descricao: string;
   valorCentavos: number;
   compradorEmail: string;
+  // Até quando o checkout aceita pagamento (fim da reserva da vaga).
+  expiraEm: Date;
+}
+
+// Identificação do pagamento no gateway: a preferência criada e o nosso
+// pedido (enviado ao gateway como referência externa).
+export interface ReferenciaPagamento {
+  preferenceId: string;
+  pedidoId: string;
 }
 
 export interface CriarPreferenciaResultado {
@@ -24,5 +33,5 @@ export interface PaymentProvider {
 
   // Sempre consulta a API do gateway — nunca confia apenas no payload do
   // webhook, que pode chegar duplicado, fora de ordem ou ser forjado.
-  consultarStatus(preferenceId: string): Promise<StatusPagamento>;
+  consultarStatus(ref: ReferenciaPagamento): Promise<StatusPagamento>;
 }

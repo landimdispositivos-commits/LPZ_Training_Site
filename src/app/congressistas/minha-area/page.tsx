@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/modules/auth/auth";
 import { areaDoPapel } from "@/modules/auth/papeis";
+import { atualizarPendentesDoComprador } from "@/modules/ingressos";
 import { SiteHeader } from "../../_components/site-header";
 import { traducoes } from "@/i18n";
 import { obterIdioma } from "@/i18n/servidor";
@@ -75,6 +76,8 @@ export default async function Page(props: PageProps<"/congressistas/minha-area">
   if (user.papel !== "congressista") redirect(areaDoPapel(user.papel));
   // Ficha obrigatória antes da área logada (cadastro novo ou pelo Google).
   if (!user.cadastroCompletoEm) redirect("/congressistas/completar-cadastro");
+  // Pix pago depois de fechar o checkout: confere no gateway antes de mostrar.
+  await atualizarPendentesDoComprador(user.email);
 
   const local = [user.cidade, user.uf ?? (user.pais !== "Brasil" ? user.pais : null)].filter(Boolean).join(" — ");
   const endereco = user.logradouro

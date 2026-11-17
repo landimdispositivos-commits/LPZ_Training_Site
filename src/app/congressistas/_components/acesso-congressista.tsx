@@ -69,7 +69,17 @@ const TEXTOS = traducoes(
   },
 );
 
-export function AcessoCongressista({ avisoInicial, googleAtivo }: { avisoInicial?: string; googleAtivo: boolean }) {
+export function AcessoCongressista({
+  avisoInicial,
+  googleAtivo,
+  proximo,
+}: {
+  avisoInicial?: string;
+  googleAtivo: boolean;
+  // Veio de uma caixinha de ingresso: depois de entrar, volta para a compra.
+  proximo?: string;
+}) {
+  const destino = proximo ?? AREA;
   const [aba, setAba] = useState<Aba>("entrar");
   const t = TEXTOS[useIdioma()];
 
@@ -107,7 +117,12 @@ export function AcessoCongressista({ avisoInicial, googleAtivo }: { avisoInicial
         {/* Google serve tanto para entrar quanto para criar conta. */}
         {aba !== "esqueci" && (
           <>
-            <BotaoGoogle destino={AREA} paginaErro="/congressistas" criarConta ativo={googleAtivo} />
+            <BotaoGoogle
+              destino={destino}
+              paginaErro={proximo ? `/congressistas?proximo=${encodeURIComponent(proximo)}` : "/congressistas"}
+              criarConta
+              ativo={googleAtivo}
+            />
             {aba === "criar" && (
               <p className="mt-3 text-center text-xs text-mist/60">
                 {t.primeiroGoogle}
@@ -119,12 +134,13 @@ export function AcessoCongressista({ avisoInicial, googleAtivo }: { avisoInicial
 
         {aba === "entrar" && (
           <FormEntrar
-            destino={AREA}
+            destino={destino}
+            destinoCongressista={proximo}
             onEsqueci={() => setAba("esqueci")}
             painelProps={{ id: "painel-entrar", role: "tabpanel", "aria-labelledby": "aba-entrar" }}
           />
         )}
-        {aba === "criar" && <FormCriarConta />}
+        {aba === "criar" && <FormCriarConta destino={destino} />}
         {aba === "esqueci" && (
           <FormEsqueci redirectTo="/congressistas/redefinir-senha" onVoltar={() => setAba("entrar")} />
         )}
@@ -137,7 +153,7 @@ type ErrosCadastro = Partial<Record<"nome" | "email" | "senha" | "confirmacao" |
 
 // Cadastro curto: os dados pessoais são pedidos depois, na ficha
 // (/congressistas/completar-cadastro) — a mesma de quem entra pelo Google.
-function FormCriarConta() {
+function FormCriarConta({ destino }: { destino: string }) {
   const idioma = useIdioma();
   const t = TEXTOS[idioma];
   const [enviando, setEnviando] = useState(false);
@@ -172,7 +188,7 @@ function FormCriarConta() {
       password: senha,
       // Campo lido só pelo hook do servidor (registro do consentimento).
       aceitePrivacidade: true,
-      callbackURL: AREA,
+      callbackURL: destino,
     } as Parameters<typeof authClient.signUp.email>[0]);
     setEnviando(false);
 

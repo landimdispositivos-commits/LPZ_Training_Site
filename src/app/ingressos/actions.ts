@@ -12,25 +12,29 @@ import {
   type TipoProduto,
 } from "@/modules/ingressos";
 import { areaDoPapel } from "@/modules/auth/papeis";
+import { urlCompra } from "@/modules/auth/proximo";
 import { obterSessao } from "@/modules/auth/sessao";
+import { obterIdioma } from "@/i18n/servidor";
 
 // Server actions são endpoints públicos (POST direto): sessão, papel e dono
 // do pedido são conferidos aqui, nunca confiando no formulário.
-async function exigirCongressista() {
+// `voltarPara`: depois do login/ficha, a pessoa volta para esta compra.
+async function exigirCongressista(voltarPara = "/ingressos") {
   const sessao = await obterSessao();
-  if (!sessao) redirect("/congressistas");
+  if (!sessao) redirect(`/congressistas?proximo=${encodeURIComponent(voltarPara)}`);
   const { user } = sessao;
   if (user.papel !== "congressista") redirect(areaDoPapel(user.papel));
-  if (!user.cadastroCompletoEm) redirect("/congressistas/completar-cadastro");
+  if (!user.cadastroCompletoEm) redirect(`/congressistas/completar-cadastro?proximo=${encodeURIComponent(voltarPara)}`);
   return user;
 }
 
 const pedidoIdSchema = z.uuid();
 
 export async function comprarAction(form: FormData) {
-  const user = await exigirCongressista();
   const tipo = z.enum(TIPOS_PRODUTO as [TipoProduto, ...TipoProduto[]]).safeParse(form.get("tipo"));
   if (!tipo.success) redirect("/ingressos?erro=sem-lote");
+  const user = await exigirCongressista(urlCompra(tipo.data));
+  const idioma = await obterIdioma();
 
   let destino: string;
   try {
@@ -42,6 +46,7 @@ export async function comprarAction(form: FormData) {
         cpf: user.cpf ?? null,
       },
       tipo.data,
+      idioma,
     );
     destino = await iniciarPagamento(pedidoId, user.email);
   } catch (erro) {

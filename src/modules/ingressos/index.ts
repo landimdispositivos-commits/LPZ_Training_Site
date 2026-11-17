@@ -1,7 +1,9 @@
-import { and, asc, desc, eq, gte, inArray, isNull, lt, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { ingressos, lotes, pedidos } from "@/db/schema";
+import type { Idioma } from "@/i18n";
 import { paymentProvider } from "@/modules/pagamentos";
+import { enviarEmailsDaCompra } from "./emails";
 import { PRODUTOS, TIPOS_PRODUTO, type TipoProduto } from "./produtos";
 export { nomeDoProduto, PRODUTOS, TIPOS_PRODUTO, type TipoProduto } from "./produtos";
 
@@ -123,7 +125,7 @@ export async function situacaoDoComprador(email: string) {
 // Cria o pedido de um produto reservando uma vaga do lote vigente dele.
 // Um de cada produto por pessoa: se já pagou aquele produto, recusa; se há um
 // pedido pendente dele, reaproveita.
-export async function criarPedido(comprador: Comprador, tipo: TipoProduto) {
+export async function criarPedido(comprador: Comprador, tipo: TipoProduto, idioma: Idioma = "pt") {
   const situacao = (await situacaoDoComprador(comprador.email))[tipo];
   if (situacao.pago) throw new ErroCompra("ja-tem-ingresso");
   if (situacao.pendente) return situacao.pendente;
@@ -157,6 +159,7 @@ export async function criarPedido(comprador: Comprador, tipo: TipoProduto) {
         cpf: comprador.cpf,
         loteId: lote.id,
         valorCentavos: lote.precoCentavos,
+        idioma,
       })
       .returning({ id: pedidos.id });
     return pedido.id;
@@ -170,6 +173,7 @@ export async function iniciarPagamento(pedidoId: string, email: string) {
       id: pedidos.id,
       status: pedidos.status,
       valorCentavos: pedidos.valorCentavos,
+      criadoEm: pedidos.criadoEm,
       loteNome: lotes.nome,
       tipo: lotes.tipo,
     })
@@ -186,6 +190,8 @@ export async function iniciarPagamento(pedidoId: string, email: string) {
       descricao: `LPZ Training — ${PRODUTOS[pedido.tipo].nome} (${pedido.loteNome})`,
       valorCentavos: pedido.valorCentavos,
       compradorEmail: email,
+      // O checkout expira junto com a reserva da vaga.
+      expiraEm: new Date(pedido.criadoEm.getTime() + MINUTOS_RESERVA * 60 * 1000),
     });
   } catch (erro) {
     console.error("Falha ao criar preferência de pagamento", { pedidoId, erro: (erro as Error).message });
@@ -206,12 +212,19 @@ export async function confirmarPagamento(pedidoId: string) {
   const pedido = await db.query.pedidos.findFirst({ where: eq(pedidos.id, pedidoId) });
   if (!pedido?.gatewayPreferenceId) return pedido?.status ?? null;
 
-  const status = await paymentProvider.consultarStatus(pedido.gatewayPreferenceId);
+  const status = await paymentProvider.consultarStatus({
+    preferenceId: pedido.gatewayPreferenceId,
+    pedidoId: pedido.id,
+  });
   if (status !== "pago") return pedido.status;
 
+  // true só na primeira confirmação: e-mails saem uma vez, mesmo que o
+  // retorno do checkout e o webhook cheguem juntos.
+  let confirmouAgora = false;
   await db.transaction(async (tx) => {
     const [atual] = await tx.select().from(pedidos).where(eq(pedidos.id, pedidoId)).for("update");
     if (!atual || atual.status === "pago" || atual.status === "reembolsado") return;
+    confirmouAgora = true;
     const lote = await tx.query.lotes.findFirst({ where: eq(lotes.id, atual.loteId) });
 
     // Pagamento aprovado depois de a reserva vencer: o dinheiro entrou, então
@@ -226,7 +239,24 @@ export async function confirmarPagamento(pedidoId: string) {
     // Só produtos de entrada geram ingresso com QR (paparazzi não).
     if (!lote || PRODUTOS[lote.tipo].entrada) await tx.insert(ingressos).values({ pedidoId });
   });
+  if (confirmouAgora) enviarEmailsDaCompra(pedidoId);
   return "pago" as const;
+}
+
+// Reconsulta no gateway os pedidos pendentes do comprador (ex: Pix pago
+// depois de fechar o checkout, sem webhook em ambiente local).
+export async function atualizarPendentesDoComprador(email: string) {
+  const pendentes = await db
+    .select({ id: pedidos.id })
+    .from(pedidos)
+    .where(and(eq(pedidos.email, email), eq(pedidos.status, "pendente"), isNotNull(pedidos.gatewayPreferenceId)));
+  for (const p of pendentes) {
+    try {
+      await confirmarPagamento(p.id);
+    } catch (erro) {
+      console.error("Falha ao reconsultar pagamento pendente", { pedidoId: p.id, erro: (erro as Error).message });
+    }
+  }
 }
 
 // Cancela um pedido ainda pendente (desistência) e devolve a vaga.
