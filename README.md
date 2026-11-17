@@ -69,6 +69,31 @@ pagamento simulado (`FakePaymentProvider`), sem chamar o Mercado Pago.
 **Nunca** desabilitar isso fora de um ambiente com o adapter real e
 credenciais de sandbox/produção configuradas corretamente.
 
+## Áreas do site
+
+| Rota | Quem acessa | O que faz |
+|---|---|---|
+| `/` | todos | Apresentação, cronograma por dia, professores (com foto) e lote à venda |
+| `/ingressos` | congressista logado | Compra: reserva uma vaga do lote vigente por 30 min e abre o pagamento |
+| `/pagamento/simulado` | só com `TEST_MODE=true` | Faz o papel do Mercado Pago em dev (aprovar/recusar) |
+| `/congressistas/minha-area` | congressista | Dados e ingresso com QR code + código curto de 8 caracteres |
+| `/galeria` | todos | Fotos e vídeos (YouTube sem cookies) |
+| `/administradores/checkin` | organizador e portaria | Lê o QR pela câmera (Chrome/Android) ou busca por código/nome e confirma a entrada |
+| `/financeiro` | organizador | Arrecadação, lotes (criar/editar/abrir/fechar), pedidos e exportação CSV |
+| `/administradores/conteudo` | organizador | Professores (com foto) e cronograma |
+| `/administradores/galeria` | organizador | Envio de fotos e vídeos |
+
+Regras de venda (`src/modules/ingressos`): um ingresso por pessoa; a vaga é
+reservada no pedido e devolvida se o pagamento não sair em 30 minutos; o
+ingresso só é emitido depois de o status ser confirmado **consultando o
+gateway**. No check-in o QR só localiza o ingresso — a entrada é validada no
+banco (pedido pago + ingresso ainda não usado, com UPDATE condicional).
+
+Como testar a compra em dev: cadastre um congressista, vá em `/ingressos`,
+clique em "Comprar ingresso" e aprove na tela de pagamento simulado. O QR
+aparece na Minha área; valide em `/administradores/checkin` com um usuário
+de portaria.
+
 ## Estrutura
 
 - `src/app/` — rotas (App Router: páginas e API)
