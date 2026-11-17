@@ -43,6 +43,13 @@
       "when": 1794871454155,
       "tag": "0005_ficha_congressista_e_google",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794879453273,
+      "tag": "0006_fornecedores_e_audio",
+      "breakpoints": true
     }
   ]
 }

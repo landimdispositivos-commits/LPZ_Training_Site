@@ -13,13 +13,15 @@ import { caminhoDaUrl } from "@/modules/midia/imagem";
 // Cronograma e professores — só organizadores. Autorização refeita em cada
 // action (server actions aceitam POST direto).
 
-const VOLTAR = "/administradores/conteudo";
+const PROFESSORES = "/administradores/professores";
+const CRONOGRAMA = "/administradores/cronograma";
 const texto = (form: FormData, campo: string) => String(form.get(campo) ?? "").trim();
 const opcional = (form: FormData, campo: string) => texto(form, campo) || null;
 
 function atualizarSite() {
   revalidatePath("/");
-  revalidatePath(VOLTAR);
+  revalidatePath(PROFESSORES);
+  revalidatePath(CRONOGRAMA);
 }
 
 // ---------------------------------------------------------------- professores
@@ -48,7 +50,7 @@ function lerProfessor(form: FormData) {
 export async function salvarProfessorAction(form: FormData) {
   await exigirAdmin(["organizador"]);
   const dados = lerProfessor(form);
-  if (!dados.success) redirect(`${VOLTAR}?erro=professor`);
+  if (!dados.success) redirect(`${PROFESSORES}?erro=professor`);
 
   const id = z.uuid().safeParse(form.get("id"));
   if (id.success) {
@@ -57,20 +59,20 @@ export async function salvarProfessorAction(form: FormData) {
     await db.insert(professores).values(dados.data);
   }
   atualizarSite();
-  redirect(`${VOLTAR}?ok=professor`);
+  redirect(`${PROFESSORES}?ok=professor`);
 }
 
 export async function removerProfessorAction(form: FormData) {
   await exigirAdmin(["organizador"]);
   const id = z.uuid().safeParse(form.get("id"));
-  if (!id.success || form.get("confirmo") !== "on") redirect(`${VOLTAR}?erro=confirmar`);
+  if (!id.success || form.get("confirmo") !== "on") redirect(`${PROFESSORES}?erro=confirmar`);
 
   // FKs com "set null": aulas e conta do profissional ficam sem vínculo.
   const [removido] = await db.delete(professores).where(eq(professores.id, id.data)).returning({ fotoUrl: professores.fotoUrl });
   const foto = caminhoDaUrl(removido?.fotoUrl);
   if (foto) await storageAdapter.remover(foto);
   atualizarSite();
-  redirect(`${VOLTAR}?ok=removido`);
+  redirect(`${PROFESSORES}?ok=removido`);
 }
 
 // ----------------------------------------------------------------- cronograma
@@ -100,7 +102,7 @@ export async function salvarAulaAction(form: FormData) {
     professorId: opcional(form, "professorId"),
     ordem: Number.parseInt(texto(form, "ordem") || "0", 10),
   });
-  if (!dados.success) redirect(`${VOLTAR}?erro=aula#cronograma`);
+  if (!dados.success) redirect(`${CRONOGRAMA}?erro=aula`);
 
   const id = z.uuid().safeParse(form.get("id"));
   if (id.success) {
@@ -109,14 +111,14 @@ export async function salvarAulaAction(form: FormData) {
     await db.insert(cronogramaItens).values(dados.data);
   }
   atualizarSite();
-  redirect(`${VOLTAR}?ok=aula#cronograma`);
+  redirect(`${CRONOGRAMA}?ok=aula`);
 }
 
 export async function removerAulaAction(form: FormData) {
   await exigirAdmin(["organizador"]);
   const id = z.uuid().safeParse(form.get("id"));
-  if (!id.success || form.get("confirmo") !== "on") redirect(`${VOLTAR}?erro=confirmar#cronograma`);
+  if (!id.success || form.get("confirmo") !== "on") redirect(`${CRONOGRAMA}?erro=confirmar`);
   await db.delete(cronogramaItens).where(eq(cronogramaItens.id, id.data));
   atualizarSite();
-  redirect(`${VOLTAR}?ok=removido#cronograma`);
+  redirect(`${CRONOGRAMA}?ok=removido`);
 }

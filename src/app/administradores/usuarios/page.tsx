@@ -2,19 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { exigirAdmin } from "@/modules/auth/sessao";
 import { ROTULO_PAPEL } from "@/modules/auth/menu";
-import { contarPorPapel, DESCRICAO_PAPEL, listarUsuarios, PAPEIS, type Papel } from "@/modules/usuarios";
+import { contarPorPapel, listarCadastros, PAPEIS } from "@/modules/usuarios";
 import { formatarDataHora } from "@/lib/formatar";
-import { Aviso, classeInput } from "../../_components/form-ui";
+import { classeInput } from "../../_components/form-ui";
 import { SiteHeader } from "../../_components/site-header";
-import { alterarPapelAction } from "./actions";
 
-export const metadata: Metadata = { title: "Usuários e permissões — LPZ Training" };
-
-const ERROS: Record<string, string> = {
-  dados: "Não foi possível alterar. Atualize a página e tente de novo.",
-  proprio: "Você não pode mudar o seu próprio perfil. Peça a outro organizador.",
-  confirmar: "Para dar acesso de Portaria ou Organizador, marque a caixa de confirmação.",
-};
+export const metadata: Metadata = { title: "Usuários — LPZ Training" };
 
 const COR_PAPEL: Record<string, string> = {
   organizador: "bg-gold-400/20 text-gold-300",
@@ -23,57 +16,55 @@ const COR_PAPEL: Record<string, string> = {
   congressista: "bg-white/10 text-mist/80",
 };
 
+// A tela pode estar à vista de outras pessoas: CPF só com os 3 primeiros dígitos.
+function mascararCpf(cpf: string) {
+  return `${cpf.slice(0, 3)}.***.***-**`;
+}
+
+function formatarData(data: string) {
+  const [a, m, d] = data.split("-");
+  return `${d}/${m}/${a}`;
+}
+
 export default async function Page(props: PageProps<"/administradores/usuarios">) {
-  const { user } = await exigirAdmin(["organizador"]);
-  const { q, papel, ok, erro } = await props.searchParams;
+  await exigirAdmin(["organizador"]);
+  const { q, papel } = await props.searchParams;
   const busca = typeof q === "string" ? q.slice(0, 100) : "";
   const filtro = PAPEIS.find((p) => p === papel);
 
-  const [lista, totais] = await Promise.all([listarUsuarios({ busca, papel: filtro }), contarPorPapel()]);
-
-  const params = new URLSearchParams();
-  if (busca) params.set("q", busca);
-  if (filtro) params.set("papel", filtro);
-  const voltar = `/administradores/usuarios${params.size ? `?${params}` : ""}`;
+  const [lista, totais] = await Promise.all([listarCadastros({ busca, papel: filtro }), contarPorPapel()]);
+  const total = PAPEIS.reduce((soma, p) => soma + (totais[p] ?? 0), 0);
 
   return (
     <>
       <SiteHeader />
       <main className="bg-city-glow min-h-[80vh] px-4 py-12">
-        <div className="mx-auto max-w-4xl space-y-6">
-          <div className="flex items-center justify-between gap-4">
-            <h1 className="font-display text-xl uppercase tracking-[0.2em] text-gold-metal sm:text-2xl">
-              Usuários e permissões
-            </h1>
-            <Link href="/administradores/painel" className="text-sm text-teal-300 hover:underline">Painel</Link>
+        <div className="mx-auto max-w-5xl space-y-6">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <h1 className="font-display text-xl uppercase tracking-[0.2em] text-gold-metal sm:text-2xl">Usuários</h1>
+            <div className="flex gap-4 text-sm">
+              <Link href="/administradores/permissoes" className="text-teal-300 hover:underline">Permissões</Link>
+              <Link href="/administradores/painel" className="text-teal-300 hover:underline">Painel</Link>
+            </div>
           </div>
 
-          {ok && <Aviso tipo="ok">Perfil alterado. A pessoa precisa entrar de novo para o novo acesso valer.</Aviso>}
-          {typeof erro === "string" && ERROS[erro] && <Aviso tipo="erro">{ERROS[erro]}</Aviso>}
-
-          <section className="rounded-2xl border border-white/10 bg-petrol-900/80 p-6">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-teal-300">Perfis de acesso</h2>
-            <p className="mt-2 text-sm text-mist/70">
-              Todo mundo que se cadastra pelo site entra como <strong className="text-white">Congressista</strong> (usuário
-              comum). Aqui você dá mais acesso a quem precisa.
-            </p>
-            <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-              {PAPEIS.map((p) => (
-                <li key={p} className="rounded-xl border border-white/10 bg-petrol-950/60 p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${COR_PAPEL[p]}`}>{ROTULO_PAPEL[p]}</span>
-                    <span className="text-sm text-mist/70">{totais[p] ?? 0} pessoas</span>
-                  </div>
-                  <p className="mt-2 text-xs text-mist/70">{DESCRICAO_PAPEL[p]}</p>
-                </li>
-              ))}
-            </ul>
-          </section>
+          <div className="grid gap-3 sm:grid-cols-5">
+            <div className="rounded-2xl border border-white/10 bg-petrol-900/80 p-4">
+              <p className="text-xs text-mist/70">Total</p>
+              <p className="text-gold-metal text-3xl font-extrabold">{total}</p>
+            </div>
+            {PAPEIS.map((p) => (
+              <div key={p} className="rounded-2xl border border-white/10 bg-petrol-900/80 p-4">
+                <p className="text-xs text-mist/70">{ROTULO_PAPEL[p]}</p>
+                <p className="text-3xl font-extrabold text-white">{totais[p] ?? 0}</p>
+              </div>
+            ))}
+          </div>
 
           <section className="rounded-2xl border border-white/10 bg-petrol-900/80 p-6">
             <form method="get" className="grid gap-2 sm:grid-cols-[1fr_12rem_auto]">
-              <label htmlFor="busca" className="sr-only">Buscar por nome ou e-mail</label>
-              <input id="busca" name="q" defaultValue={busca} placeholder="Buscar por nome ou e-mail" className={classeInput} />
+              <label htmlFor="busca" className="sr-only">Buscar por nome, e-mail ou cidade</label>
+              <input id="busca" name="q" defaultValue={busca} placeholder="Buscar por nome, e-mail ou cidade" className={classeInput} />
               <label htmlFor="filtro-papel" className="sr-only">Perfil</label>
               <select id="filtro-papel" name="papel" defaultValue={filtro ?? ""} className={classeInput}>
                 <option value="">Todos os perfis</option>
@@ -91,74 +82,69 @@ export default async function Page(props: PageProps<"/administradores/usuarios">
             ) : (
               <ul className="mt-4 space-y-3">
                 {lista.map((u) => {
-                  const euMesmo = u.id === user.id;
+                  const local = [u.cidade, u.uf ?? (u.pais && u.pais !== "Brasil" ? u.pais : null)].filter(Boolean).join(" — ");
+                  const endereco = u.logradouro
+                    ? [`${u.logradouro}, ${u.numero ?? "s/n"}`, u.complemento, u.bairro, u.cep].filter(Boolean).join(" · ")
+                    : null;
+                  const detalhes = [
+                    { rotulo: "Celular", valor: u.celular },
+                    { rotulo: "Nascimento", valor: u.dataNascimento ? formatarData(u.dataNascimento) : null },
+                    { rotulo: "CPF", valor: u.cpf ? mascararCpf(u.cpf) : null },
+                    { rotulo: "Mora em", valor: local || null },
+                    { rotulo: "Endereço", valor: endereco },
+                    { rotulo: "Como conheceu", valor: u.comoConheceu },
+                    { rotulo: "Cadastro", valor: formatarDataHora(u.criadoEm) },
+                    { rotulo: "E-mail confirmado", valor: u.emailVerificado ? "Sim" : "Não" },
+                  ];
                   return (
-                    <li key={u.id} className="rounded-xl border border-white/10 bg-petrol-950/60 p-4">
-                      <div className="flex flex-wrap items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <p className="font-semibold text-white">
-                            {u.nome} {euMesmo && <span className="text-xs font-normal text-mist/60">(você)</span>}
-                          </p>
-                          <p className="truncate text-sm text-mist/60">{u.email}</p>
-                          <p className="text-xs text-mist/50">
-                            Cadastro em {formatarDataHora(u.criadoEm)}
-                            {u.professorNome ? ` · perfil de professor: ${u.professorNome}` : ""}
-                          </p>
-                        </div>
-                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${COR_PAPEL[u.papel]}`}>
-                          {ROTULO_PAPEL[u.papel]}
-                        </span>
-                      </div>
-
-                      {(u.papel === "organizador" || u.papel === "portaria") && !u.duasEtapas && (
-                        <p className="mt-2 text-xs text-ember-400">
-                          Ainda não ativou a verificação em duas etapas — será pedida no próximo acesso.
-                        </p>
-                      )}
-
-                      {!euMesmo && (
-                        <details className="mt-3">
-                          <summary className="cursor-pointer text-sm font-medium text-teal-300">Mudar perfil</summary>
-                          <form action={alterarPapelAction} className="mt-3 space-y-3">
-                            <input type="hidden" name="usuarioId" value={u.id} />
-                            <input type="hidden" name="voltar" value={voltar} />
-                            <fieldset className="grid gap-2 sm:grid-cols-2">
-                              <legend className="sr-only">Novo perfil</legend>
-                              {PAPEIS.map((p: Papel) => (
-                                <label key={p} className="flex items-start gap-2 rounded-lg border border-white/10 p-2 text-sm text-mist has-[:checked]:border-gold-400">
-                                  <input type="radio" name="papel" value={p} defaultChecked={u.papel === p} className="mt-1 accent-gold-400" />
-                                  <span>
-                                    <span className="font-medium text-white">{ROTULO_PAPEL[p]}</span>
-                                    <span className="block text-xs text-mist/60">{DESCRICAO_PAPEL[p]}</span>
-                                  </span>
-                                </label>
-                              ))}
-                            </fieldset>
-                            {!u.temSenha && (
-                              <p className="text-xs text-ember-400">
-                                Esta conta entra só pelo Google. Para Portaria/Organizador, a pessoa precisa criar uma senha
-                                (em “Esqueci a senha”), porque a verificação em duas etapas pede a senha.
-                              </p>
+                    <li key={u.id} className="rounded-xl border border-white/10 bg-petrol-950/60">
+                      <details>
+                        <summary className="flex cursor-pointer list-none flex-wrap items-center justify-between gap-3 p-4 [&::-webkit-details-marker]:hidden">
+                          <div className="min-w-0">
+                            <p className="font-semibold text-white">{u.nome}</p>
+                            <p className="truncate text-sm text-mist/60">
+                              {u.email}
+                              {local ? ` · ${local}` : ""}
+                            </p>
+                          </div>
+                          <div className="flex flex-wrap items-center gap-2">
+                            {u.ingresso === "pago" && (
+                              <span className="rounded-full bg-teal-400/15 px-3 py-1 text-xs text-teal-300">Ingresso pago</span>
                             )}
-                            <label className="flex items-center gap-2 text-xs text-mist/80">
-                              <input type="checkbox" name="confirmo" className="h-4 w-4 accent-gold-400" />
-                              Confirmo (obrigatório para dar acesso de Portaria ou Organizador)
-                            </label>
-                            <button
-                              type="submit"
-                              className="bg-gold-metal rounded-full px-5 py-2 text-sm font-semibold text-gold-ink hover:brightness-110"
-                            >
-                              Salvar perfil
-                            </button>
-                          </form>
-                        </details>
-                      )}
+                            {u.ingresso === "pendente" && (
+                              <span className="rounded-full bg-ember-500/15 px-3 py-1 text-xs text-ember-400">Pagamento pendente</span>
+                            )}
+                            {u.papel === "congressista" && !u.cadastroCompletoEm && (
+                              <span className="rounded-full bg-white/10 px-3 py-1 text-xs text-mist/70">Ficha incompleta</span>
+                            )}
+                            <span className={`rounded-full px-3 py-1 text-xs font-semibold ${COR_PAPEL[u.papel]}`}>
+                              {ROTULO_PAPEL[u.papel]}
+                            </span>
+                          </div>
+                        </summary>
+                        <dl className="grid gap-x-6 gap-y-2 border-t border-white/10 p-4 text-sm sm:grid-cols-2">
+                          {detalhes.map((d) => (
+                            <div key={d.rotulo} className="flex justify-between gap-4 border-b border-white/5 pb-1">
+                              <dt className="text-mist/60">{d.rotulo}</dt>
+                              <dd className="text-right text-white">{d.valor ?? "—"}</dd>
+                            </div>
+                          ))}
+                        </dl>
+                        <div className="px-4 pb-4">
+                          <Link
+                            href={`/administradores/permissoes?q=${encodeURIComponent(u.email)}`}
+                            className="text-sm font-medium text-teal-300 hover:underline"
+                          >
+                            Mudar permissão desta pessoa
+                          </Link>
+                        </div>
+                      </details>
                     </li>
                   );
                 })}
               </ul>
             )}
-            {lista.length === 200 && <p className="mt-3 text-xs text-mist/60">Mostrando os 200 primeiros. Use a busca.</p>}
+            {lista.length === 300 && <p className="mt-3 text-xs text-mist/60">Mostrando os 300 mais recentes. Use a busca.</p>}
           </section>
         </div>
       </main>

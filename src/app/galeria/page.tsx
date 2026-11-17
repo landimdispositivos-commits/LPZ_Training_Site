@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ehSpotify } from "@/modules/midia/audio";
 import { itensDaGaleria } from "@/modules/midia/galeria";
 import { SiteHeader } from "../_components/site-header";
 
@@ -9,6 +10,7 @@ export default async function Page() {
   const itens = await itensDaGaleria();
   const fotos = itens.filter((i) => i.tipo === "foto");
   const videos = itens.filter((i) => i.tipo === "video");
+  const audios = itens.filter((i) => i.tipo === "audio");
 
   return (
     <>
@@ -36,6 +38,26 @@ export default async function Page() {
                       />
                     </div>
                     {v.titulo && <p className="mt-2 text-sm text-mist/80">{v.titulo}</p>}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {audios.length > 0 && (
+            <section aria-labelledby="titulo-audios">
+              <h2 id="titulo-audios" className="font-display text-lg uppercase tracking-[0.2em] text-gold-metal">Áudios</h2>
+              <ul className="mt-6 grid gap-6 sm:grid-cols-2">
+                {audios.map((a) => (
+                  <li key={a.id}>
+                    <iframe
+                      src={a.url}
+                      title={a.titulo ?? "Áudio do LPZ"}
+                      loading="lazy"
+                      allow="encrypted-media"
+                      className={`w-full rounded-xl ${ehSpotify(a.url) ? "h-[152px]" : "h-[166px]"}`}
+                    />
+                    {a.titulo && <p className="mt-2 text-sm text-mist/80">{a.titulo}</p>}
                   </li>
                 ))}
               </ul>

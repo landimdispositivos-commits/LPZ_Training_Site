@@ -17,7 +17,7 @@ export async function POST(request: Request) {
     const form = await request.formData();
     const id = z.uuid().parse(form.get("professorId"));
     const professor = await db.query.professores.findFirst({ where: eq(professores.id, id) });
-    if (!professor) return redirecionar("/administradores/conteudo?erro=dados");
+    if (!professor) return redirecionar("/administradores/professores?erro=dados");
 
     const caminho = await salvarFotoDoFormulario(form.get("foto"));
     await db.update(professores).set({ fotoUrl: storageAdapter.obterUrl(caminho) }).where(eq(professores.id, id));
@@ -25,9 +25,9 @@ export async function POST(request: Request) {
     const antiga = caminhoDaUrl(professor.fotoUrl);
     if (antiga) await storageAdapter.remover(antiga);
   } catch (erro) {
-    if (erro instanceof ErroImagem) return redirecionar("/administradores/conteudo?erro=foto");
+    if (erro instanceof ErroImagem) return redirecionar("/administradores/professores?erro=foto");
     console.error("Falha ao trocar foto do professor", (erro as Error).message);
-    return redirecionar("/administradores/conteudo?erro=dados");
+    return redirecionar("/administradores/professores?erro=dados");
   }
-  return redirecionar("/administradores/conteudo?ok=foto");
+  return redirecionar("/administradores/professores?ok=foto");
 }

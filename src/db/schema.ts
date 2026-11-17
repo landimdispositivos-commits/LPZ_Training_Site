@@ -219,14 +219,35 @@ export const eventosPagamento = pgTable("eventos_pagamento", {
 // Mídia: fotos (armazenamento próprio) e vídeos (embed externo)
 // ---------------------------------------------------------------------------
 
-export const tipoMidiaEnum = pgEnum("tipo_midia", ["foto", "video"]);
+export const tipoMidiaEnum = pgEnum("tipo_midia", ["foto", "video", "audio"]);
 
 export const midia = pgTable("midia", {
   id: uuid("id").primaryKey().defaultRandom(),
   tipo: tipoMidiaEnum("tipo").notNull(),
   // foto: caminho relativo no StorageAdapter. video: ID do vídeo no YouTube.
+  // audio: URL de incorporação (Spotify ou SoundCloud), já validada.
   referencia: text("referencia").notNull(),
   titulo: text("titulo"),
   ordem: integer("ordem").notNull().default(0),
   criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
+// Fornecedores do evento (som, luz, local, buffet...). Uso interno da
+// organização — dados de empresas/contatos comerciais, não de participantes.
+// ---------------------------------------------------------------------------
+
+export const fornecedores = pgTable("fornecedores", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  nome: text("nome").notNull(),
+  categoria: text("categoria").notNull(), // lista fixa em src/modules/fornecedores
+  status: text("status").notNull().default("cotacao"), // cotacao | contratado | pago | descartado
+  contato: text("contato"),
+  telefone: text("telefone"),
+  email: text("email"),
+  site: text("site"),
+  valorCentavos: integer("valor_centavos"),
+  observacoes: text("observacoes"),
+  criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
+  atualizadoEm: timestamp("atualizado_em", { withTimezone: true }).notNull().defaultNow(),
 });

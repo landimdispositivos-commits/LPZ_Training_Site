@@ -1,4 +1,4 @@
-import { and, asc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { contas, professores, sessoes, usuarios } from "@/db/schema";
 
@@ -59,4 +59,45 @@ export async function alterarPapel(usuarioId: string, papel: Papel) {
     await tx.update(usuarios).set({ papel, updatedAt: new Date() }).where(eq(usuarios.id, usuarioId));
     await tx.delete(sessoes).where(eq(sessoes.userId, usuarioId));
   });
+}
+
+// Cadastro completo de cada pessoa, para a tela "Usuários" (só organizador).
+export async function listarCadastros({ busca, papel }: { busca?: string; papel?: Papel }) {
+  const filtros = [];
+  if (busca && busca.trim().length >= 2) {
+    const padrao = `%${escaparLike(busca.trim())}%`;
+    filtros.push(or(ilike(usuarios.name, padrao), ilike(usuarios.email, padrao), ilike(usuarios.cidade, padrao)));
+  }
+  if (papel) filtros.push(eq(usuarios.papel, papel));
+
+  return db
+    .select({
+      id: usuarios.id,
+      nome: usuarios.name,
+      email: usuarios.email,
+      emailVerificado: usuarios.emailVerified,
+      papel: usuarios.papel,
+      celular: usuarios.celular,
+      cpf: usuarios.cpf,
+      dataNascimento: usuarios.dataNascimento,
+      pais: usuarios.pais,
+      uf: usuarios.uf,
+      cidade: usuarios.cidade,
+      cep: usuarios.cep,
+      logradouro: usuarios.logradouro,
+      numero: usuarios.numero,
+      complemento: usuarios.complemento,
+      bairro: usuarios.bairro,
+      comoConheceu: usuarios.comoConheceu,
+      cadastroCompletoEm: usuarios.cadastroCompletoEm,
+      criadoEm: usuarios.createdAt,
+      ingresso: sql<"pago" | "pendente" | null>`(
+        select case when bool_or(p.status = 'pago') then 'pago' when bool_or(p.status = 'pendente') then 'pendente' end
+        from pedidos p where p.email = ${usuarios.email}
+      )`,
+    })
+    .from(usuarios)
+    .where(filtros.length ? and(...filtros) : undefined)
+    .orderBy(desc(usuarios.createdAt))
+    .limit(300);
 }

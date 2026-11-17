@@ -15,11 +15,15 @@ export function menuDoPapel(papel: string | null | undefined): ItemMenu[] {
     case "organizador":
       return [
         { href: "/administradores/painel", label: "Painel" },
-        { href: "/administradores/usuarios", label: "Usuários e permissões" },
+        { href: "/administradores/usuarios", label: "Usuários" },
+        { href: "/administradores/permissoes", label: "Permissões" },
         { href: "/administradores/checkin", label: "Check-in" },
         { href: "/financeiro", label: "Financeiro" },
-        { href: "/administradores/conteudo", label: "Cronograma e professores" },
-        { href: "/administradores/galeria", label: "Fotos e vídeos" },
+        { href: "/administradores/cronograma", label: "Cronograma" },
+        { href: "/administradores/professores", label: "Professores" },
+        { href: "/administradores/fornecedores", label: "Fornecedores" },
+        { href: "/administradores/galeria", label: "Fotos" },
+        { href: "/administradores/audio-video", label: "Áudio e vídeo" },
       ];
     case "portaria":
       return [

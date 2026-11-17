@@ -9,7 +9,7 @@ import { usuarios } from "@/db/schema";
 import { exigirAdmin } from "@/modules/auth/sessao";
 import { alterarPapel, PAPEIS } from "@/modules/usuarios";
 
-const VOLTAR = "/administradores/usuarios";
+const VOLTAR = "/administradores/permissoes";
 
 // Só organizadores mudam perfis. Regras: ninguém muda o próprio perfil (evita
 // a organização ficar sem nenhum organizador) e dar acesso administrativo

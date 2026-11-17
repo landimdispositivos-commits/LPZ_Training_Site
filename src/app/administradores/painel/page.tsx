@@ -14,10 +14,14 @@ const ROTULO_PAPEL = { organizador: "Organizador(a)", portaria: "Portaria" } as 
 
 const ATALHOS = [
   { href: "/administradores/checkin", titulo: "Check-in", descricao: "Validar ingressos na entrada do evento.", portaria: true },
-  { href: "/administradores/usuarios", titulo: "Usuários e permissões", descricao: "Dar ou tirar acesso de cada pessoa.", portaria: false },
+  { href: "/administradores/usuarios", titulo: "Usuários", descricao: "Todos os cadastrados e seus dados.", portaria: false },
+  { href: "/administradores/permissoes", titulo: "Permissões", descricao: "Dar ou tirar acesso de cada pessoa.", portaria: false },
   { href: "/financeiro", titulo: "Financeiro", descricao: "Vendas, lotes, pedidos e exportação.", portaria: false },
-  { href: "/administradores/conteudo", titulo: "Cronograma e professores", descricao: "O que aparece no site.", portaria: false },
-  { href: "/administradores/galeria", titulo: "Fotos e vídeos", descricao: "Galeria pública do evento.", portaria: false },
+  { href: "/administradores/cronograma", titulo: "Cronograma", descricao: "Aulas e atividades por dia.", portaria: false },
+  { href: "/administradores/professores", titulo: "Professores", descricao: "Professores e DJs, com foto.", portaria: false },
+  { href: "/administradores/fornecedores", titulo: "Fornecedores", descricao: "Contatos, valores e situação.", portaria: false },
+  { href: "/administradores/galeria", titulo: "Fotos", descricao: "Fotos da galeria pública.", portaria: false },
+  { href: "/administradores/audio-video", titulo: "Áudio e vídeo", descricao: "Vídeos do YouTube e músicas/playlists.", portaria: false },
 ] as const;
 
 async function dadosOrganizador() {

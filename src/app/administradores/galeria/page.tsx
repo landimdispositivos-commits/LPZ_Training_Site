@@ -4,21 +4,20 @@ import { exigirAdmin } from "@/modules/auth/sessao";
 import { itensDaGaleria } from "@/modules/midia/galeria";
 import { Aviso, Campo, classeBotao, classeInput } from "../../_components/form-ui";
 import { SiteHeader } from "../../_components/site-header";
-import { adicionarVideoAction, removerMidiaAction } from "./actions";
+import { removerMidiaAction } from "./actions";
 
-export const metadata: Metadata = { title: "Fotos e vídeos — LPZ Training" };
+export const metadata: Metadata = { title: "Fotos — LPZ Training" };
 
-const OK: Record<string, string> = { foto: "Foto publicada.", video: "Vídeo adicionado.", removida: "Item removido." };
+const OK: Record<string, string> = { foto: "Foto publicada.", removida: "Foto removida." };
 const ERROS: Record<string, string> = {
   foto: "Foto não aceita. Use JPG, PNG ou WebP de até 8 MB.",
-  video: "Link do YouTube inválido. Cole o endereço do vídeo (ex.: https://youtu.be/...).",
   falha: "Não foi possível salvar. Tente de novo.",
 };
 
 export default async function Page(props: PageProps<"/administradores/galeria">) {
   await exigirAdmin(["organizador"]);
   const { ok, erro } = await props.searchParams;
-  const itens = await itensDaGaleria();
+  const itens = (await itensDaGaleria()).filter((i) => i.tipo === "foto");
 
   return (
     <>
@@ -26,7 +25,7 @@ export default async function Page(props: PageProps<"/administradores/galeria">)
       <main className="bg-city-glow min-h-[80vh] px-4 py-12">
         <div className="mx-auto max-w-3xl space-y-6">
           <div className="flex items-center justify-between gap-4">
-            <h1 className="font-display text-xl uppercase tracking-[0.2em] text-gold-metal sm:text-2xl">Fotos e vídeos</h1>
+            <h1 className="font-display text-xl uppercase tracking-[0.2em] text-gold-metal sm:text-2xl">Fotos</h1>
             <div className="flex gap-4 text-sm">
               <Link href="/galeria" className="text-teal-300 hover:underline">Ver galeria</Link>
               <Link href="/administradores/painel" className="text-teal-300 hover:underline">Painel</Link>
@@ -51,16 +50,11 @@ export default async function Page(props: PageProps<"/administradores/galeria">)
             </section>
 
             <section className="rounded-2xl border border-white/10 bg-petrol-900/80 p-6">
-              <h2 className="text-sm font-semibold uppercase tracking-wider text-teal-300">Adicionar vídeo</h2>
-              <form action={adicionarVideoAction} className="mt-4 space-y-4">
-                <Campo id="video-url" label="Link do YouTube">
-                  <input id="video-url" name="url" required placeholder="https://youtu.be/..." className={classeInput} />
-                </Campo>
-                <Campo id="video-titulo" label="Título (opcional)">
-                  <input id="video-titulo" name="titulo" maxLength={120} className={classeInput} />
-                </Campo>
-                <button type="submit" className={classeBotao}>Adicionar vídeo</button>
-              </form>
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-teal-300">Vídeos e músicas</h2>
+              <p className="mt-3 text-sm text-mist/70">Vídeos do YouTube e áudios ficam no menu Áudio e vídeo.</p>
+              <Link href="/administradores/audio-video" className="mt-3 inline-block text-sm font-medium text-teal-300 hover:underline">
+                Ir para Áudio e vídeo
+              </Link>
             </section>
           </div>
 

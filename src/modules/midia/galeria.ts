@@ -10,6 +10,8 @@ export async function itensDaGaleria() {
     url:
       item.tipo === "foto"
         ? storageAdapter.obterUrl(item.referencia)
-        : `https://www.youtube-nocookie.com/embed/${item.referencia}`,
+        : item.tipo === "video"
+          ? `https://www.youtube-nocookie.com/embed/${item.referencia}`
+          : item.referencia, // audio: URL de incorporação já validada ao salvar
   }));
 }
