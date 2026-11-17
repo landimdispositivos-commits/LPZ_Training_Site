@@ -7,8 +7,8 @@ export const PRODUTOS = {
   pacote_baile: { nome: "Pacote de bailes", nomeEn: "Party package", entrada: true },
   baile_avulso: { nome: "Baile avulso", nomeEn: "Single party", entrada: true },
   jack_and_jill: { nome: "Jack and Jill", nomeEn: "Jack and Jill", entrada: false },
-  paparazzi_video: { nome: "LPZ Paparazzi — vídeo", nomeEn: "LPZ Paparazzi — video", entrada: false },
-  paparazzi_foto: { nome: "LPZ Paparazzi — fotos", nomeEn: "LPZ Paparazzi — photos", entrada: false },
+  paparazzi_video: { nome: "Paparazzi — vídeo", nomeEn: "Paparazzi — video", entrada: false },
+  paparazzi_foto: { nome: "Paparazzi — fotos", nomeEn: "Paparazzi — photos", entrada: false },
 } as const;
 export type TipoProduto = keyof typeof PRODUTOS;
 export const TIPOS_PRODUTO = Object.keys(PRODUTOS) as TipoProduto[];
