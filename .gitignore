@@ -21,3 +21,6 @@ next-env.d.ts
 
 # Uploads locais (fotos) — nunca versionar mídia enviada por usuários
 /uploads/
+
+# Marca local do iniciar-site.bat (seed ja rodado)
+.dados-exemplo-ok
