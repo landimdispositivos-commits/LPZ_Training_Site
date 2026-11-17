@@ -7,7 +7,7 @@ import { areaDoPapel } from "@/modules/auth/papeis";
 import { SiteHeader } from "../_components/site-header";
 import { AcessoCongressista } from "./_components/acesso-congressista";
 
-export const metadata: Metadata = { title: "Congressistas — LPZ Training" };
+export const metadata: Metadata = { title: "Entrar ou cadastrar — LPZ Training" };
 
 const AVISOS: Record<string, string> = {
   link: "O link de confirmação é inválido ou expirou. Entre com seu e-mail e senha para receber um novo.",
@@ -30,7 +30,7 @@ export default async function Page(props: PageProps<"/congressistas">) {
       <main className="bg-city-glow min-h-[80vh] px-4 py-16">
         <div className="mx-auto max-w-md text-center">
           <h1 className="font-display text-2xl uppercase tracking-[0.2em] text-gold-metal sm:text-3xl">
-            Congressistas
+            Entre ou cadastre-se
           </h1>
           <p className="mt-4 text-mist/90">
             Entre na sua conta ou faça um cadastro rápido para comprar ingressos e acompanhar o evento.
