@@ -7,6 +7,7 @@ import { formatarDataHora } from "@/lib/formatar";
 import { Aviso, classeInput } from "../../_components/form-ui";
 import { SiteHeader } from "../../_components/site-header";
 import { alterarPapelAction } from "./actions";
+import { BotaoSalvar } from "../../_components/botao-salvar";
 
 export const metadata: Metadata = { title: "Permissões — LPZ Training" };
 
@@ -25,7 +26,7 @@ const COR_PAPEL: Record<string, string> = {
 
 export default async function Page(props: PageProps<"/administradores/permissoes">) {
   const { user } = await exigirAdmin(["organizador"]);
-  const { q, papel, ok, erro } = await props.searchParams;
+  const { q, papel, ok, erro, alvo } = await props.searchParams;
   const busca = typeof q === "string" ? q.slice(0, 100) : "";
   const filtro = PAPEIS.find((p) => p === papel);
 
@@ -48,7 +49,13 @@ export default async function Page(props: PageProps<"/administradores/permissoes
             <Link href="/administradores/painel" className="text-sm text-teal-300 hover:underline">Painel</Link>
           </div>
 
-          {ok && <Aviso tipo="ok">Perfil alterado. A pessoa precisa entrar de novo para o novo acesso valer.</Aviso>}
+          {ok === "1" && (
+            <Aviso tipo="ok">
+              <strong>Operação realizada com sucesso!</strong> O perfil foi salvo e registrado na auditoria. A pessoa
+              precisa entrar de novo para o novo acesso valer.
+            </Aviso>
+          )}
+          {ok === "sem-mudanca" && <Aviso tipo="ok">Nada foi alterado: a pessoa já tinha esse perfil.</Aviso>}
           {typeof erro === "string" && ERROS[erro] && <Aviso tipo="erro">{ERROS[erro]}</Aviso>}
 
           <section className="rounded-2xl border border-white/10 bg-petrol-900/80 p-6">
@@ -92,8 +99,19 @@ export default async function Page(props: PageProps<"/administradores/permissoes
               <ul className="mt-4 space-y-3">
                 {lista.map((u) => {
                   const euMesmo = u.id === user.id;
+                  const acabouDeSalvar = ok === "1" && alvo === u.id;
                   return (
-                    <li key={u.id} className="rounded-xl border border-white/10 bg-petrol-950/60 p-4">
+                    <li
+                      key={u.id}
+                      className={
+                        acabouDeSalvar
+                          ? "rounded-xl border border-teal-400/60 bg-teal-400/5 p-4"
+                          : "rounded-xl border border-white/10 bg-petrol-950/60 p-4"
+                      }
+                    >
+                      {acabouDeSalvar && (
+                        <p role="status" className="mb-2 text-sm font-semibold text-teal-300">✓ Operação realizada com sucesso</p>
+                      )}
                       <div className="flex flex-wrap items-start justify-between gap-2">
                         <div className="min-w-0">
                           <p className="font-semibold text-white">
@@ -144,12 +162,7 @@ export default async function Page(props: PageProps<"/administradores/permissoes
                               <input type="checkbox" name="confirmo" className="h-4 w-4 accent-gold-400" />
                               Confirmo (obrigatório para dar acesso de Portaria ou Organizador)
                             </label>
-                            <button
-                              type="submit"
-                              className="bg-gold-metal rounded-full px-5 py-2 text-sm font-semibold text-gold-ink hover:brightness-110"
-                            >
-                              Salvar perfil
-                            </button>
+                            <BotaoSalvar>Salvar perfil</BotaoSalvar>
                           </form>
                         </details>
                       )}

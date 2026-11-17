@@ -3,12 +3,15 @@ import Link from "next/link";
 import { exigirAdmin } from "@/modules/auth/sessao";
 import { ROTULO_PAPEL } from "@/modules/auth/menu";
 import { PRODUTOS, TIPOS_PRODUTO } from "@/modules/ingressos/produtos";
-import { contarPorPapel, listarCadastros, PAPEIS, type Cadastro } from "@/modules/usuarios";
+import { contarPorPapel, DESCRICAO_PAPEL, listarCadastros, PAPEIS, type Cadastro } from "@/modules/usuarios";
 import { COLUNAS } from "@/modules/usuarios/colunas";
 import { formatarDataHora, formatarPreco } from "@/lib/formatar";
-import { classeInput } from "../../_components/form-ui";
+import { Aviso, classeInput } from "../../_components/form-ui";
 import { SiteHeader } from "../../_components/site-header";
 import { MarcarColunas } from "./marcar-colunas";
+import { alterarPapelAction } from "../permissoes/actions";
+import { BotaoSalvar } from "../../_components/botao-salvar";
+import { ACOES, descreverEvento, historicoDos, type RegistroAuditoria } from "@/modules/auditoria";
 
 export const metadata: Metadata = { title: "Usuários — LPZ Training" };
 
@@ -47,13 +50,24 @@ function dataBr(data: string) {
 }
 
 export default async function Page(props: PageProps<"/administradores/usuarios">) {
-  await exigirAdmin(["organizador"]);
-  const { q, papel } = await props.searchParams;
+  const { user } = await exigirAdmin(["organizador"]);
+  const { q, papel, ok, erro, alvo } = await props.searchParams;
   const busca = typeof q === "string" ? q.slice(0, 100) : "";
   const filtro = PAPEIS.find((p) => p === papel);
 
   const [lista, totais] = await Promise.all([listarCadastros({ busca, papel: filtro }), contarPorPapel()]);
   const total = PAPEIS.reduce((soma, p) => soma + (totais[p] ?? 0), 0);
+  const historico = await historicoDos(lista.map((u) => u.id));
+
+  const params = new URLSearchParams();
+  if (busca) params.set("q", busca);
+  if (filtro) params.set("papel", filtro);
+  const voltar = `/administradores/usuarios${params.size ? `?${params}` : ""}`;
+  const ERROS: Record<string, string> = {
+    dados: "Não foi possível alterar. Atualize a página e tente de novo.",
+    proprio: "Você não pode mudar o seu próprio perfil. Peça a outro organizador.",
+    confirmar: "Para dar acesso de Portaria ou Organizador, marque a caixa de confirmação.",
+  };
 
   return (
     <>
@@ -67,6 +81,14 @@ export default async function Page(props: PageProps<"/administradores/usuarios">
               <Link href="/administradores/painel" className="text-teal-300 hover:underline">Painel</Link>
             </div>
           </div>
+
+          {ok === "1" && (
+            <Aviso tipo="ok">
+              <strong>Operação realizada com sucesso!</strong> O perfil foi salvo e registrado na auditoria.
+            </Aviso>
+          )}
+          {ok === "sem-mudanca" && <Aviso tipo="ok">Nada foi alterado: a pessoa já tinha esse perfil.</Aviso>}
+          {typeof erro === "string" && ERROS[erro] && <Aviso tipo="erro">{ERROS[erro]}</Aviso>}
 
           <div className="grid gap-3 sm:grid-cols-5">
             <Contador rotulo="Total" valor={total} destaque />
@@ -143,7 +165,15 @@ export default async function Page(props: PageProps<"/administradores/usuarios">
                 </div>
                 <ul className="divide-y divide-white/5">
                   {lista.map((u) => (
-                    <LinhaUsuario key={u.id} u={u} />
+                    <LinhaUsuario
+                      key={u.id}
+                      u={u}
+                      euMesmo={u.id === user.id}
+                      aberto={alvo === u.id}
+                      salvo={alvo === u.id && ok === "1"}
+                      voltar={voltar}
+                      historico={historico.filter((h) => h.alvoId === u.id)}
+                    />
                   ))}
                 </ul>
               </div>
@@ -165,7 +195,21 @@ function Contador({ rotulo, valor, destaque }: { rotulo: string; valor: number; 
   );
 }
 
-function LinhaUsuario({ u }: { u: Cadastro }) {
+function LinhaUsuario({
+  u,
+  euMesmo,
+  aberto,
+  salvo,
+  voltar,
+  historico,
+}: {
+  u: Cadastro;
+  euMesmo: boolean;
+  aberto: boolean;
+  salvo: boolean;
+  voltar: string;
+  historico: RegistroAuditoria[];
+}) {
   const local = [u.cidade, u.uf ?? (u.pais && u.pais !== "Brasil" ? u.pais : null)].filter(Boolean).join(" — ");
   const produtos = TIPOS_PRODUTO.filter((t) => u.comprou[t]);
   const pendente = u.compras.some((c) => c.status === "pendente");
@@ -188,7 +232,7 @@ function LinhaUsuario({ u }: { u: Cadastro }) {
 
   return (
     <li>
-      <details className="group">
+      <details className="group" open={aberto}>
         <summary className={`cursor-pointer list-none rounded-lg px-3 py-3 hover:bg-white/5 [&::-webkit-details-marker]:hidden ${GRADE}`}>
           <div className="min-w-0">
             <p className="truncate font-semibold text-white">{u.nome}</p>
@@ -232,12 +276,28 @@ function LinhaUsuario({ u }: { u: Cadastro }) {
                 </div>
               ))}
             </dl>
-            <Link
-              href={`/administradores/permissoes?q=${encodeURIComponent(u.email)}`}
-              className="mt-3 inline-block text-sm font-medium text-teal-300 hover:underline"
-            >
-              Mudar permissão desta pessoa
-            </Link>
+
+            <h3 className="mt-5 text-xs font-semibold uppercase tracking-wider text-teal-300">Permissão</h3>
+            {salvo && <p role="status" className="mt-2 text-sm font-semibold text-teal-300">✓ Operação realizada com sucesso</p>}
+            {euMesmo ? (
+              <p className="mt-2 text-sm text-mist/60">Você não pode mudar o seu próprio perfil.</p>
+            ) : (
+              <form action={alterarPapelAction} className="mt-2 space-y-2">
+                <input type="hidden" name="usuarioId" value={u.id} />
+                <input type="hidden" name="voltar" value={voltar} />
+                <label htmlFor={`papel-${u.id}`} className="sr-only">Perfil de {u.nome}</label>
+                <select id={`papel-${u.id}`} name="papel" defaultValue={u.papel} className={classeInput}>
+                  {PAPEIS.map((p) => (
+                    <option key={p} value={p}>{ROTULO_PAPEL[p]} — {DESCRICAO_PAPEL[p]}</option>
+                  ))}
+                </select>
+                <label className="flex items-center gap-2 text-xs text-mist/80">
+                  <input type="checkbox" name="confirmo" className="h-4 w-4 accent-gold-400" />
+                  Confirmo (obrigatório para Portaria ou Organizador)
+                </label>
+                <BotaoSalvar>Salvar permissão</BotaoSalvar>
+              </form>
+            )}
           </section>
 
           <section>
@@ -277,6 +337,33 @@ function LinhaUsuario({ u }: { u: Cadastro }) {
             <p className="mt-3 text-sm text-mist/80">
               Total pago: <strong className="text-gold-300">{formatarPreco(u.totalPagoCentavos)}</strong>
             </p>
+          </section>
+
+          <section className="lg:col-span-2">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-teal-300">Histórico (auditoria)</h3>
+            {historico.length === 0 ? (
+              <p className="mt-2 text-sm text-mist/60">Nenhum registro ainda.</p>
+            ) : (
+              <ol className="mt-2 space-y-1.5 text-sm">
+                {historico.map((h) => (
+                  <li key={h.id} className="flex flex-wrap justify-between gap-2 border-b border-white/5 pb-1.5">
+                    <span className="text-white">
+                      {ACOES[h.acao as keyof typeof ACOES] ?? h.acao}
+                      <span className="text-mist/70"> {descreverEvento(h, (p) => ROTULO_PAPEL[p] ?? p)}</span>
+                    </span>
+                    <span className="text-mist/60">
+                      {formatarDataHora(h.criadoEm)} · por {h.autorId === u.id ? "a própria pessoa" : (h.autorEmail ?? "sistema")}
+                    </span>
+                  </li>
+                ))}
+              </ol>
+            )}
+            <Link
+              href={`/administradores/auditoria?q=${encodeURIComponent(u.email)}`}
+              className="mt-2 inline-block text-sm font-medium text-teal-300 hover:underline"
+            >
+              Ver na auditoria completa
+            </Link>
           </section>
         </div>
       </details>

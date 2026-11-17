@@ -8,6 +8,8 @@ import {
   date,
   pgEnum,
   uniqueIndex,
+  index,
+  jsonb,
 } from "drizzle-orm/pg-core";
 
 // ---------------------------------------------------------------------------
@@ -262,3 +264,29 @@ export const fornecedores = pgTable("fornecedores", {
   criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
   atualizadoEm: timestamp("atualizado_em", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// ---------------------------------------------------------------------------
+// Trilha de auditoria (usuários e permissões). Só recebe INSERT — o código
+// não tem função de editar nem apagar registro. Guarda quem fez (autor), em
+// quem (alvo), o quê (ação) e os detalhes (antes/depois), com IP e navegador.
+// Nomes e e-mails ficam copiados aqui para o histórico não se perder se a
+// conta for excluída depois.
+// ---------------------------------------------------------------------------
+
+export const auditoria = pgTable("auditoria", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
+  acao: text("acao").notNull(), // ver src/modules/auditoria
+  autorId: text("autor_id"), // null = sistema / linha de comando
+  autorNome: text("autor_nome"),
+  autorEmail: text("autor_email"),
+  alvoId: text("alvo_id"),
+  alvoNome: text("alvo_nome"),
+  alvoEmail: text("alvo_email"),
+  detalhes: jsonb("detalhes").$type<Record<string, unknown>>(),
+  ip: text("ip"),
+  navegador: text("navegador"),
+}, (t) => ({
+  alvoIdx: index("auditoria_alvo_idx").on(t.alvoId, t.criadoEm),
+  criadoIdx: index("auditoria_criado_idx").on(t.criadoEm),
+}));

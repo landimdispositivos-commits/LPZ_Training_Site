@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { usuarios } from "@/db/schema";
 import { exigirAdmin } from "@/modules/auth/sessao";
 import { alterarPapel, PAPEIS } from "@/modules/usuarios";
+import { registrarAuditoria } from "@/modules/auditoria";
 
 const VOLTAR = "/administradores/permissoes";
 
@@ -21,20 +22,37 @@ export async function alterarPapelAction(form: FormData) {
     .object({ usuarioId: z.string().min(1).max(100), papel: z.enum(PAPEIS) })
     .safeParse({ usuarioId: form.get("usuarioId"), papel: form.get("papel") });
   const voltar = String(form.get("voltar") ?? "");
-  const destino = voltar.startsWith(`${VOLTAR}?`) || voltar === VOLTAR ? voltar : VOLTAR;
-  const comAviso = (aviso: string) => `${destino}${destino.includes("?") ? "&" : "?"}${aviso}`;
+  // Volta para a tela de origem (Permissões ou Usuários), nunca para fora,
+  // mantendo a busca/filtro e trocando só os avisos.
+  const permitidos = [VOLTAR, "/administradores/usuarios"];
+  const [caminho, consulta = ""] = voltar.split("?");
+  const base = permitidos.includes(caminho) ? caminho : VOLTAR;
+  const params = new URLSearchParams(consulta);
+  for (const p of ["ok", "erro", "alvo"]) params.delete(p);
+  const comAviso = (aviso: string) => {
+    const final = new URLSearchParams(params);
+    for (const [k, v] of new URLSearchParams(aviso)) final.set(k, v);
+    return `${base}?${final}`;
+  };
 
   if (!dados.success) redirect(comAviso("erro=dados"));
   if (dados.data.usuarioId === user.id) redirect(comAviso("erro=proprio"));
 
   const alvo = await db.query.usuarios.findFirst({ where: eq(usuarios.id, dados.data.usuarioId) });
   if (!alvo) redirect(comAviso("erro=dados"));
-  if (alvo.papel === dados.data.papel) redirect(destino);
+  if (alvo.papel === dados.data.papel) redirect(comAviso(`ok=sem-mudanca&alvo=${alvo.id}`));
 
   const viraAdmin = dados.data.papel === "organizador" || dados.data.papel === "portaria";
   if (viraAdmin && form.get("confirmo") !== "on") redirect(comAviso("erro=confirmar"));
 
   await alterarPapel(alvo.id, dados.data.papel);
+  await registrarAuditoria({
+    acao: "perfil_alterado",
+    autor: user,
+    alvo: { id: alvo.id, name: alvo.name, email: alvo.email },
+    detalhes: { antes: alvo.papel, depois: dados.data.papel },
+  });
   revalidatePath(VOLTAR);
-  redirect(comAviso("ok=1"));
+  revalidatePath("/administradores/usuarios");
+  redirect(comAviso(`ok=1&alvo=${alvo.id}`));
 }

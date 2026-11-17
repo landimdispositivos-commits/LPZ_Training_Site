@@ -17,6 +17,7 @@ export function menuDoPapel(papel: string | null | undefined): ItemMenu[] {
         { href: "/administradores/painel", label: "Painel" },
         { href: "/administradores/usuarios", label: "Usuários" },
         { href: "/administradores/permissoes", label: "Permissões" },
+        { href: "/administradores/auditoria", label: "Auditoria" },
         { href: "/administradores/checkin", label: "Check-in" },
         { href: "/financeiro", label: "Financeiro" },
         { href: "/administradores/cronograma", label: "Cronograma" },

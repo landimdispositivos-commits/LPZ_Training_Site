@@ -16,6 +16,7 @@ const ATALHOS = [
   { href: "/administradores/checkin", titulo: "Check-in", descricao: "Validar ingressos na entrada do evento.", portaria: true },
   { href: "/administradores/usuarios", titulo: "Usuários", descricao: "Todos os cadastrados e seus dados.", portaria: false },
   { href: "/administradores/permissoes", titulo: "Permissões", descricao: "Dar ou tirar acesso de cada pessoa.", portaria: false },
+  { href: "/administradores/auditoria", titulo: "Auditoria", descricao: "Quem alterou o quê, em quem e quando.", portaria: false },
   { href: "/financeiro", titulo: "Financeiro", descricao: "Vendas, lotes, pedidos e exportação.", portaria: false },
   { href: "/administradores/cronograma", titulo: "Cronograma", descricao: "Aulas e atividades por dia.", portaria: false },
   { href: "/administradores/professores", titulo: "Professores", descricao: "Professores e DJs, com foto.", portaria: false },
