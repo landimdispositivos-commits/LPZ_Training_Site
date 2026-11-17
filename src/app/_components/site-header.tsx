@@ -7,8 +7,8 @@ import { MenuSuspenso } from "./menu-suspenso";
 // Links públicos (todos veem). Os links de cada perfil ficam no menu da conta,
 // no canto superior direito. "/#..." funciona também a partir das internas.
 const linksSecoes = [
-  { href: "/#cronograma", label: "Cronograma" },
-  { href: "/#professores", label: "Professores" },
+  { href: "/cronograma", label: "Cronograma" },
+  { href: "/professores", label: "Professores" },
   { href: "/ingressos", label: "Ingressos" },
   { href: "/galeria", label: "Galeria" },
 ];
