@@ -2,7 +2,9 @@ import { asc, eq } from "drizzle-orm";
 import Image from "next/image";
 import Link from "next/link";
 import { db } from "@/db";
-import { cronogramaItens, lotes, professores } from "@/db/schema";
+import { cronogramaItens, professores } from "@/db/schema";
+import { formatarDiaCronograma, formatarPreco } from "@/lib/formatar";
+import { loteVigente } from "@/modules/ingressos";
 import { SiteHeader } from "./_components/site-header";
 
 // Conteúdo vem do admin e o volume de acesso é baixo — renderizar por
@@ -23,16 +25,19 @@ async function getDadosLanding() {
       })
       .from(cronogramaItens)
       .leftJoin(professores, eq(cronogramaItens.professorId, professores.id))
-      .orderBy(asc(cronogramaItens.dia), asc(cronogramaItens.ordem)),
-    db.select().from(professores).orderBy(asc(professores.ordem)),
-    db.query.lotes.findFirst({ where: eq(lotes.ativo, true) }),
+      .orderBy(asc(cronogramaItens.dia), asc(cronogramaItens.horarioInicio), asc(cronogramaItens.ordem)),
+    db.select().from(professores).orderBy(asc(professores.ordem), asc(professores.nome)),
+    loteVigente(),
   ]);
 
   return { cronograma, listaProfessores, loteAtivo };
 }
 
-function formatarPreco(centavos: number) {
-  return (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+// Agrupa o cronograma por dia, mantendo a ordem.
+function agruparPorDia<T extends { dia: string }>(itens: T[]) {
+  const dias = new Map<string, T[]>();
+  for (const item of itens) dias.set(item.dia, [...(dias.get(item.dia) ?? []), item]);
+  return [...dias.entries()];
 }
 
 // Linhas finas em curva, como no material de divulgação. Só decoração.
@@ -117,23 +122,32 @@ export default async function Home() {
             {cronograma.length === 0 ? (
               <p className="mt-4 text-mist/70">Cronograma em breve.</p>
             ) : (
-              <ol className="mt-6 space-y-4">
-                {cronograma.map((item) => (
-                  <li
-                    key={item.id}
-                    className="rounded-lg border border-white/10 border-l-gold-400 border-l-2 bg-petrol-950/60 p-4"
-                  >
-                    <p className="text-sm font-medium text-teal-300">
-                      {item.dia} · {item.horarioInicio}
-                      {item.horarioFim ? ` – ${item.horarioFim}` : ""}
-                    </p>
-                    <p className="mt-1 font-semibold text-white">{item.titulo}</p>
-                    <p className="text-sm text-mist/70">
-                      {[item.professorNome, item.local].filter(Boolean).join(" · ")}
-                    </p>
-                  </li>
+              <div className="mt-6 space-y-8">
+                {agruparPorDia(cronograma).map(([dia, itens]) => (
+                  <div key={dia}>
+                    <h3 className="text-sm font-semibold uppercase tracking-wider text-gold-300 first-letter:uppercase">
+                      {formatarDiaCronograma(dia)}
+                    </h3>
+                    <ol className="mt-3 space-y-3">
+                      {itens.map((item) => (
+                        <li
+                          key={item.id}
+                          className="rounded-lg border border-white/10 border-l-gold-400 border-l-2 bg-petrol-950/60 p-4"
+                        >
+                          <p className="text-sm font-medium text-teal-300">
+                            {item.horarioInicio}
+                            {item.horarioFim ? ` – ${item.horarioFim}` : ""}
+                          </p>
+                          <p className="mt-1 font-semibold text-white">{item.titulo}</p>
+                          <p className="text-sm text-mist/70">
+                            {[item.professorNome, item.local].filter(Boolean).join(" · ")}
+                          </p>
+                        </li>
+                      ))}
+                    </ol>
+                  </div>
                 ))}
-              </ol>
+              </div>
             )}
           </div>
         </section>
@@ -148,15 +162,22 @@ export default async function Home() {
                 {listaProfessores.map((professor) => (
                   <li
                     key={professor.id}
-                    className="rounded-lg border border-white/10 bg-petrol-900 p-4"
+                    className="flex gap-4 rounded-lg border border-white/10 bg-petrol-900 p-4"
                   >
-                    <p className="font-semibold text-white">{professor.nome}</p>
-                    {professor.bio && (
-                      <p className="mt-1 text-sm text-mist/70">{professor.bio}</p>
+                    {professor.fotoUrl && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={professor.fotoUrl}
+                        alt={`Foto de ${professor.nome}`}
+                        loading="lazy"
+                        className="h-20 w-20 shrink-0 rounded-full object-cover"
+                      />
                     )}
-                    {professor.instagram && (
-                      <p className="mt-2 text-sm text-teal-300">{professor.instagram}</p>
-                    )}
+                    <div>
+                      <p className="font-semibold text-white">{professor.nome}</p>
+                      {professor.bio && <p className="mt-1 text-sm text-mist/70">{professor.bio}</p>}
+                      {professor.instagram && <p className="mt-2 text-sm text-teal-300">{professor.instagram}</p>}
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -176,9 +197,12 @@ export default async function Home() {
                 <p className="text-gold-metal mt-1 text-4xl font-extrabold">
                   {formatarPreco(loteAtivo.precoCentavos)}
                 </p>
-                <p className="mt-4 text-sm text-mist/60">
-                  Checkout de pagamento ainda não disponível nesta versão do site.
-                </p>
+                <Link
+                  href="/ingressos"
+                  className="bg-gold-metal mt-6 inline-block rounded-full px-8 py-3 font-semibold text-gold-ink transition hover:brightness-110"
+                >
+                  Comprar ingresso
+                </Link>
               </div>
             ) : (
               <p className="mt-4 text-mist/70">Vendas ainda não abertas. Volte em breve.</p>

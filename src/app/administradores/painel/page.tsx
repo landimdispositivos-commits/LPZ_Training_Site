@@ -1,5 +1,6 @@
 import { and, asc, count, eq, isNull } from "drizzle-orm";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { db } from "@/db";
 import { contas, professores, usuarios } from "@/db/schema";
 import { exigirAdmin } from "@/modules/auth/sessao";
@@ -10,6 +11,13 @@ import { FormConvidarProfissional } from "./form-convidar-profissional";
 export const metadata: Metadata = { title: "Painel — LPZ Training" };
 
 const ROTULO_PAPEL = { organizador: "Organizador(a)", portaria: "Portaria" } as const;
+
+const ATALHOS = [
+  { href: "/administradores/checkin", titulo: "Check-in", descricao: "Validar ingressos na entrada do evento.", portaria: true },
+  { href: "/financeiro", titulo: "Financeiro", descricao: "Vendas, lotes, pedidos e exportação.", portaria: false },
+  { href: "/administradores/conteudo", titulo: "Cronograma e professores", descricao: "O que aparece no site.", portaria: false },
+  { href: "/administradores/galeria", titulo: "Fotos e vídeos", descricao: "Galeria pública do evento.", portaria: false },
+] as const;
 
 async function dadosOrganizador() {
   const [totais, profissionais, professoresLivres] = await Promise.all([
@@ -75,13 +83,20 @@ export default async function Page(props: PageProps<"/administradores/painel">) 
             </p>
           )}
 
-          {user.papel === "organizador" ? <PainelOrganizador /> : (
-            <Cartao titulo="Check-in">
-              <p className="text-sm text-mist/80">
-                A validação de ingressos na entrada do evento estará disponível aqui em breve.
-              </p>
-            </Cartao>
-          )}
+          <nav aria-label="Áreas do painel" className="grid gap-3 sm:grid-cols-2">
+            {ATALHOS.filter((a) => user.papel === "organizador" || a.portaria).map((a) => (
+              <Link
+                key={a.href}
+                href={a.href}
+                className="rounded-2xl border border-gold-500/40 bg-petrol-900/80 p-5 hover:border-gold-400 hover:bg-petrol-800/80"
+              >
+                <p className="font-semibold text-gold-300">{a.titulo}</p>
+                <p className="mt-1 text-sm text-mist/70">{a.descricao}</p>
+              </Link>
+            ))}
+          </nav>
+
+          {user.papel === "organizador" && <PainelOrganizador />}
 
           <BotaoSair destino="/administradores" />
         </div>

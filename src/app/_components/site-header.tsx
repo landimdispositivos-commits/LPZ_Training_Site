@@ -5,7 +5,8 @@ import Link from "next/link";
 const linksSecoes = [
   { href: "/#cronograma", label: "Cronograma" },
   { href: "/#professores", label: "Professores" },
-  { href: "/#ingressos", label: "Ingressos" },
+  { href: "/ingressos", label: "Ingressos" },
+  { href: "/galeria", label: "Galeria" },
 ];
 
 const linksAreas = [

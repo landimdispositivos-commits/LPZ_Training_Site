@@ -6,6 +6,7 @@ import { auth } from "@/modules/auth/auth";
 import { areaDoPapel } from "@/modules/auth/papeis";
 import { SiteHeader } from "../../_components/site-header";
 import { BotaoSair } from "../../_components/botao-sair";
+import { MeusIngressos } from "../_components/meus-ingressos";
 
 export const metadata: Metadata = { title: "Minha área — LPZ Training" };
 
@@ -22,7 +23,7 @@ function formatarData(data: string) {
 
 export default async function Page(props: PageProps<"/congressistas/minha-area">) {
   const sessao = await auth.api.getSession({ headers: await headers() });
-  const { bemvindo, atualizado, error } = await props.searchParams;
+  const { bemvindo, atualizado, pago, error } = await props.searchParams;
 
   // Link de confirmação inválido/expirado chega aqui com ?error=...
   if (!sessao) redirect(error ? "/congressistas?erro=link" : "/congressistas");
@@ -66,6 +67,11 @@ export default async function Page(props: PageProps<"/congressistas/minha-area">
               Seus dados foram atualizados.
             </p>
           )}
+          {pago && (
+            <p role="status" className="mt-4 rounded-lg border border-teal-400/50 bg-teal-400/10 px-4 py-3 text-sm">
+              Pagamento confirmado! Seu ingresso está logo abaixo.
+            </p>
+          )}
           <p className="mt-4 text-mist/90">Olá, {user.name.split(" ")[0]}!</p>
 
           <section className="mt-8 rounded-2xl border border-white/10 bg-petrol-900/80 p-6">
@@ -88,9 +94,7 @@ export default async function Page(props: PageProps<"/congressistas/minha-area">
 
           <section className="mt-6 rounded-2xl border border-white/10 bg-petrol-900/80 p-6">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-teal-300">Meus ingressos</h2>
-            <p className="mt-3 text-sm text-mist/70">
-              Em breve você poderá comprar e acompanhar seus ingressos por aqui.
-            </p>
+            <MeusIngressos email={user.email} />
           </section>
 
           <div className="mt-8">

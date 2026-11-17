@@ -34,7 +34,7 @@ async function main() {
 
   await db.insert(schema.cronogramaItens).values([
     {
-      dia: "2026-11-06",
+      dia: "2027-09-24",
       horarioInicio: "19:00",
       horarioFim: "20:30",
       titulo: "Aula de abertura",
@@ -43,7 +43,7 @@ async function main() {
       ordem: 1,
     },
     {
-      dia: "2026-11-06",
+      dia: "2027-09-24",
       horarioInicio: "21:00",
       titulo: "Baile de abertura",
       professorId: professor2.id,

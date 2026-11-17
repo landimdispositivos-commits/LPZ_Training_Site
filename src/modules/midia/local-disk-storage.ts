@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, unlink, writeFile } from "node:fs/promises";
+import { mkdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import type { ArquivoParaSalvar, StorageAdapter } from "./storage-adapter";
 
@@ -10,6 +10,14 @@ const EXTENSOES_PERMITIDAS: Record<string, string> = {
   "image/png": ".png",
   "image/webp": ".webp",
 };
+
+const CONTENT_TYPE_POR_EXTENSAO: Record<string, string> = Object.fromEntries(
+  Object.entries(EXTENSOES_PERMITIDAS).map(([tipo, ext]) => [ext, tipo])
+);
+
+// Só nomes no formato gerado por `salvar` (UUID + extensão permitida) — isso
+// impede path traversal (../) e leitura de qualquer outro arquivo do disco.
+const REGEX_NOME_SALVO = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\.(jpg|png|webp)$/;
 
 export const TAMANHO_MAXIMO_BYTES = 8 * 1024 * 1024; // 8 MB
 
@@ -45,6 +53,17 @@ export class LocalDiskStorage implements StorageAdapter {
   }
 
   async remover(caminho: string): Promise<void> {
-    await unlink(path.join(this.diretorioBase, caminho));
+    if (!REGEX_NOME_SALVO.test(caminho)) return;
+    await unlink(path.join(this.diretorioBase, caminho)).catch(() => undefined);
+  }
+
+  async ler(caminho: string): Promise<{ conteudo: Buffer; contentType: string } | null> {
+    if (!REGEX_NOME_SALVO.test(caminho)) return null;
+    try {
+      const conteudo = await readFile(path.join(this.diretorioBase, caminho));
+      return { conteudo, contentType: CONTENT_TYPE_POR_EXTENSAO[path.extname(caminho)] };
+    } catch {
+      return null;
+    }
   }
 }
