@@ -13,7 +13,9 @@ COPY . .
 ENV DATABASE_URL="postgres://build:build@localhost:5432/build"
 # Idem para o segredo do login (src/modules/auth/auth.ts). Passado só para
 # este RUN — não fica gravado na imagem; em runtime vem do .env.
-RUN BETTER_AUTH_SECRET="somente-para-o-build" npm run build
+# TEST_MODE=true idem: o módulo de pagamento exige gateway ou modo de teste ao
+# ser carregado no build. Em runtime vale o TEST_MODE do .env.
+RUN BETTER_AUTH_SECRET="somente-para-o-build" TEST_MODE=true npm run build
 
 ENV NODE_ENV=production
 EXPOSE 3000
