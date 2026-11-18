@@ -220,6 +220,7 @@ export function FormFicha({
 
       <fieldset className={classeGrupo}>
         <legend className={`${classeTitulo} float-left mb-2 w-full`}>{t.dadosPessoais}</legend>
+        <div className="clear-both" aria-hidden="true" />
 
         <Campo id="f-nome" label={t.nome} erro={erros.nome}>
           <input {...ligar("nome", "f-nome")} defaultValue={valores.nome} autoComplete="name" maxLength={100} />
@@ -252,6 +253,7 @@ export function FormFicha({
 
       <fieldset className={classeGrupo}>
         <legend className={`${classeTitulo} float-left mb-2 w-full`}>{t.ondeMora}</legend>
+        <div className="clear-both" aria-hidden="true" />
 
         <div role="radiogroup" aria-label={t.paisOndeMora} className="grid grid-cols-2 gap-2 text-sm">
           {(["brasil", "outro"] as const).map((opcao) => (
@@ -318,6 +320,7 @@ export function FormFicha({
         <legend className={`${classeTitulo} float-left mb-2 w-full`}>
           {t.endereco} <span className="font-normal normal-case tracking-normal text-mist/60">{t.opcional}</span>
         </legend>
+        <div className="clear-both" aria-hidden="true" />
         <p className="text-xs text-mist/60">
           {t.enderecoDica}
         </p>
@@ -355,6 +358,7 @@ export function FormFicha({
         <legend className={`${classeTitulo} float-left mb-2 w-full`}>
           {t.maisSobre} <span className="font-normal normal-case tracking-normal text-mist/60">{t.opcional}</span>
         </legend>
+        <div className="clear-both" aria-hidden="true" />
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Campo id="f-nat-cidade" label={t.natCidade} erro={erros.naturalidadeCidade}>
