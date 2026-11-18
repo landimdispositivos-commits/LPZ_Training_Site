@@ -13,7 +13,7 @@ import { enviarEmail, escaparHtml } from "@/modules/email";
 export type ResultadoContato = { ok?: boolean; erros?: Partial<Record<"nome" | "email" | "assunto" | "mensagem", true>>; falhou?: boolean };
 
 // Limite simples contra abuso: 5 mensagens a cada 10 minutos por endereço IP.
-const tentativas = ((globalThis as { __lpzFaleConosco?: Map<string, number[]> }).__lpzFaleConosco ??= new Map());
+const tentativas = ((globalThis as { __lpzFaleConosco?: Map<string, number[]> }).__lpzFaleConosco ??= new Map<string, number[]>());
 
 const mensagemSchema = z.object({
   nome: z.string().trim().min(2).max(100),
