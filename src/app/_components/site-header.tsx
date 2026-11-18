@@ -19,6 +19,7 @@ const TEXTOS = traducoes(
     abrirMenu: "Abrir menu",
     fecharMenu: "Fechar menu",
     faleConosco: "Fale conosco",
+    idioma: "Idioma",
     sacola: (n: number) => `Sacola com ${n} ${n === 1 ? "item" : "itens"}`,
     links: [
       { href: "/cronograma", label: "Cronograma" },
@@ -37,6 +38,7 @@ const TEXTOS = traducoes(
     abrirMenu: "Open menu",
     fecharMenu: "Close menu",
     faleConosco: "Contact us",
+    idioma: "Language",
     sacola: (n: number) => `Cart with ${n} ${n === 1 ? "item" : "items"}`,
     links: [
       { href: "/cronograma", label: "Schedule" },
@@ -55,6 +57,7 @@ const TEXTOS = traducoes(
     abrirMenu: "Abrir menú",
     fecharMenu: "Cerrar menú",
     faleConosco: "Contáctanos",
+    idioma: "Idioma",
     sacola: (n: number) => `Bolsa con ${n} ${n === 1 ? "artículo" : "artículos"}`,
     links: [
       { href: "/cronograma", label: "Cronograma" },
@@ -68,7 +71,7 @@ const TEXTOS = traducoes(
 
 const classeLink = "text-mist/80 hover:text-gold-300";
 const classeBotaoConta =
-  "bg-gold-metal flex h-11 cursor-pointer list-none items-center gap-2 rounded-full px-3 text-sm font-semibold text-gold-ink shadow-[0_0_20px_rgb(230_181_74/0.25)] transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-300 sm:px-4 [&::-webkit-details-marker]:hidden";
+  "bg-gold-metal flex h-11 min-w-0 cursor-pointer list-none items-center gap-2 rounded-full px-3 text-sm font-semibold text-gold-ink shadow-[0_0_20px_rgb(230_181_74/0.25)] transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-300 sm:px-4 [&::-webkit-details-marker]:hidden";
 
 function IconePessoa({ className }: { className?: string }) {
   return (
@@ -90,7 +93,7 @@ async function BotaoSacola({ idioma }: { idioma: Idioma }) {
       href="/sacola"
       aria-label={TEXTOS[idioma].sacola(n)}
       title={TEXTOS[idioma].sacola(n)}
-      className="relative flex h-11 w-11 items-center justify-center rounded-full border border-gold-500/60 text-gold-300 hover:bg-gold-500/10"
+      className="relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-gold-500/60 text-gold-300 hover:bg-gold-500/10"
     >
       <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <path d="M5 8h14l-1.2 11.2a1 1 0 0 1-1 .8H7.2a1 1 0 0 1-1-.8L5 8Z" />
@@ -126,12 +129,13 @@ async function MenuConta({ idioma }: { idioma: Idioma }) {
 
   return (
     <MenuSuspenso
+      className="group relative min-w-0"
       resumoClassName={classeBotaoConta}
       resumo={
         <>
-          <IconePessoa className="h-5 w-5" />
-          <span className="max-w-[9rem] truncate">{comoChamar(user)}</span>
-          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 transition group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth="2">
+          <IconePessoa className="h-5 w-5 shrink-0" />
+          <span className="min-w-0 max-w-[9rem] truncate">{comoChamar(user)}</span>
+          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 shrink-0 transition group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M6 9l6 6 6-6" />
           </svg>
         </>
@@ -167,9 +171,9 @@ export async function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-white/10 bg-petrol-950/85 backdrop-blur">
       <nav
         aria-label={t.navegacao}
-        className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 py-4"
+        className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:gap-6"
       >
-        <Link href="/" className="shrink-0 whitespace-nowrap font-display text-sm tracking-[0.25em] text-gold-metal">
+        <Link href="/" className="shrink-0 whitespace-nowrap font-display text-xs tracking-[0.18em] text-gold-metal sm:text-sm sm:tracking-[0.25em]">
           LPZ TRAINING
         </Link>
 
@@ -181,8 +185,12 @@ export async function SiteHeader() {
           ))}
         </ul>
 
-        <div className="flex shrink-0 items-center gap-2">
-          <SeletorIdioma />
+        {/* No celular o seletor de idioma vai para dentro do menu (☰): as três
+            bandeiras + conta + menu não cabem numa linha de 360–390px. */}
+        <div className="flex min-w-0 items-center gap-2">
+          <div className="hidden sm:block">
+            <SeletorIdioma />
+          </div>
           <BotaoSacola idioma={idioma} />
           <MenuConta idioma={idioma} />
           <Link
@@ -194,7 +202,7 @@ export async function SiteHeader() {
 
           {/* Menu mobile sem JavaScript: <details> abre/fecha nativamente. */}
           <MenuSuspenso
-            className="group relative lg:hidden"
+            className="group relative shrink-0 lg:hidden"
             resumoClassName="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-lg text-gold-300 hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-300 [&::-webkit-details-marker]:hidden"
             resumo={
               <>
@@ -210,6 +218,10 @@ export async function SiteHeader() {
             }
           >
             <div className="menu-descer absolute right-0 z-50 mt-3 w-56 rounded-xl border border-gold-500/30 p-2 shadow-2xl shadow-black/50">
+              <div className="border-b border-white/10 px-3 pb-3 pt-1 sm:hidden">
+                <p className="mb-2 text-xs text-mist/60">{t.idioma}</p>
+                <SeletorIdioma />
+              </div>
               <ul className="text-sm font-medium">
                 {t.links.map((link) => (
                   <li key={link.href}>
