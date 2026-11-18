@@ -1,4 +1,5 @@
 import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { agruparPorPedido, presencasDosPedidos } from "@/modules/presencas";
 import { db } from "@/db";
 import { contas, ingressos, lotes, pedidos, professores, sessoes, usuarios } from "@/db/schema";
 import { TIPOS_PRODUTO, type TipoProduto } from "@/modules/ingressos/produtos";
@@ -110,6 +111,7 @@ export async function listarCadastros({ busca, papel, limite = 500 }: { busca?: 
       .where(inArray(contas.userId, lista.map((u) => u.id))),
     db
       .select({
+        pedidoId: pedidos.id,
         email: pedidos.email,
         status: pedidos.status,
         valorCentavos: pedidos.valorCentavos,
@@ -125,6 +127,8 @@ export async function listarCadastros({ busca, papel, limite = 500 }: { busca?: 
       .orderBy(desc(pedidos.criadoEm)),
   ]);
 
+  const presencasPorPedido = agruparPorPedido(await presencasDosPedidos(compras.map((c) => c.pedidoId)));
+
   return lista.map((u) => {
     const meus = provedores.filter((p) => p.usuarioId === u.id).map((p) => p.provedor);
     const formaCadastro = [meus.includes("credential") && "E-mail e senha", meus.includes("google") && "Google"]
@@ -135,7 +139,7 @@ export async function listarCadastros({ busca, papel, limite = 500 }: { busca?: 
     return {
       ...u,
       formaCadastro,
-      compras: comprasDele,
+      compras: comprasDele.map((c) => ({ ...c, presencas: presencasPorPedido.get(c.pedidoId) ?? [] })),
       comprou: Object.fromEntries(TIPOS_PRODUTO.map((t) => [t, pagos.has(t)])) as Record<TipoProduto, boolean>,
       totalPagoCentavos: comprasDele.filter((c) => c.status === "pago").reduce((t, c) => t + c.valorCentavos, 0),
     };

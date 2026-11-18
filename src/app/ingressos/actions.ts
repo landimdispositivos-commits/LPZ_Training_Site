@@ -7,6 +7,7 @@ import {
   criarPedido,
   ErroCompra,
   iniciarPagamento,
+  pagarSacola,
   TIPOS_PRODUTO,
   type CodigoErroCompra,
   type TipoProduto,
@@ -74,6 +75,45 @@ export async function desistirAction(form: FormData) {
   const pedidoId = pedidoIdSchema.safeParse(form.get("pedidoId"));
   if (pedidoId.success) await cancelarPedidoPendente(pedidoId.data, user.email);
   redirect("/ingressos?cancelado=1");
+}
+
+// Sacola: reserva a vaga do produto (pedido pendente) sem abrir o pagamento.
+export async function adicionarSacolaAction(form: FormData) {
+  const tipo = z.enum(TIPOS_PRODUTO as [TipoProduto, ...TipoProduto[]]).safeParse(form.get("tipo"));
+  if (!tipo.success) redirect("/ingressos?erro=sem-lote");
+  const user = await exigirCongressista();
+  const idioma = await obterIdioma();
+  let destino = `/ingressos?adicionado=${tipo.data}`;
+  try {
+    await criarPedido(
+      { nome: user.name, email: user.email, telefone: user.celular ?? null, cpf: user.cpf ?? null },
+      tipo.data,
+      idioma,
+    );
+  } catch (erro) {
+    destino = `/ingressos?erro=${codigoDoErro(erro)}`;
+  }
+  redirect(destino);
+}
+
+// Tira um item da sacola: cancela o pedido pendente e devolve a vaga.
+export async function removerDaSacolaAction(form: FormData) {
+  const user = await exigirCongressista();
+  const pedidoId = pedidoIdSchema.safeParse(form.get("pedidoId"));
+  if (pedidoId.success) await cancelarPedidoPendente(pedidoId.data, user.email);
+  redirect(form.get("voltar") === "sacola" ? "/sacola" : "/ingressos");
+}
+
+// Um único pagamento para todos os itens da sacola.
+export async function pagarSacolaAction() {
+  const user = await exigirCongressista("/sacola");
+  let destino: string;
+  try {
+    destino = await pagarSacola(user.email);
+  } catch (erro) {
+    destino = `/sacola?erro=${codigoDoErro(erro)}`;
+  }
+  redirect(destino);
 }
 
 function codigoDoErro(erro: unknown): CodigoErroCompra {

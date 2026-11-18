@@ -8,7 +8,7 @@ import { db } from "@/db";
 import { pedidos, usuarios } from "@/db/schema";
 import { cpfValido, normalizarCelular, PAIS_BRASIL, somenteDigitos } from "@/modules/auth/cadastro";
 import { exigirAdmin } from "@/modules/auth/sessao";
-import { registrarAuditoria } from "@/modules/auditoria";
+import { diferencas, registrarAuditoria } from "@/modules/auditoria";
 
 // Edição e exclusão de cadastro pela organização (só Organizador). Tudo vai
 // para a trilha de auditoria. Server actions aceitam POST direto, então a
@@ -94,10 +94,7 @@ export async function editarCadastroAction(form: FormData) {
     if (cpfEmUso) redirect(voltarPara(form, `erro=cpf-em-uso&alvo=${alvo.id}`));
   }
 
-  const antes = alvo as unknown as Record<string, unknown>;
-  const campos = Object.entries(novo)
-    .filter(([campo, valor]) => (antes[campo] ?? null) !== (valor ?? null))
-    .map(([campo]) => (campo === "name" ? "nome" : campo));
+  const { campos, mudancas } = diferencas(alvo as unknown as Record<string, unknown>, novo);
   if (campos.length === 0) redirect(voltarPara(form, `ok=sem-mudanca&alvo=${alvo.id}`));
 
   await db.transaction(async (tx) => {
@@ -112,8 +109,8 @@ export async function editarCadastroAction(form: FormData) {
     acao: "cadastro_editado",
     autor: user,
     alvo: { id: alvo.id, name: novo.name, email: novo.email },
-    // Só os nomes dos campos (LGPD); troca de e-mail fica registrada por ser o login.
-    detalhes: { campos, ...(novo.email !== alvo.email ? { emailAnterior: alvo.email } : {}) },
+    // Antes → depois de cada campo (sensíveis mascarados — LGPD).
+    detalhes: { campos, mudancas },
   });
   revalidatePath(BASE);
   redirect(voltarPara(form, `ok=editado&alvo=${alvo.id}`));

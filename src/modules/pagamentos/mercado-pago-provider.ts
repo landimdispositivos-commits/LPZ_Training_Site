@@ -67,19 +67,17 @@ export class MercadoPagoProvider implements PaymentProvider {
     const preferencia = await this.chamar<{ id: string; init_point: string }>("/checkout/preferences", {
       method: "POST",
       // Mesmo pedido = mesma chave: evita preferência duplicada se o clique repetir.
-      headers: { "X-Idempotency-Key": `pref-${input.pedidoId}-${input.expiraEm.getTime()}` },
+      headers: { "X-Idempotency-Key": `pref-${input.referencia}-${input.expiraEm.getTime()}` },
       body: JSON.stringify({
-        items: [
-          {
-            id: input.pedidoId,
-            title: input.descricao,
-            quantity: 1,
-            currency_id: "BRL",
-            unit_price: input.valorCentavos / 100,
-          },
-        ],
+        items: input.itens.map((item) => ({
+          id: item.id,
+          title: item.descricao,
+          quantity: 1,
+          currency_id: "BRL",
+          unit_price: item.valorCentavos / 100,
+        })),
         payer: { email: input.compradorEmail },
-        external_reference: input.pedidoId,
+        external_reference: input.referencia,
         back_urls: { success: retorno, pending: retorno, failure: retorno },
         // O Mercado Pago só volta sozinho e só avisa (webhook) para endereço
         // público com https — em localhost o comprador clica em "Voltar".
@@ -98,11 +96,11 @@ export class MercadoPagoProvider implements PaymentProvider {
     return { preferenceId: preferencia.id, checkoutUrl: preferencia.init_point };
   }
 
-  // Status pelo nosso pedido (external_reference): pode haver várias
-  // tentativas (ex: cartão recusado e depois Pix aprovado).
-  async consultarPagamento({ pedidoId }: ReferenciaPagamento): Promise<SituacaoPagamento> {
+  // Status pela nossa referência (external_reference = compra ou pedido):
+  // pode haver várias tentativas (ex: cartão recusado e depois Pix aprovado).
+  async consultarPagamento({ referencia }: ReferenciaPagamento): Promise<SituacaoPagamento> {
     const busca = await this.chamar<{ results: PagamentoMP[] }>(
-      `/v1/payments/search?external_reference=${encodeURIComponent(pedidoId)}&sort=date_created&criteria=desc`,
+      `/v1/payments/search?external_reference=${encodeURIComponent(referencia)}&sort=date_created&criteria=desc`,
     );
     const aprovado = busca.results.find((p) => p.status === "approved");
     if (aprovado) return { status: "pago", forma: formaDoMP(aprovado), parcelas: aprovado.installments ?? null };
@@ -110,8 +108,9 @@ export class MercadoPagoProvider implements PaymentProvider {
     return { status: "pendente" };
   }
 
-  // Webhook: o aviso traz só o id do pagamento; descobrimos o pedido aqui.
-  async pedidoDoPagamento(pagamentoId: string): Promise<string | null> {
+  // Webhook: o aviso traz só o id do pagamento; descobrimos a referência
+  // (compra ou pedido) aqui.
+  async referenciaDoPagamento(pagamentoId: string): Promise<string | null> {
     if (!/^\d+$/.test(pagamentoId)) return null;
     const pagamento = await this.chamar<PagamentoMP>(`/v1/payments/${pagamentoId}`);
     return pagamento.external_reference;

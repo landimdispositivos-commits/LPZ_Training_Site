@@ -21,7 +21,7 @@ export class FakePaymentProvider implements PaymentProvider {
   private readonly situacao = (globalComStatus.__lpzPagamentosSimulados ??= new Map<string, SituacaoPagamento>());
 
   async criarPreferencia(input: CriarPreferenciaInput): Promise<CriarPreferenciaResultado> {
-    const preferenceId = `fake-${input.pedidoId}`;
+    const preferenceId = `fake-${input.referencia}`;
     if (!this.situacao.has(preferenceId)) this.situacao.set(preferenceId, { status: "pendente" });
     return {
       preferenceId,

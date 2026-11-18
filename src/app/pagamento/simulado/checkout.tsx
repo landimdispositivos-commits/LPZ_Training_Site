@@ -105,7 +105,7 @@ function IconeCartao() {
   );
 }
 
-export function CheckoutSimulado({ pedidoId, valorCentavos }: { pedidoId: string; valorCentavos: number }) {
+export function CheckoutSimulado({ preferencia, valorCentavos }: { preferencia: string; valorCentavos: number }) {
   const idioma = useIdioma();
   const t = TEXTOS[idioma];
   const [aba, setAba] = useState<Aba>("pix");
@@ -113,7 +113,7 @@ export function CheckoutSimulado({ pedidoId, valorCentavos }: { pedidoId: string
   const [copiado, setCopiado] = useState(false);
   const [enviando, setEnviando] = useState(false);
   const valor = formatarPreco(valorCentavos, idioma);
-  const codigoPix = `00020126LPZTRAINING-TESTE-${pedidoId.slice(0, 8).toUpperCase()}5204000053039865802BR6009SAO PAULO`;
+  const codigoPix = `00020126LPZTRAINING-TESTE-${preferencia.replace("fake-", "").slice(0, 8).toUpperCase()}5204000053039865802BR6009SAO PAULO`;
 
   const opcoes: { id: Aba; titulo: string; detalhe: string; icone: React.ReactNode }[] = [
     { id: "pix", titulo: t.pix, detalhe: t.pixAprovacao, icone: <IconePix /> },
@@ -159,7 +159,7 @@ export function CheckoutSimulado({ pedidoId, valorCentavos }: { pedidoId: string
 
   return (
     <form action={decidirPagamentoSimuladoAction} onSubmit={() => setEnviando(true)} className="space-y-5">
-      <input type="hidden" name="pedidoId" value={pedidoId} />
+      <input type="hidden" name="preferencia" value={preferencia} />
       <input type="hidden" name="forma" value={aba} />
       <input type="hidden" name="parcelas" value={aba === "credito" ? parcelas : 1} />
 

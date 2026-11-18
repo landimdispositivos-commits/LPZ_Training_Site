@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { rotuloPresenca, type DiaPresenca } from "@/modules/presencas/regras";
 import Link from "next/link";
 import { exigirAdmin } from "@/modules/auth/sessao";
 import { ROTULO_PAPEL } from "@/modules/auth/menu";
@@ -375,8 +376,15 @@ function LinhaUsuario({
                     </span>
                     <span className="text-mist/80">
                       {formatarPreco(c.valorCentavos)} · {STATUS_PEDIDO[c.status] ?? c.status} · {formatarDataHora(c.criadoEm)}
-                      {c.checkinEm ? " · entrou" : ""}
                     </span>
+                    {c.presencas.length > 0 && (
+                      <span className="w-full text-xs text-teal-300">
+                        Compareceu:{" "}
+                        {c.presencas
+                          .map((p) => `${rotuloPresenca(c.tipo, p.dia as DiaPresenca)} (${formatarDataHora(p.registradoEm)}${p.registradoPorNome ? `, por ${p.registradoPorNome}` : ""})`)
+                          .join(" · ")}
+                      </span>
+                    )}
                   </li>
                 ))}
               </ul>

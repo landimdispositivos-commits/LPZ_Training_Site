@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, or } from "drizzle-orm";
 import { NextResponse, type NextRequest } from "next/server";
 import { z } from "zod";
 import { db } from "@/db";
@@ -15,12 +15,16 @@ export async function GET(request: NextRequest) {
   const sessao = await auth.api.getSession({ headers: request.headers });
   if (!sessao) return destino("/congressistas");
 
-  const pedidoId = z.uuid().safeParse(url.searchParams.get("external_reference"));
-  if (!pedidoId.success) return destino("/congressistas/minha-area");
+  // external_reference = id da compra (sacola) ou do pedido (item único).
+  const referencia = z.uuid().safeParse(url.searchParams.get("external_reference"));
+  if (!referencia.success) return destino("/congressistas/minha-area");
 
   // Só o dono do pedido confirma por aqui.
   const pedido = await db.query.pedidos.findFirst({
-    where: and(eq(pedidos.id, pedidoId.data), eq(pedidos.email, sessao.user.email)),
+    where: and(
+      or(eq(pedidos.compraId, referencia.data), eq(pedidos.id, referencia.data)),
+      eq(pedidos.email, sessao.user.email),
+    ),
   });
   if (!pedido) return destino("/congressistas/minha-area");
 

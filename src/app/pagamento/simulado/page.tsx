@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { db } from "@/db";
@@ -26,23 +26,26 @@ export default async function Page(props: PageProps<"/pagamento/simulado">) {
   const { preference } = await props.searchParams;
   if (typeof preference !== "string") notFound();
 
-  const pedido = await db
-    .select({
-      id: pedidos.id,
-      status: pedidos.status,
-      valorCentavos: pedidos.valorCentavos,
-      criadoEm: pedidos.criadoEm,
-      nome: pedidos.nome,
-      email: pedidos.email,
-      loteNome: lotes.nome,
-      tipo: lotes.tipo,
-    })
-    .from(pedidos)
-    .innerJoin(lotes, eq(lotes.id, pedidos.loteId))
-    .where(and(eq(pedidos.gatewayPreferenceId, preference), eq(pedidos.email, sessao.user.email)))
-    .then((r) => r[0]);
-  if (!pedido) notFound();
-  if (pedido.status !== "pendente") redirect("/ingressos");
+  const itens = (
+    await db
+      .select({
+        id: pedidos.id,
+        status: pedidos.status,
+        valorCentavos: pedidos.valorCentavos,
+        criadoEm: pedidos.criadoEm,
+        nome: pedidos.nome,
+        email: pedidos.email,
+        loteNome: lotes.nome,
+        tipo: lotes.tipo,
+      })
+      .from(pedidos)
+      .innerJoin(lotes, eq(lotes.id, pedidos.loteId))
+      .where(and(eq(pedidos.gatewayPreferenceId, preference), eq(pedidos.email, sessao.user.email)))
+      .orderBy(asc(pedidos.criadoEm))
+  ).filter((p) => p.status === "pendente");
+  if (itens.length === 0) redirect("/ingressos");
+  const pedido = itens[0];
+  const totalCentavos = itens.reduce((s, i) => s + i.valorCentavos, 0);
   const idioma = await obterIdioma();
   const reservaAte = new Date(pedido.criadoEm.getTime() + MINUTOS_RESERVA * 60 * 1000).toLocaleTimeString(LOCALE[idioma], {
     hour: "2-digit",
@@ -79,20 +82,27 @@ export default async function Page(props: PageProps<"/pagamento/simulado">) {
 
           <section className="rounded-2xl border border-gold-500/40 bg-petrol-950/70 p-5">
             <h2 className="font-display text-xs uppercase tracking-[0.15em] text-teal-300">{tx(idioma, "Resumo do pedido", "Order summary", "Resumen del pedido")}</h2>
-            <div className="mt-3 flex items-start justify-between gap-4">
-              <div>
-                <p className="font-semibold text-white">{nomeDoProduto(pedido.tipo, idioma)}</p>
-                <p className="text-sm text-mist/70">{nomeDoLote(pedido.loteNome, idioma)}</p>
-                <p className="mt-2 text-xs text-mist/60">{pedido.nome} · {pedido.email}</p>
-              </div>
-              <p className="text-gold-metal whitespace-nowrap text-2xl font-extrabold">{formatarPreco(pedido.valorCentavos, idioma)}</p>
+            <ul className="mt-3 space-y-3">
+              {itens.map((i) => (
+                <li key={i.id} className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="font-semibold text-white">{nomeDoProduto(i.tipo, idioma)}</p>
+                    <p className="text-sm text-mist/70">{nomeDoLote(i.loteNome, idioma)}</p>
+                  </div>
+                  <p className="whitespace-nowrap font-semibold text-gold-300">{formatarPreco(i.valorCentavos, idioma)}</p>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-3 flex items-end justify-between gap-4 border-t border-white/10 pt-3">
+              <p className="text-xs text-mist/60">{pedido.nome} · {pedido.email}</p>
+              <p className="text-gold-metal whitespace-nowrap text-2xl font-extrabold">{formatarPreco(totalCentavos, idioma)}</p>
             </div>
             <p className="mt-3 border-t border-white/10 pt-3 text-xs text-mist/60">
               {tx(idioma, `Sua vaga fica reservada até ${reservaAte}.`, `Your spot is held until ${reservaAte}.`, `Tu lugar queda reservado hasta las ${reservaAte}.`)}
             </p>
           </section>
 
-          <CheckoutSimulado pedidoId={pedido.id} valorCentavos={pedido.valorCentavos} />
+          <CheckoutSimulado preferencia={preference} valorCentavos={totalCentavos} />
 
           <p className="text-center text-xs text-mist/50">
             {tx(

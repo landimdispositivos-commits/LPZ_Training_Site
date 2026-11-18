@@ -1,4 +1,5 @@
 import { formatarDataHora } from "@/lib/formatar";
+import { rotuloPresenca, type DiaPresenca } from "@/modules/presencas/regras";
 import { PRODUTOS, TIPOS_PRODUTO } from "@/modules/ingressos/produtos";
 import { ROTULO_PAPEL } from "@/modules/auth/menu";
 import type { Cadastro } from "./index";
@@ -49,9 +50,16 @@ export const COLUNAS: Coluna[] = [
   { id: "total_pago", titulo: "Total pago (R$)", basica: true, valor: (u) => u.totalPagoCentavos / 100 },
   {
     id: "checkin",
-    titulo: "Check-in feito",
+    titulo: "Compareceu",
     basica: false,
-    valor: (u) => (u.compras.some((c) => c.checkinEm) ? "Sim" : "Não"),
+    valor: (u) =>
+      u.compras
+        .flatMap((c) =>
+          c.presencas.map(
+            (p) => `${PRODUTOS[c.tipo].nome}: ${rotuloPresenca(c.tipo, p.dia as DiaPresenca)} (${formatarDataHora(p.registradoEm)})`,
+          ),
+        )
+        .join("; ") || "Não",
   },
   { id: "ficha_completa", titulo: "Ficha completa", basica: false, valor: (u) => (u.cadastroCompletoEm ? "Sim" : "Não") },
   { id: "email_confirmado", titulo: "E-mail confirmado", basica: false, valor: (u) => (u.emailVerificado ? "Sim" : "Não") },

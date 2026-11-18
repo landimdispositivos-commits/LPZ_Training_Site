@@ -17,20 +17,27 @@ export interface SituacaoPagamento {
   parcelas?: number | null;
 }
 
-export interface CriarPreferenciaInput {
-  pedidoId: string;
+export interface ItemPagamento {
+  id: string; // id do pedido
   descricao: string;
   valorCentavos: number;
+}
+
+export interface CriarPreferenciaInput {
+  // Referência externa enviada ao gateway: o id da compra (sacola) ou, numa
+  // compra de um item só, o id do pedido.
+  referencia: string;
+  itens: ItemPagamento[];
   compradorEmail: string;
   // Até quando o checkout aceita pagamento (fim da reserva da vaga).
   expiraEm: Date;
 }
 
-// Identificação do pagamento no gateway: a preferência criada e o nosso
-// pedido (enviado ao gateway como referência externa).
+// Identificação do pagamento no gateway: a preferência criada e a nossa
+// referência (compra ou pedido).
 export interface ReferenciaPagamento {
   preferenceId: string;
-  pedidoId: string;
+  referencia: string;
 }
 
 export interface CriarPreferenciaResultado {

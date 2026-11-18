@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { ingressos, lotes, pedidos } from "@/db/schema";
@@ -34,6 +35,7 @@ export const MENSAGENS_ERRO_COMPRA = {
   "ja-tem-ingresso": "Você já comprou este produto. Ele está na sua área.",
   "pedido-invalido": "Pedido não encontrado.",
   pagamento: "Não foi possível abrir o pagamento agora. Tente de novo em alguns minutos.",
+  "sacola-vazia": "Sua sacola está vazia (ou a reserva venceu). Escolha os produtos de novo.",
 } as const;
 export type CodigoErroCompra = keyof typeof MENSAGENS_ERRO_COMPRA;
 
@@ -166,9 +168,40 @@ export async function criarPedido(comprador: Comprador, tipo: TipoProduto, idiom
   });
 }
 
-// Abre (ou reabre) o checkout do gateway para um pedido pendente do comprador.
-export async function iniciarPagamento(pedidoId: string, email: string) {
-  const pedido = await db
+// Itens da sacola: os pedidos pendentes (vaga reservada) do comprador.
+export async function sacolaDoComprador(email: string) {
+  await liberarReservasVencidas();
+  return db
+    .select({
+      pedidoId: pedidos.id,
+      valorCentavos: pedidos.valorCentavos,
+      criadoEm: pedidos.criadoEm,
+      tipo: lotes.tipo,
+      loteNome: lotes.nome,
+    })
+    .from(pedidos)
+    .innerJoin(lotes, eq(lotes.id, pedidos.loteId))
+    .where(and(eq(pedidos.email, email), eq(pedidos.status, "pendente")))
+    .orderBy(asc(pedidos.criadoEm));
+}
+
+// Quantidade na sacola para o ícone do topo (sem escrever no banco).
+export async function contarSacola(email: string) {
+  const limite = new Date(Date.now() - MINUTOS_RESERVA * 60 * 1000);
+  const [linha] = await db
+    .select({ total: sql<number>`count(*)`.mapWith(Number) })
+    .from(pedidos)
+    .where(and(eq(pedidos.email, email), eq(pedidos.status, "pendente"), gte(pedidos.criadoEm, limite)));
+  return linha?.total ?? 0;
+}
+
+// Abre o checkout do gateway para um ou mais pedidos pendentes do comprador.
+// Vários pedidos = uma compra (sacola): recebem o mesmo compra_id, que vai ao
+// gateway como referência — um único pagamento para todos.
+async function abrirCheckout(pedidoIds: string[], email: string) {
+  // Antes de reagrupar, confere se algum checkout anterior já foi pago.
+  await atualizarPendentesDoComprador(email);
+  const lista = await db
     .select({
       id: pedidos.id,
       status: pedidos.status,
@@ -179,76 +212,116 @@ export async function iniciarPagamento(pedidoId: string, email: string) {
     })
     .from(pedidos)
     .innerJoin(lotes, eq(lotes.id, pedidos.loteId))
-    .where(and(eq(pedidos.id, pedidoId), eq(pedidos.email, email)))
-    .then((r) => r[0]);
-  if (!pedido || pedido.status !== "pendente") throw new ErroCompra("pedido-invalido");
+    .where(and(inArray(pedidos.id, pedidoIds), eq(pedidos.email, email), eq(pedidos.status, "pendente")))
+    .orderBy(asc(pedidos.criadoEm));
+  if (lista.length === 0 || lista.length !== pedidoIds.length) throw new ErroCompra("pedido-invalido");
+
+  const referencia = lista.length === 1 ? lista[0].id : randomUUID();
+  // O checkout expira com a reserva mais antiga da sacola.
+  const expiraEm = new Date(Math.min(...lista.map((p) => p.criadoEm.getTime())) + MINUTOS_RESERVA * 60 * 1000);
 
   let resultado;
   try {
     resultado = await paymentProvider.criarPreferencia({
-      pedidoId: pedido.id,
-      descricao: `LPZ Training — ${PRODUTOS[pedido.tipo].nome} (${pedido.loteNome})`,
-      valorCentavos: pedido.valorCentavos,
+      referencia,
+      itens: lista.map((p) => ({
+        id: p.id,
+        descricao: `LPZ Training — ${PRODUTOS[p.tipo].nome} (${p.loteNome})`,
+        valorCentavos: p.valorCentavos,
+      })),
       compradorEmail: email,
-      // O checkout expira junto com a reserva da vaga.
-      expiraEm: new Date(pedido.criadoEm.getTime() + MINUTOS_RESERVA * 60 * 1000),
+      expiraEm,
     });
   } catch (erro) {
-    console.error("Falha ao criar preferência de pagamento", { pedidoId, erro: (erro as Error).message });
+    console.error("Falha ao criar preferência de pagamento", { referencia, erro: (erro as Error).message });
     throw new ErroCompra("pagamento");
   }
 
   await db
     .update(pedidos)
-    .set({ gatewayPreferenceId: resultado.preferenceId, atualizadoEm: new Date() })
-    .where(eq(pedidos.id, pedido.id));
+    .set({
+      gatewayPreferenceId: resultado.preferenceId,
+      compraId: lista.length === 1 ? null : referencia,
+      atualizadoEm: new Date(),
+    })
+    .where(inArray(pedidos.id, lista.map((p) => p.id)));
   return resultado.checkoutUrl;
 }
 
-// Consulta o gateway e, se pago, marca o pedido e emite o ingresso.
-// Idempotente: pode ser chamado várias vezes (retorno do checkout, webhook,
-// reprocessamento) sem emitir ingresso duplicado.
+// Compra de um item só ("Comprar agora" / "Continuar pagamento").
+export async function iniciarPagamento(pedidoId: string, email: string) {
+  return abrirCheckout([pedidoId], email);
+}
+
+// Paga tudo o que está na sacola de uma vez.
+export async function pagarSacola(email: string) {
+  const itens = await sacolaDoComprador(email);
+  if (itens.length === 0) throw new ErroCompra("sacola-vazia");
+  return abrirCheckout(itens.map((i) => i.pedidoId), email);
+}
+
+// Referência no gateway de um pedido: a compra (sacola) ou o próprio pedido.
+function referenciaDo(p: { id: string; compraId: string | null }) {
+  return p.compraId ?? p.id;
+}
+
+// Consulta o gateway e, se pago, marca o pedido (e os demais da mesma compra)
+// e emite os ingressos. Idempotente: pode ser chamado várias vezes (retorno do
+// checkout, webhook, reprocessamento) sem emitir ingresso duplicado.
 export async function confirmarPagamento(pedidoId: string) {
   const pedido = await db.query.pedidos.findFirst({ where: eq(pedidos.id, pedidoId) });
-  if (!pedido?.gatewayPreferenceId) return pedido?.status ?? null;
+  if (!pedido) return null;
+  await confirmarCompra(referenciaDo(pedido));
+  const atual = await db.query.pedidos.findFirst({ where: eq(pedidos.id, pedidoId) });
+  return atual?.status ?? null;
+}
 
-  const situacao = await paymentProvider.consultarPagamento({
-    preferenceId: pedido.gatewayPreferenceId,
-    pedidoId: pedido.id,
-  });
-  if (situacao.status !== "pago") return pedido.status;
+// Confirma todos os pedidos de uma referência (compra da sacola ou pedido único).
+export async function confirmarCompra(referencia: string) {
+  const daCompra = await db
+    .select()
+    .from(pedidos)
+    .where(or(eq(pedidos.compraId, referencia), and(eq(pedidos.id, referencia), isNull(pedidos.compraId))));
+  const preferenceId = daCompra.find((p) => p.gatewayPreferenceId)?.gatewayPreferenceId;
+  if (!preferenceId) return;
 
-  // true só na primeira confirmação: e-mails saem uma vez, mesmo que o
-  // retorno do checkout e o webhook cheguem juntos.
-  let confirmouAgora = false;
+  const situacao = await paymentProvider.consultarPagamento({ preferenceId, referencia });
+  if (situacao.status !== "pago") return;
+
+  // Só os confirmados agora recebem e-mail (uma vez, mesmo que o retorno do
+  // checkout e o webhook cheguem juntos).
+  const confirmadosAgora: string[] = [];
   await db.transaction(async (tx) => {
-    const [atual] = await tx.select().from(pedidos).where(eq(pedidos.id, pedidoId)).for("update");
-    if (!atual || atual.status === "pago" || atual.status === "reembolsado") return;
-    confirmouAgora = true;
-    const lote = await tx.query.lotes.findFirst({ where: eq(lotes.id, atual.loteId) });
+    for (const { id } of daCompra) {
+      const [atual] = await tx.select().from(pedidos).where(eq(pedidos.id, id)).for("update");
+      if (!atual || atual.status === "pago" || atual.status === "reembolsado") continue;
+      // Pedido que saiu desta compra para outra (reagrupado na sacola) não entra.
+      if (referenciaDo(atual) !== referencia) continue;
+      confirmadosAgora.push(id);
+      const lote = await tx.query.lotes.findFirst({ where: eq(lotes.id, atual.loteId) });
 
-    // Pagamento aprovado depois de a reserva vencer: o dinheiro entrou, então
-    // o ingresso é emitido e a vaga volta a ser contada.
-    if (atual.status === "cancelado") {
+      // Pagamento aprovado depois de a reserva vencer: o dinheiro entrou, então
+      // o ingresso é emitido e a vaga volta a ser contada.
+      if (atual.status === "cancelado") {
+        await tx
+          .update(lotes)
+          .set({ quantidadeVendida: sql`${lotes.quantidadeVendida} + 1` })
+          .where(eq(lotes.id, atual.loteId));
+      }
       await tx
-        .update(lotes)
-        .set({ quantidadeVendida: sql`${lotes.quantidadeVendida} + 1` })
-        .where(eq(lotes.id, atual.loteId));
+        .update(pedidos)
+        .set({
+          status: "pago",
+          formaPagamento: situacao.forma ?? null,
+          parcelas: situacao.parcelas ?? null,
+          atualizadoEm: new Date(),
+        })
+        .where(eq(pedidos.id, id));
+      // Só produtos de entrada geram ingresso de entrada (serviços usam o QR do pedido).
+      if (!lote || PRODUTOS[lote.tipo].entrada) await tx.insert(ingressos).values({ pedidoId: id });
     }
-    await tx
-      .update(pedidos)
-      .set({
-        status: "pago",
-        formaPagamento: situacao.forma ?? null,
-        parcelas: situacao.parcelas ?? null,
-        atualizadoEm: new Date(),
-      })
-      .where(eq(pedidos.id, pedidoId));
-    // Só produtos de entrada geram ingresso com QR (paparazzi não).
-    if (!lote || PRODUTOS[lote.tipo].entrada) await tx.insert(ingressos).values({ pedidoId });
   });
-  if (confirmouAgora) enviarEmailsDaCompra(pedidoId);
-  return "pago" as const;
+  if (confirmadosAgora.length > 0) enviarEmailsDaCompra(confirmadosAgora);
 }
 
 // Reconsulta no gateway os pedidos pendentes do comprador (ex: Pix pago

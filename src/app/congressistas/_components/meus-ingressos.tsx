@@ -3,6 +3,8 @@ import { traducoes, type Idioma } from "@/i18n";
 import { codigoCurto, nomeDoLote, nomeDoProduto, pedidosDoComprador, PRODUTOS } from "@/modules/ingressos";
 import { formatarDataHora, formatarPreco } from "@/lib/formatar";
 import { QrIngresso } from "./qr-ingresso";
+import { agruparPorPedido, presencasDosPedidos } from "@/modules/presencas";
+import { BotoesPresenca } from "@/app/_components/botoes-presenca";
 import { urlDoQr } from "@/modules/ingressos/emails";
 import { descreverPagamento } from "@/modules/pagamentos/formas";
 
@@ -13,6 +15,7 @@ const TEXTOS = traducoes(
     pedidoEm: "pedido em",
     aguardando: "Aguardando pagamento.",
     continuar: "Continuar pagamento",
+    presenca: "Presença registrada",
     servico: "Compra confirmada. A equipe entra em contato sobre o serviço.",
     jackAndJill: "Inscrição no Jack and Jill confirmada. A organização passa os detalhes da competição.",
     codigo: "Código do ingresso",
@@ -26,6 +29,7 @@ const TEXTOS = traducoes(
     pedidoEm: "ordered on",
     aguardando: "Awaiting payment.",
     continuar: "Continue payment",
+    presenca: "Attendance recorded",
     servico: "Purchase confirmed. The team will contact you about the service.",
     jackAndJill: "Jack and Jill registration confirmed. The organizers will share the competition details.",
     codigo: "Ticket code",
@@ -39,6 +43,7 @@ const TEXTOS = traducoes(
     pedidoEm: "pedido el",
     aguardando: "Esperando el pago.",
     continuar: "Continuar el pago",
+    presenca: "Asistencia registrada",
     servico: "Compra confirmada. El equipo se pondrá en contacto sobre el servicio.",
     jackAndJill: "Inscripción en el Jack and Jill confirmada. La organización compartirá los detalles de la competencia.",
     codigo: "Código de la entrada",
@@ -50,6 +55,7 @@ const TEXTOS = traducoes(
 
 export async function MeusIngressos({ email, idioma = "pt" }: { email: string; idioma?: Idioma }) {
   const lista = await pedidosDoComprador(email);
+  const presencas = agruparPorPedido(await presencasDosPedidos(lista.map((p) => p.pedidoId)));
   const t = TEXTOS[idioma];
 
   if (lista.length === 0) {
@@ -87,23 +93,30 @@ export async function MeusIngressos({ email, idioma = "pt" }: { email: string; i
             <p className="mt-3 text-sm text-teal-300">{p.tipo === "jack_and_jill" ? t.jackAndJill : t.servico}</p>
           )}
 
-          {p.status === "pago" && p.ingressoId && (
+          {p.status === "pago" && p.ingressoStatus !== "cancelado" && (
             <div className="mt-4">
-              {p.ingressoStatus === "valido" ? (
-                <>
-                  <QrIngresso valor={urlDoQr(p.ingressoId)} />
-                  <p className="mt-3 text-xs text-mist/60">{t.codigo}</p>
-                  <p className="font-mono text-2xl tracking-[0.3em] text-white">{codigoCurto(p.ingressoId)}</p>
-                  <p className="mt-2 text-xs text-mist/60">{t.mostre}</p>
-                </>
-              ) : p.ingressoStatus === "usado" ? (
-                <p className="text-sm text-teal-300">
-                  {t.entrada(p.checkinEm ? formatarDataHora(p.checkinEm, idioma) : "")}
-                </p>
-              ) : (
-                <p className="text-sm text-ember-400">{t.cancelado}</p>
+              <QrIngresso valor={urlDoQr(p.ingressoId ?? p.pedidoId)} />
+              <p className="mt-3 text-xs text-mist/60">{t.codigo}</p>
+              <p className="font-mono text-2xl tracking-[0.3em] text-white">{codigoCurto(p.ingressoId ?? p.pedidoId)}</p>
+              <p className="mt-2 text-xs text-mist/60">{t.mostre}</p>
+              {(presencas.get(p.pedidoId)?.length ?? 0) > 0 && (
+                <div className="mt-3 border-t border-white/10 pt-3 text-left">
+                  <p className="text-xs uppercase tracking-wider text-mist/60">{t.presenca}</p>
+                  <BotoesPresenca
+                    pedidoId={p.pedidoId}
+                    tipo={p.tipo}
+                    registros={presencas.get(p.pedidoId) ?? []}
+                    podeRegistrar={false}
+                    voltar="ingresso"
+                    idioma={idioma}
+                  />
+                </div>
               )}
             </div>
+          )}
+
+          {p.status === "pago" && p.ingressoStatus === "cancelado" && (
+            <p className="mt-4 text-sm text-ember-400">{t.cancelado}</p>
           )}
         </li>
       ))}

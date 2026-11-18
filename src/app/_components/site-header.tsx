@@ -4,6 +4,7 @@ import { traducoes, type Idioma } from "@/i18n";
 import { obterIdioma } from "@/i18n/servidor";
 import { menuDoPapel, rotuloPapel } from "@/modules/auth/menu";
 import { obterSessao } from "@/modules/auth/sessao";
+import { contarSacola } from "@/modules/ingressos";
 import { ItemSair } from "./item-sair";
 import { MenuSuspenso } from "./menu-suspenso";
 import { SeletorIdioma } from "./seletor-idioma";
@@ -18,6 +19,7 @@ const TEXTOS = traducoes(
     abrirMenu: "Abrir menu",
     fecharMenu: "Fechar menu",
     faleConosco: "Fale conosco",
+    sacola: (n: number) => `Sacola com ${n} ${n === 1 ? "item" : "itens"}`,
     links: [
       { href: "/cronograma", label: "Cronograma" },
       { href: "/professores", label: "Professores" },
@@ -35,6 +37,7 @@ const TEXTOS = traducoes(
     abrirMenu: "Open menu",
     fecharMenu: "Close menu",
     faleConosco: "Contact us",
+    sacola: (n: number) => `Cart with ${n} ${n === 1 ? "item" : "items"}`,
     links: [
       { href: "/cronograma", label: "Schedule" },
       { href: "/professores", label: "Teachers" },
@@ -52,6 +55,7 @@ const TEXTOS = traducoes(
     abrirMenu: "Abrir menú",
     fecharMenu: "Cerrar menú",
     faleConosco: "Contáctanos",
+    sacola: (n: number) => `Bolsa con ${n} ${n === 1 ? "artículo" : "artículos"}`,
     links: [
       { href: "/cronograma", label: "Cronograma" },
       { href: "/professores", label: "Profesores" },
@@ -72,6 +76,30 @@ function IconePessoa({ className }: { className?: string }) {
       <circle cx="12" cy="8" r="4" />
       <path d="M4 21c0-4 3.6-7 8-7s8 3 8 7" />
     </svg>
+  );
+}
+
+// Sacola (só aparece para congressista com itens reservados).
+async function BotaoSacola({ idioma }: { idioma: Idioma }) {
+  const sessao = await obterSessao().catch(() => null);
+  if (!sessao || sessao.user.papel !== "congressista") return null;
+  const n = await contarSacola(sessao.user.email).catch(() => 0);
+  if (n === 0) return null;
+  return (
+    <Link
+      href="/sacola"
+      aria-label={TEXTOS[idioma].sacola(n)}
+      title={TEXTOS[idioma].sacola(n)}
+      className="relative flex h-11 w-11 items-center justify-center rounded-full border border-gold-500/60 text-gold-300 hover:bg-gold-500/10"
+    >
+      <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M5 8h14l-1.2 11.2a1 1 0 0 1-1 .8H7.2a1 1 0 0 1-1-.8L5 8Z" />
+        <path d="M9 8V6a3 3 0 0 1 6 0v2" />
+      </svg>
+      <span className="bg-gold-metal absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full px-1 text-xs font-bold text-gold-ink">
+        {n}
+      </span>
+    </Link>
   );
 }
 
@@ -155,6 +183,7 @@ export async function SiteHeader() {
 
         <div className="flex shrink-0 items-center gap-2">
           <SeletorIdioma />
+          <BotaoSacola idioma={idioma} />
           <MenuConta idioma={idioma} />
           <Link
             href="/fale-conosco"

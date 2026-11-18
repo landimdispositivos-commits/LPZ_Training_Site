@@ -38,7 +38,39 @@ export const NOME_CAMPO: Record<string, string> = {
   naturalidadeEstado: "Naturalidade (estado)",
   comoConheceu: "Como conheceu",
   email: "E-mail",
+  apelido: "Apelido",
 };
+
+// Campos com dado pessoal sensível: a auditoria registra que mudou, mas guarda
+// o valor mascarado (LGPD — minimização). Os demais guardam antes → depois.
+const MASCARAR: Record<string, (v: string) => string> = {
+  cpf: (v) => (v.length >= 2 ? `***.***.**${v.slice(-2, -1)}-${v.slice(-1)}` : "***"),
+  celular: (v) => (v.length > 4 ? `•••• ${v.slice(-4)}` : "••••"),
+  dataNascimento: () => "••/••/••••",
+  cep: () => "•••••-•••",
+  logradouro: () => "(oculto)",
+  numero: () => "(oculto)",
+  complemento: () => "(oculto)",
+  bairro: () => "(oculto)",
+};
+
+export type Mudanca = { de: string | null; para: string | null };
+
+// Compara antes x depois e devolve os campos alterados com os valores (ou
+// mascarados, nos campos sensíveis). "name" vira "nome" para o histórico.
+export function diferencas(antes: Record<string, unknown>, depois: Record<string, unknown>) {
+  const mudancas: Record<string, Mudanca> = {};
+  for (const [campoOriginal, valorNovo] of Object.entries(depois)) {
+    const velho = antes[campoOriginal] ?? null;
+    const novo = valorNovo ?? null;
+    if (velho === novo) continue;
+    const campo = campoOriginal === "name" ? "nome" : campoOriginal;
+    const mascara = MASCARAR[campo];
+    const mostrar = (v: unknown) => (v === null || v === "" ? null : mascara ? mascara(String(v)) : String(v));
+    mudancas[campo] = { de: mostrar(velho), para: mostrar(novo) };
+  }
+  return { campos: Object.keys(mudancas), mudancas };
+}
 
 async function origemDaRequisicao() {
   try {
@@ -129,6 +161,12 @@ export function descreverEvento(r: RegistroAuditoria, rotuloPapel: (p: string) =
     case "ficha_atualizada":
     case "cadastro_editado":
     case "cadastro_concluido": {
+      const mudancas = d.mudancas as Record<string, Mudanca> | undefined;
+      if (mudancas && Object.keys(mudancas).length) {
+        return Object.entries(mudancas)
+          .map(([c, m]) => `${NOME_CAMPO[c] ?? c}: ${m.de ?? "(vazio)"} → ${m.para ?? "(vazio)"}`)
+          .join(" · ");
+      }
       const campos = Array.isArray(d.campos) ? (d.campos as string[]).map((c) => NOME_CAMPO[c] ?? c) : [];
       return campos.length ? `Campos: ${campos.join(", ")}` : "";
     }

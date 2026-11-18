@@ -61,7 +61,7 @@ const MENU_PROFISSIONAL: ItemBilingue[] = [{ href: "/profissionais/minha-area", 
 
 const MENU_CONGRESSISTA: ItemBilingue[] = [
   { href: "/congressistas/minha-area", pt: "Minha área e ingressos", en: "My area and tickets", es: "Mi área y entradas" },
-  { href: "/ingressos", pt: "Comprar ingresso", en: "Buy a ticket", es: "Comprar entrada" },
+  { href: "/congressistas/completar-cadastro", pt: "Meu cadastro", en: "My profile", es: "Mi registro" },
 ];
 
 // Ordem alfabética no idioma escolhido (ignorando acentos e maiúsculas).

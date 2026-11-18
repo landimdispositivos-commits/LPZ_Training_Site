@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
-import { confirmarPagamento } from "@/modules/ingressos";
+import { confirmarCompra } from "@/modules/ingressos";
 import { MercadoPagoProvider, paymentProvider } from "@/modules/pagamentos";
 
 // Avisos (webhooks) do Mercado Pago: chegam quando um pagamento muda — é o
@@ -46,8 +46,8 @@ export async function POST(request: NextRequest) {
   if (tipo !== "payment") return NextResponse.json({ ok: true });
 
   try {
-    const pedidoId = await paymentProvider.pedidoDoPagamento(dataId);
-    if (pedidoId) await confirmarPagamento(pedidoId);
+    const referencia = await paymentProvider.referenciaDoPagamento(dataId);
+    if (referencia) await confirmarCompra(referencia);
   } catch (erro) {
     // 500 faz o Mercado Pago tentar de novo mais tarde.
     console.error("Falha ao processar webhook do Mercado Pago", (erro as Error).message);

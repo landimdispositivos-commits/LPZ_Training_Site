@@ -9,6 +9,7 @@ import { enviarEmail, escaparHtml } from "@/modules/email";
 import { descreverPagamento } from "@/modules/pagamentos/formas";
 import { linkInstagram, listarPerfis } from "@/modules/perfis";
 import { nomeDoLote, nomeDoProduto, PRODUTOS, type TipoProduto } from "./produtos";
+import { POLITICA_COMPRA } from "./politica";
 
 // E-mail completo da compra, enviado assim que o pagamento é aprovado, no
 // idioma em que a pessoa estava no site. Traz: dados da compra e forma de
@@ -61,6 +62,8 @@ const TEXTOS = {
     pagamento: "Forma de pagamento",
     data: "Data da compra",
     pedido: "Pedido",
+    total: "Total pago",
+    seusQrs: "Seus QR codes (um por produto)",
     seuQr: "Seu QR code",
     qrEntrada: "Mostre este QR code na entrada do evento — pode ser no celular, não precisa imprimir.",
     qrServico: "Este QR code identifica a sua compra para a equipe do LPZ.",
@@ -90,6 +93,8 @@ const TEXTOS = {
     pagamento: "Payment method",
     data: "Purchase date",
     pedido: "Order",
+    total: "Total paid",
+    seusQrs: "Your QR codes (one per product)",
     seuQr: "Your QR code",
     qrEntrada: "Show this QR code at the event entrance — it can be on your phone, no need to print.",
     qrServico: "This QR code identifies your purchase for the LPZ team.",
@@ -119,6 +124,8 @@ const TEXTOS = {
     pagamento: "Forma de pago",
     data: "Fecha de compra",
     pedido: "Pedido",
+    total: "Total pagado",
+    seusQrs: "Tus códigos QR (uno por producto)",
     seuQr: "Tu código QR",
     qrEntrada: "Muestra este código QR en la entrada del evento — puede ser en el celular, no hace falta imprimirlo.",
     qrServico: "Este código QR identifica tu compra para el equipo de LPZ.",
@@ -189,6 +196,7 @@ type DadosPedido = {
   parcelas: number | null;
   tipo: TipoProduto;
   loteNome: string;
+  compraId: string | null;
 };
 
 async function carregarPedido(pedidoId: string): Promise<DadosPedido | null> {
@@ -205,6 +213,7 @@ async function carregarPedido(pedidoId: string): Promise<DadosPedido | null> {
       parcelas: pedidos.parcelas,
       tipo: lotes.tipo,
       loteNome: lotes.nome,
+      compraId: pedidos.compraId,
     })
     .from(pedidos)
     .innerJoin(lotes, eq(lotes.id, pedidos.loteId))
@@ -276,23 +285,52 @@ ${insta ? `<a href="${e(insta)}" style="font-size:12px;color:${COR.agua};text-de
 
 // ---- Envio ------------------------------------------------------------------
 
-export async function enviarEmailCompra(pedidoId: string) {
-  const d = await carregarPedido(pedidoId);
-  if (!d || d.status !== "pago") return false;
-  const ingresso = await db.query.ingressos.findFirst({ where: eq(ingressos.pedidoId, pedidoId) });
-  if (ingresso && ingresso.status === "cancelado") return false;
+// Um e-mail por compra: todos os produtos pagos juntos (sacola), cada um com
+// o seu QR code. Recebe os ids dos pedidos da mesma compra.
+export async function enviarEmailCompra(pedidoIds: string[]) {
+  const todos = (await Promise.all(pedidoIds.map(carregarPedido))).filter(
+    (p): p is DadosPedido => !!p && p.status === "pago",
+  );
+  const itens: (DadosPedido & { idQr: string; codigo: string; entrada: boolean })[] = [];
+  for (const p of todos) {
+    const ingresso = await db.query.ingressos.findFirst({ where: eq(ingressos.pedidoId, p.pedidoId) });
+    if (ingresso?.status === "cancelado") continue;
+    const idQr = ingresso?.id ?? p.pedidoId;
+    itens.push({ ...p, idQr, codigo: idQr.slice(0, 8).toUpperCase(), entrada: PRODUTOS[p.tipo].entrada });
+  }
+  if (itens.length === 0) return false;
 
+  const d = itens[0];
   const t = TEXTOS[d.idioma];
-  const en = d.idioma === "en";
-  const produto = nomeDoProduto(d.tipo, d.idioma);
+  const nomes = itens.map((i) => nomeDoProduto(i.tipo, d.idioma));
   const primeiroNome = d.nome.split(" ")[0];
-  const valor = formatarPreco(d.valorCentavos, d.idioma);
-  const forma = descreverPagamento(d.formaPagamento, d.parcelas, d.valorCentavos, d.idioma);
+  const totalCentavos = itens.reduce((s, i) => s + i.valorCentavos, 0);
+  const forma = descreverPagamento(d.formaPagamento, d.parcelas, totalCentavos, d.idioma);
   const data = formatarDataHora(d.atualizadoEm, d.idioma);
-  const idQr = ingresso?.id ?? d.pedidoId;
-  const codigo = idQr.slice(0, 8).toUpperCase();
-  const entrada = PRODUTOS[d.tipo].entrada;
+  const varios = itens.length > 1;
   const { cronograma, listaProfessores, listaDjs } = await programacao();
+
+  const linhasItens = itens
+    .map((i) =>
+      varios
+        ? linha(`${nomeDoProduto(i.tipo, d.idioma)} · ${nomeDoLote(i.loteNome, d.idioma)}`, formatarPreco(i.valorCentavos, d.idioma))
+        : `${linha(t.produto, nomeDoProduto(i.tipo, d.idioma))}${linha(t.lote, nomeDoLote(i.loteNome, d.idioma))}${linha(t.valor, formatarPreco(i.valorCentavos, d.idioma))}`,
+    )
+    .join("");
+
+  const blocosQr = itens
+    .map(
+      (i, n) => `<div style="margin:${n === 0 ? "0" : "26px"} 0 0;text-align:center">
+${varios ? `<p style="margin:0 0 10px;font-size:15px;font-weight:bold;color:${COR.ouroClaro}">${e(nomeDoProduto(i.tipo, d.idioma))}</p>` : ""}
+<table role="presentation" align="center" cellpadding="0" cellspacing="0" style="margin:0 auto"><tr><td style="background:#ffffff;border-radius:16px;padding:12px;border:3px solid ${COR.ouro}">
+<img src="cid:qr-${n}" width="200" height="200" alt="QR code" style="display:block;width:200px;height:200px">
+</td></tr></table>
+<p style="margin:12px 0 0;font-family:'Courier New',monospace;font-size:22px;letter-spacing:6px;font-weight:bold">${i.codigo}</p>
+<p style="margin:8px 0 0;font-size:14px;line-height:1.5">${e(i.entrada ? t.qrEntrada : t.qrServico)}</p>
+${i.tipo === "jack_and_jill" ? `<p style="margin:8px 0 0;font-size:14px;color:${COR.agua}">${e(t.jj)}</p>` : ""}
+</div>`,
+    )
+    .join("");
 
   const html = moldura(
     `<p style="margin:0 0 8px;font-size:18px;font-weight:bold;color:${COR.ouroClaro}">${e(t.ola(primeiroNome))}</p>
@@ -300,20 +338,16 @@ export async function enviarEmailCompra(pedidoId: string) {
 
 ${titulo(t.suaCompra)}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid ${COR.borda};border-bottom:1px solid ${COR.borda}">
-${linha(t.produto, produto)}${linha(t.lote, nomeDoLote(d.loteNome, d.idioma))}${linha(t.valor, valor)}${linha(t.pagamento, forma)}${linha(t.data, data)}${linha(t.pedido, d.pedidoId.slice(0, 8).toUpperCase())}
+${linhasItens}${varios ? linha(t.total, formatarPreco(totalCentavos, d.idioma)) : ""}${linha(t.pagamento, forma)}${linha(t.data, data)}${linha(t.pedido, (d.compraId ?? d.pedidoId).slice(0, 8).toUpperCase())}
 </table>
-${d.tipo === "jack_and_jill" ? `<p style="margin:14px 0 0;font-size:14px;color:${COR.agua}">${e(t.jj)}</p>` : ""}
 
-${titulo(t.seuQr)}
-<table role="presentation" align="center" cellpadding="0" cellspacing="0" style="margin:0 auto"><tr><td style="background:#ffffff;border-radius:16px;padding:12px;border:3px solid ${COR.ouro}">
-<img src="cid:qr-compra" width="220" height="220" alt="QR code" style="display:block;width:220px;height:220px">
-</td></tr></table>
-<p style="margin:14px 0 0;text-align:center;font-family:'Courier New',monospace;font-size:24px;letter-spacing:6px;font-weight:bold">${codigo}</p>
-<p style="margin:4px 0 0;text-align:center;font-size:13px;color:${COR.suave}">${e(t.titular)}: ${e(d.nome)}</p>
-<p style="margin:12px 0 0;text-align:center;font-size:14px;line-height:1.5">${e(entrada ? t.qrEntrada : t.qrServico)}</p>
+${titulo(varios ? t.seusQrs : t.seuQr)}
+${blocosQr}
+<p style="margin:14px 0 0;text-align:center;font-size:13px;color:${COR.suave}">${e(t.titular)}: ${e(d.nome)}</p>
 <p style="margin:6px 0 0;text-align:center;font-size:12px;color:${COR.suave}">${e(t.pessoal)}</p>
 
 <div style="margin:28px 0 0;border:1px solid ${COR.alerta};border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.5;color:${COR.texto};background:rgba(242,107,29,0.08)">⚠ ${e(t.alteracoes)}</div>
+<div style="margin:12px 0 0;border:1px solid rgba(230,181,74,0.45);border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.5;color:${COR.texto}">ℹ ${e(POLITICA_COMPRA[d.idioma])}</div>
 
 ${titulo(t.cronograma)}
 ${blocoCronograma(cronograma, d.idioma)}
@@ -330,10 +364,10 @@ ${botao(t.verArea, urlSite("/congressistas/minha-area"))}`,
 
   const textoCronograma = DIAS_EVENTO.map((dia) => {
     const doDia = cronograma.filter((i) => diaDaSemana(i.dia) === dia.semana);
-    const itens = doDia.length
+    const linhas = doDia.length
       ? doDia.map((i) => `  ${i.horarioInicio}${i.horarioFim ? `-${i.horarioFim}` : ""} ${i.titulo}${i.professorNome ? ` (${i.professorNome})` : ""}`).join("\n")
       : `  ${t.horariosEmBreve}`;
-    return `${dia[d.idioma]}\n${itens}`;
+    return `${dia[d.idioma]}\n${linhas}`;
   }).join("\n");
 
   const texto = [
@@ -342,16 +376,19 @@ ${botao(t.verArea, urlSite("/congressistas/minha-area"))}`,
     t.intro,
     "",
     `${t.suaCompra.toUpperCase()}`,
-    `${t.produto}: ${produto}`,
-    `${t.lote}: ${nomeDoLote(d.loteNome, d.idioma)}`,
-    `${t.valor}: ${valor}`,
+    ...itens.map(
+      (i) =>
+        `- ${nomeDoProduto(i.tipo, d.idioma)} (${nomeDoLote(i.loteNome, d.idioma)}): ${formatarPreco(i.valorCentavos, d.idioma)} · ${t.codigo}: ${i.codigo}`,
+    ),
+    ...(varios ? [`${t.total}: ${formatarPreco(totalCentavos, d.idioma)}`] : []),
     `${t.pagamento}: ${forma}`,
     `${t.data}: ${data}`,
-    `${t.codigo}: ${codigo}`,
     "",
-    entrada ? t.qrEntrada : t.qrServico,
+    t.qrEntrada,
     "",
     t.alteracoes,
+    "",
+    POLITICA_COMPRA[d.idioma],
     "",
     t.cronograma.toUpperCase(),
     textoCronograma,
@@ -364,33 +401,47 @@ ${botao(t.verArea, urlSite("/congressistas/minha-area"))}`,
 
   await enviarEmail({
     para: d.email,
-    assunto: t.assunto(produto),
+    assunto: t.assunto(nomes.join(" + ")),
     texto,
     html,
-    anexos: [{ nomeArquivo: `lpz-${codigo}.gif`, conteudo: imagemQr(urlDoQr(idQr)), tipo: "image/gif", cid: "qr-compra" }],
+    anexos: itens.map((i, n) => ({
+      nomeArquivo: `lpz-${i.codigo}.gif`,
+      conteudo: imagemQr(urlDoQr(i.idQr)),
+      tipo: "image/gif",
+      cid: `qr-${n}`,
+    })),
   });
   return true;
 }
 
 // Chamado quando o pagamento é confirmado. Não trava a confirmação: se o
 // e-mail falhar, só registra (a compra continua na Minha área).
-export function enviarEmailsDaCompra(pedidoId: string) {
-  enviarEmailCompra(pedidoId).catch((erro: unknown) => {
-    console.error("[email] Falha ao enviar e-mail da compra", { pedidoId, erro: (erro as Error)?.message });
+export function enviarEmailsDaCompra(pedidoIds: string[]) {
+  enviarEmailCompra(pedidoIds).catch((erro: unknown) => {
+    console.error("[email] Falha ao enviar e-mail da compra", { pedidoIds, erro: (erro as Error)?.message });
   });
 }
 
 // Reenvio em massa (organização, ex.: dias antes do evento): o e-mail
 // completo, com a programação atualizada, para todas as compras pagas.
 export async function reenviarTodosOsIngressos() {
-  const pagos = await db.select({ id: pedidos.id }).from(pedidos).where(eq(pedidos.status, "pago"));
-  let enviados = 0;
+  const pagos = await db
+    .select({ id: pedidos.id, compraId: pedidos.compraId })
+    .from(pedidos)
+    .where(eq(pedidos.status, "pago"));
+  // Um e-mail por compra (os itens da mesma sacola vão juntos).
+  const porCompra = new Map<string, string[]>();
   for (const p of pagos) {
+    const chave = p.compraId ?? p.id;
+    porCompra.set(chave, [...(porCompra.get(chave) ?? []), p.id]);
+  }
+  let enviados = 0;
+  for (const ids of porCompra.values()) {
     try {
-      if (await enviarEmailCompra(p.id)) enviados++;
+      if (await enviarEmailCompra(ids)) enviados++;
     } catch (erro) {
-      console.error("[email] Falha ao reenviar", { pedidoId: p.id, erro: (erro as Error).message });
+      console.error("[email] Falha ao reenviar", { pedidoIds: ids, erro: (erro as Error).message });
     }
   }
-  return { total: pagos.length, enviados };
+  return { total: porCompra.size, enviados };
 }

@@ -20,24 +20,25 @@ export async function decidirPagamentoSimuladoAction(form: FormData) {
   const sessao = await obterSessao();
   if (!sessao) redirect("/congressistas");
 
-  const pedidoId = z.uuid().safeParse(form.get("pedidoId"));
-  if (!pedidoId.success) notFound();
+  const preferencia = z.string().regex(/^fake-[0-9a-f-]{36}$/).safeParse(form.get("preferencia"));
+  if (!preferencia.success) notFound();
 
-  const pedido = await db.query.pedidos.findFirst({
-    where: and(eq(pedidos.id, pedidoId.data), eq(pedidos.email, sessao.user.email)),
+  // Todos os pedidos deste checkout (um item ou a sacola inteira), do próprio comprador.
+  const daCompra = await db.query.pedidos.findMany({
+    where: and(eq(pedidos.gatewayPreferenceId, preferencia.data), eq(pedidos.email, sessao.user.email)),
   });
-  if (!pedido?.gatewayPreferenceId) notFound();
+  if (daCompra.length === 0) notFound();
 
   if (form.get("decisao") === "aprovar") {
     // Forma escolhida na tela de teste (no real, quem informa é o Mercado Pago).
     const forma = z.enum(["pix", "credito", "debito"]).catch("pix").parse(form.get("forma"));
     const parcelas = forma === "credito" ? z.coerce.number().int().min(1).max(MAX_PARCELAS).catch(1).parse(form.get("parcelas")) : 1;
-    simulador.aprovarManualmente(pedido.gatewayPreferenceId, forma, parcelas);
-    await confirmarPagamento(pedido.id);
+    simulador.aprovarManualmente(preferencia.data, forma, parcelas);
+    await confirmarPagamento(daCompra[0].id);
     redirect("/congressistas/minha-area?pago=1");
   }
 
-  simulador.recusarManualmente(pedido.gatewayPreferenceId);
-  await cancelarPedidoPendente(pedido.id, sessao.user.email);
+  simulador.recusarManualmente(preferencia.data);
+  for (const p of daCompra) await cancelarPedidoPendente(p.id, sessao.user.email);
   redirect("/ingressos?cancelado=1");
 }

@@ -206,6 +206,10 @@ export const pedidos = pgTable("pedidos", {
   valorCentavos: integer("valor_centavos").notNull(),
   status: statusPedidoEnum("status").notNull().default("pendente"),
   gatewayPreferenceId: text("gateway_preference_id"),
+  // Sacola: pedidos pagos juntos compartilham o mesmo compra_id (enviado ao
+  // gateway como referência externa). Nulo = compra de um item só (a
+  // referência é o próprio id do pedido).
+  compraId: uuid("compra_id"),
   // Idioma em que o comprador estava no site ("pt"/"en"): usado nos e-mails
   // de confirmação e do ingresso, que podem sair depois (webhook do Pix).
   idioma: text("idioma").notNull().default("pt"),
@@ -215,7 +219,9 @@ export const pedidos = pgTable("pedidos", {
   parcelas: integer("parcelas"),
   criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
   atualizadoEm: timestamp("atualizado_em", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+  compraIdx: index("pedidos_compra_id_idx").on(t.compraId),
+}));
 
 export const statusIngressoEnum = pgEnum("status_ingresso", [
   "valido",
@@ -231,6 +237,22 @@ export const ingressos = pgTable("ingressos", {
   checkinPor: text("checkin_por").references(() => usuarios.id, { onDelete: "set null" }),
   criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// Registro de presença (check-in). Uma linha por uso: entrada num dia do
+// evento ou serviço realizado (paparazzi, Jack and Jill). A unicidade por
+// pedido+dia impede registrar duas vezes o mesmo dia (dois porteiros lendo o
+// mesmo QR). dia: "sexta" | "sabado" | "domingo" | "unico".
+export const presencas = pgTable("presencas", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  pedidoId: uuid("pedido_id").notNull().references(() => pedidos.id, { onDelete: "restrict" }),
+  tipo: text("tipo").notNull(), // "entrada" | "servico"
+  dia: text("dia").notNull(),
+  registradoEm: timestamp("registrado_em", { withTimezone: true }).notNull().defaultNow(),
+  registradoPor: text("registrado_por").references(() => usuarios.id, { onDelete: "set null" }),
+  registradoPorNome: text("registrado_por_nome"),
+}, (t) => ({
+  pedidoDiaUnico: uniqueIndex("presencas_pedido_dia_unico").on(t.pedidoId, t.dia),
+}));
 
 // Log de eventos recebidos do gateway de pagamento — fonte de idempotência.
 // O webhook nunca é tratado como verdade absoluta: o adapter sempre confirma

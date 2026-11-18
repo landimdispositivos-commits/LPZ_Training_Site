@@ -120,6 +120,20 @@
       "when": 1795050000000,
       "tag": "0016_apelido",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1795051000000,
+      "tag": "0017_presencas",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1795052000000,
+      "tag": "0018_sacola",
+      "breakpoints": true
     }
   ]
 }

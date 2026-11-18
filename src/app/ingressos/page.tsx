@@ -5,33 +5,19 @@ import { obterSessao } from "@/modules/auth/sessao";
 import { nomeDoLote, TIPOS_PRODUTO, type TipoProduto } from "@/modules/ingressos/produtos";
 import { traducoes, tx } from "@/i18n";
 import { obterIdioma } from "@/i18n/servidor";
-import { MENSAGENS_ERRO_COMPRA, MINUTOS_RESERVA, nomeDoProduto, situacaoDoComprador, vitrine } from "@/modules/ingressos";
+import { MENSAGENS_ERRO_COMPRA, MINUTOS_RESERVA, nomeDoProduto, sacolaDoComprador, situacaoDoComprador, vitrine } from "@/modules/ingressos";
 import { formatarPreco } from "@/lib/formatar";
 import { Aviso, classeBotao } from "../_components/form-ui";
 import { RodapeSite } from "../_components/rodape-site";
+import { POLITICA_COMPRA } from "@/modules/ingressos/politica";
+import { mensagemErroCompra } from "./erros";
 import { AutoComprar } from "./auto-comprar";
 import { SiteHeader } from "../_components/site-header";
-import { comprarAction, desistirAction, retomarPagamentoAction } from "./actions";
+import { adicionarSacolaAction, comprarAction, removerDaSacolaAction, retomarPagamentoAction } from "./actions";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: tx(await obterIdioma(), "Ingressos — LPZ Training", "Tickets — LPZ Training", "Entradas — LPZ Training") };
 }
-
-const ERROS_EN: Record<keyof typeof MENSAGENS_ERRO_COMPRA, string> = {
-  "sem-lote": "There is no ticket batch on sale right now.",
-  esgotado: "This batch is sold out. Refresh the page to see if a new batch has opened.",
-  "ja-tem-ingresso": "You have already bought this product. It is in your area.",
-  "pedido-invalido": "Order not found.",
-  pagamento: "We could not open the payment right now. Please try again in a few minutes.",
-};
-
-const ERROS_ES: Record<keyof typeof MENSAGENS_ERRO_COMPRA, string> = {
-  "sem-lote": "No hay ningún lote a la venta en este momento.",
-  esgotado: "Este lote se agotó. Recarga la página para ver si abrió un nuevo lote.",
-  "ja-tem-ingresso": "Ya compraste este producto. Está en tu área.",
-  "pedido-invalido": "Pedido no encontrado.",
-  pagamento: "No pudimos abrir el pago ahora. Inténtalo de nuevo en unos minutos.",
-};
 
 const TEXTOS = traducoes(
   {
@@ -48,13 +34,19 @@ const TEXTOS = traducoes(
     desistir: "Desistir",
     comprar: "Ir para o pagamento",
     comprarVisitante: "Comprar",
+    naSacola: "✓ Na sacola",
+    adicionar: "Adicionar à sacola",
+    comprarAgora: "Comprar só este agora",
+    pagarItem: "Pagar só este agora",
+    remover: "Remover da sacola",
+    adicionado: (nome: string) => `${nome} foi para a sacola. Continue escolhendo ou vá para o pagamento.`,
+    sacola: (n: number, total: string) => `Sacola: ${n} ${n === 1 ? "item" : "itens"} · ${total}`,
+    verSacola: "Ver sacola e pagar",
     escolheu: (nome: string) => `Você escolheu ${nome}. Levando você para o pagamento…`,
     aguardando: "Recebemos seu pedido e o pagamento está em processamento (o Pix pode levar alguns minutos). Assim que for aprovado, você recebe um e-mail de confirmação.",
     meios: "Pix, cartão de crédito, cartão de débito virtual Caixa ou saldo do Mercado Pago.",
     rodape: (min: number) =>
       `Pagamento processado pelo Mercado Pago — os dados do seu cartão não passam pelo nosso site. A vaga fica reservada por ${min} minutos enquanto você paga.`,
-    politica:
-      "Os pacotes são pessoais e intransferíveis. O reembolso só é possível se você desistir em até 7 dias após a compra, conforme o direito de arrependimento do Código de Defesa do Consumidor (art. 49). Em caso de não comparecimento, o pacote não pode ser transferido para a edição do ano seguinte.",
   },
   {
     titulo: "Tickets",
@@ -70,13 +62,19 @@ const TEXTOS = traducoes(
     desistir: "Cancel",
     comprar: "Go to payment",
     comprarVisitante: "Buy",
+    naSacola: "✓ In your cart",
+    adicionar: "Add to cart",
+    comprarAgora: "Buy just this one now",
+    pagarItem: "Pay just this one now",
+    remover: "Remove from cart",
+    adicionado: (nome: string) => `${nome} was added to your cart. Keep choosing or go to payment.`,
+    sacola: (n: number, total: string) => `Cart: ${n} ${n === 1 ? "item" : "items"} · ${total}`,
+    verSacola: "View cart and pay",
     escolheu: (nome: string) => `You chose ${nome}. Taking you to payment…`,
     aguardando: "We received your order and the payment is being processed (Pix may take a few minutes). As soon as it is approved, you will receive a confirmation email.",
     meios: "Pix, credit card, Caixa virtual debit card or Mercado Pago balance.",
     rodape: (min: number) =>
       `Payment processed by Mercado Pago — your card details never pass through our site. Your spot is held for ${min} minutes while you pay.`,
-    politica:
-      "Packages are personal and non-transferable. Refunds are only available if you cancel within 7 days of purchase, under the right of withdrawal in the Brazilian Consumer Protection Code (art. 49). If you do not attend, the package cannot be carried over to next year's edition.",
   },
   {
     titulo: "Entradas",
@@ -92,13 +90,19 @@ const TEXTOS = traducoes(
     desistir: "Desistir",
     comprar: "Ir al pago",
     comprarVisitante: "Comprar",
+    naSacola: "✓ En tu bolsa",
+    adicionar: "Agregar a la bolsa",
+    comprarAgora: "Comprar solo este ahora",
+    pagarItem: "Pagar solo este ahora",
+    remover: "Quitar de la bolsa",
+    adicionado: (nome: string) => `${nome} se agregó a tu bolsa. Sigue eligiendo o ve al pago.`,
+    sacola: (n: number, total: string) => `Bolsa: ${n} ${n === 1 ? "artículo" : "artículos"} · ${total}`,
+    verSacola: "Ver bolsa y pagar",
     escolheu: (nome: string) => `Elegiste ${nome}. Llevándote al pago…`,
     aguardando: "Recibimos tu pedido y el pago se está procesando (el Pix puede tardar unos minutos). En cuanto se apruebe, recibirás un correo de confirmación.",
     meios: "Pix, tarjeta de crédito, tarjeta de débito virtual Caixa o saldo de Mercado Pago.",
     rodape: (min: number) =>
       `Pago procesado por Mercado Pago — los datos de tu tarjeta nunca pasan por nuestro sitio. Tu lugar queda reservado ${min} minutos mientras pagas.`,
-    politica:
-      "Los paquetes son personales e intransferibles. El reembolso solo es posible si desistes dentro de los 7 días posteriores a la compra, conforme al derecho de arrepentimiento del Código de Defensa del Consumidor de Brasil (art. 49). Si no asistes, el paquete no puede transferirse a la edición del año siguiente.",
   },
 );
 export const dynamic = "force-dynamic";
@@ -107,7 +111,8 @@ const classeBotaoSecundario =
   "w-full rounded-full border border-gold-500/60 px-6 py-3 text-sm font-semibold text-gold-300 hover:bg-gold-500/10";
 
 export default async function Page(props: PageProps<"/ingressos">) {
-  const { erro, cancelado, comprar, aguardando } = await props.searchParams;
+  const { erro, cancelado, comprar, aguardando, adicionado } = await props.searchParams;
+  const tipoAdicionado = TIPOS_PRODUTO.includes(adicionado as TipoProduto) ? (adicionado as TipoProduto) : null;
   const escolhido = TIPOS_PRODUTO.includes(comprar as TipoProduto) ? (comprar as TipoProduto) : null;
   const idioma = await obterIdioma();
   const t = TEXTOS[idioma];
@@ -115,13 +120,14 @@ export default async function Page(props: PageProps<"/ingressos">) {
   const user = sessao?.user;
   const congressista = user?.papel === "congressista";
 
-  const [itens, situacao] = await Promise.all([
+  const [itens, situacao, sacola] = await Promise.all([
     vitrine(),
     congressista && user ? situacaoDoComprador(user.email) : Promise.resolve(null),
+    congressista && user ? sacolaDoComprador(user.email) : Promise.resolve([]),
   ]);
   const mensagemErro =
     typeof erro === "string" && erro in MENSAGENS_ERRO_COMPRA
-      ? tx(idioma, MENSAGENS_ERRO_COMPRA, ERROS_EN, ERROS_ES)[erro as keyof typeof MENSAGENS_ERRO_COMPRA]
+      ? mensagemErroCompra(erro as keyof typeof MENSAGENS_ERRO_COMPRA, idioma)
       : null;
 
   return (
@@ -136,6 +142,17 @@ export default async function Page(props: PageProps<"/ingressos">) {
           {mensagemErro && <Aviso tipo="erro">{mensagemErro}</Aviso>}
           {cancelado && <Aviso tipo="ok">{t.cancelado}</Aviso>}
           {aguardando && <Aviso tipo="ok">{t.aguardando}</Aviso>}
+          {tipoAdicionado && <Aviso tipo="ok">{t.adicionado(nomeDoProduto(tipoAdicionado, idioma))}</Aviso>}
+          {sacola.length > 0 && (
+            <div className="sticky top-2 z-20 mx-auto flex max-w-xl flex-wrap items-center justify-between gap-3 rounded-2xl border border-gold-400/60 bg-petrol-900/95 px-5 py-3 shadow-lg backdrop-blur">
+              <p className="font-semibold text-white">
+                {t.sacola(sacola.length, formatarPreco(sacola.reduce((s, i) => s + i.valorCentavos, 0), idioma))}
+              </p>
+              <Link href="/sacola" className="bg-gold-metal rounded-full px-5 py-2 text-sm font-semibold text-gold-ink hover:brightness-110">
+                {t.verSacola}
+              </Link>
+            </div>
+          )}
           {escolhido && congressista && user?.cadastroCompletoEm && !situacao?.[escolhido]?.pago && (
             <Aviso tipo="ok">{t.escolheu(nomeDoProduto(escolhido, idioma))}</Aviso>
           )}
@@ -182,23 +199,32 @@ export default async function Page(props: PageProps<"/ingressos">) {
                         </Link>
                       ) : congressista && minha?.pendente ? (
                         <>
+                          <p className="font-semibold text-teal-300">{t.naSacola}</p>
                           <form action={retomarPagamentoAction}>
                             <input type="hidden" name="pedidoId" value={minha.pendente} />
-                            <button type="submit" className={classeBotao}>{t.continuar}</button>
+                            <button type="submit" className={classeBotaoSecundario}>{t.pagarItem}</button>
                           </form>
-                          <form action={desistirAction}>
+                          <form action={removerDaSacolaAction}>
                             <input type="hidden" name="pedidoId" value={minha.pendente} />
-                            <button type="submit" className={classeBotaoSecundario}>{t.desistir}</button>
+                            <button type="submit" className="text-sm text-mist/70 underline-offset-2 hover:text-ember-400 hover:underline">
+                              {t.remover}
+                            </button>
                           </form>
                         </>
                       ) : congressista && item.lote ? (
-                        <form id={`comprar-${item.tipo}`} action={comprarAction}>
-                          <input type="hidden" name="tipo" value={item.tipo} />
-                          {escolhido === item.tipo && user?.cadastroCompletoEm && (
-                            <AutoComprar formId={`comprar-${item.tipo}`} tipo={item.tipo} />
-                          )}
-                          <button type="submit" className={classeBotao}>{t.comprar}</button>
-                        </form>
+                        <>
+                          <form action={adicionarSacolaAction}>
+                            <input type="hidden" name="tipo" value={item.tipo} />
+                            <button type="submit" className={classeBotao}>{t.adicionar}</button>
+                          </form>
+                          <form id={`comprar-${item.tipo}`} action={comprarAction}>
+                            <input type="hidden" name="tipo" value={item.tipo} />
+                            {escolhido === item.tipo && user?.cadastroCompletoEm && (
+                              <AutoComprar formId={`comprar-${item.tipo}`} tipo={item.tipo} />
+                            )}
+                            <button type="submit" className={classeBotaoSecundario}>{t.comprarAgora}</button>
+                          </form>
+                        </>
                       ) : !user && item.lote ? (
                         // A caixinha inteira é clicável: leva ao login e volta para esta compra.
                         <Link
@@ -219,7 +245,7 @@ export default async function Page(props: PageProps<"/ingressos">) {
             {t.meios} {t.rodape(MINUTOS_RESERVA)}
           </p>
           <p className="mx-auto max-w-2xl rounded-lg border border-gold-500/30 bg-petrol-900/60 px-4 py-3 text-center text-xs text-mist/80">
-            {t.politica}
+            {POLITICA_COMPRA[idioma]}
           </p>
         </div>
       </main>

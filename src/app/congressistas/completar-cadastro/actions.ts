@@ -7,7 +7,7 @@ import { usuarios } from "@/db/schema";
 import { type CampoFicha, fichaCongressistaSchema, PAIS_BRASIL } from "@/modules/auth/cadastro";
 import { areaDoPapel } from "@/modules/auth/papeis";
 import { obterSessao } from "@/modules/auth/sessao";
-import { registrarAuditoria } from "@/modules/auditoria";
+import { diferencas, registrarAuditoria } from "@/modules/auditoria";
 import { proximoSeguro } from "@/modules/auth/proximo";
 
 export type ResultadoFicha = { erros: Partial<Record<CampoFicha, string>>; erroGeral?: string };
@@ -91,17 +91,14 @@ export async function salvarFichaAction(form: FormData): Promise<ResultadoFicha>
     return { erros: {}, erroGeral: "Não foi possível salvar seus dados agora. Tente de novo em instantes." };
   }
 
-  // Auditoria: só os NOMES dos campos que mudaram (nunca os valores — LGPD).
-  const atual = user as unknown as Record<string, unknown>;
-  const campos = Object.entries(ficha)
-    .filter(([campo, valor]) => (atual[campo] ?? null) !== (valor ?? null))
-    .map(([campo]) => (campo === "name" ? "nome" : campo));
+  // Auditoria: cada campo alterado com antes → depois (sensíveis mascarados).
+  const { campos, mudancas } = diferencas(user as unknown as Record<string, unknown>, ficha);
   if (primeiraVez || campos.length > 0) {
     await registrarAuditoria({
       acao: primeiraVez ? "cadastro_concluido" : "ficha_atualizada",
       autor: user,
       alvo: { id: user.id, name: ficha.name, email: user.email },
-      detalhes: { campos },
+      detalhes: primeiraVez ? { campos } : { campos, mudancas },
     });
   }
 

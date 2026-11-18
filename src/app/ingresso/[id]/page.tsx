@@ -12,6 +12,8 @@ import { ehAdmin } from "@/modules/auth/papeis";
 import { exigirAdmin, obterSessao } from "@/modules/auth/sessao";
 import { nomeDoLote, nomeDoProduto } from "@/modules/ingressos";
 import { descreverPagamento } from "@/modules/pagamentos/formas";
+import { agruparPorPedido, presencasDosPedidos } from "@/modules/presencas";
+import { BotoesPresenca } from "../../_components/botoes-presenca";
 import { PaginaPublica } from "../../_components/pagina-publica";
 import { RodapeSite } from "../../_components/rodape-site";
 import { SiteHeader } from "../../_components/site-header";
@@ -43,11 +45,12 @@ const TEXTOS = traducoes(
     pagamento: "Pagamento",
     status: { pago: "Pago", pendente: "Aguardando pagamento", cancelado: "Cancelado", reembolsado: "Reembolsado" } as Record<string, string>,
     ingresso: "Ingresso",
-    valido: "Válido — entrada ainda não registrada",
+    valido: "Válido",
     usado: (quando: string) => `Entrada registrada em ${quando}`,
     cancelado: "Cancelado",
     semIngresso: "Sem ingresso de entrada (serviço/inscrição)",
     este: "este QR",
+    presenca: "Presença",
     checkin: "Ir para o check-in deste ingresso",
     suaCompra: "Sua compra",
     minhaArea: "Ver minha área",
@@ -69,11 +72,12 @@ const TEXTOS = traducoes(
     pagamento: "Payment",
     status: { pago: "Paid", pendente: "Awaiting payment", cancelado: "Cancelled", reembolsado: "Refunded" } as Record<string, string>,
     ingresso: "Ticket",
-    valido: "Valid — entry not recorded yet",
+    valido: "Valid",
     usado: (quando: string) => `Entry recorded on ${quando}`,
     cancelado: "Cancelled",
     semIngresso: "No entry ticket (service/registration)",
     este: "this QR",
+    presenca: "Attendance",
     checkin: "Go to check-in for this ticket",
     suaCompra: "Your purchase",
     minhaArea: "Go to my area",
@@ -95,16 +99,29 @@ const TEXTOS = traducoes(
     pagamento: "Pago",
     status: { pago: "Pagado", pendente: "Esperando el pago", cancelado: "Cancelado", reembolsado: "Reembolsado" } as Record<string, string>,
     ingresso: "Entrada",
-    valido: "Válida — entrada aún no registrada",
+    valido: "Válida",
     usado: (quando: string) => `Entrada registrada el ${quando}`,
     cancelado: "Cancelada",
     semIngresso: "Sin entrada de acceso (servicio/inscripción)",
     este: "este QR",
+    presenca: "Asistencia",
     checkin: "Ir al check-in de esta entrada",
     suaCompra: "Tu compra",
     minhaArea: "Ver mi área",
   },
 );
+
+// Resultado do registro de presença (só a organização vê).
+const VERDE = "border-teal-400 bg-teal-400/15 text-teal-300";
+const LARANJA = "border-ember-500 bg-ember-500/15 text-ember-400";
+const AVISOS = {
+  ok: { texto: "PRESENÇA REGISTRADA", classe: VERDE },
+  "ja-registrado": { texto: "JÁ REGISTRADO NESTE DIA", classe: LARANJA },
+  "nao-pago": { texto: "PAGAMENTO NÃO CONFIRMADO", classe: LARANJA },
+  cancelado: { texto: "INGRESSO CANCELADO", classe: LARANJA },
+  "dia-invalido": { texto: "ESTE PRODUTO NÃO VALE PARA ESSE DIA", classe: LARANJA },
+  "nao-encontrado": { texto: "COMPRA NÃO ENCONTRADA", classe: LARANJA },
+} as const;
 
 // CPF parcial (LGPD: o suficiente para conferir um documento na portaria).
 function cpfParcial(cpf: string) {
@@ -180,6 +197,10 @@ export default async function Page(props: PageProps<"/ingresso/[id]">) {
       .orderBy(desc(pedidos.criadoEm)),
   ]);
 
+  const presencasPorPedido = agruparPorPedido(await presencasDosPedidos(compras.map((c) => c.pedidoId)));
+  const { r } = await props.searchParams;
+  const aviso = organizacao && typeof r === "string" ? AVISOS[r as keyof typeof AVISOS] : undefined;
+
   const local = pessoa ? [pessoa.cidade, pessoa.uf ?? pessoa.pais].filter(Boolean).join(" — ") : "";
   const dadosPessoa = organizacao
     ? [
@@ -196,6 +217,11 @@ export default async function Page(props: PageProps<"/ingresso/[id]">) {
     <>
       <SiteHeader />
       <PaginaPublica titulo={t.titulo} largura="max-w-2xl">
+        {aviso && (
+          <p role="status" className={`rounded-2xl border-2 p-4 text-center text-lg font-extrabold tracking-wide ${aviso.classe}`}>
+            {aviso.texto}
+          </p>
+        )}
         {organizacao && (
           <section className={classeCaixa}>
             <h2 className="font-display text-xs uppercase tracking-[0.15em] text-teal-300">{t.participante}</h2>
@@ -237,24 +263,31 @@ export default async function Page(props: PageProps<"/ingresso/[id]">) {
                   )}
                   <p className="mt-2 text-sm">
                     <span className="text-mist/60">{t.ingresso}: </span>
-                    <span className={c.ingressoStatus === "valido" ? "text-teal-300" : "text-mist/80"}>
+                    <span className={c.ingressoStatus !== "cancelado" ? "text-teal-300" : "text-mist/80"}>
                       {!c.ingressoId
                         ? t.semIngresso
                         : c.ingressoStatus === "cancelado"
                           ? t.cancelado
-                          : c.checkinEm
-                            ? t.usado(formatarDataHora(c.checkinEm, idioma))
-                            : t.valido}
+                          : t.valido}
                     </span>
                     {desteQr && <span className="ml-2 text-xs text-gold-300">({t.este})</span>}
                   </p>
-                  {organizacao && desteQr && c.ingressoId && c.ingressoStatus === "valido" && !c.checkinEm && (
-                    <Link
-                      href={`/administradores/checkin?q=${c.ingressoId}`}
-                      className="bg-gold-metal mt-3 inline-block rounded-full px-5 py-2 text-sm font-semibold text-gold-ink hover:brightness-110"
-                    >
-                      {t.checkin}
-                    </Link>
+                  {c.status === "pago" && c.ingressoStatus !== "cancelado" && (
+                    <div className="mt-3 border-t border-white/10 pt-3">
+                      <p className="text-xs uppercase tracking-wider text-mist/60">{t.presenca}</p>
+                      <BotoesPresenca
+                        pedidoId={c.pedidoId}
+                        tipo={c.tipo}
+                        registros={presencasPorPedido.get(c.pedidoId) ?? []}
+                        podeRegistrar={organizacao}
+                        voltar="ingresso"
+                        qrId={id.data}
+                        idioma={idioma}
+                      />
+                      {!organizacao && !(presencasPorPedido.get(c.pedidoId)?.length) && (
+                        <p className="mt-1 text-sm text-mist/70">—</p>
+                      )}
+                    </div>
                   )}
                 </li>
               );

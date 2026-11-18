@@ -10,7 +10,7 @@ import { SiteHeader } from "../../_components/site-header";
 import { FormFicha } from "./form-ficha";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: tx(await obterIdioma(), "Meus dados — LPZ Training", "My details — LPZ Training", "Mis datos — LPZ Training") };
+  return { title: tx(await obterIdioma(), "Meu cadastro — LPZ Training", "My profile — LPZ Training", "Mi registro — LPZ Training") };
 }
 
 // Ficha do congressista: obrigatória no primeiro acesso (e-mail/senha ou
@@ -32,7 +32,7 @@ export default async function Page(props: PageProps<"/congressistas/completar-ca
       <main className="bg-city-glow min-h-[80vh] px-4 py-16">
         <div className="mx-auto max-w-xl">
           <h1 className="font-display text-2xl uppercase tracking-[0.2em] text-gold-metal">
-            {primeiraVez ? tx(idioma, "Complete seu cadastro", "Complete your sign-up", "Completa tu registro") : tx(idioma, "Meus dados", "My details", "Mis datos")}
+            {primeiraVez ? tx(idioma, "Complete seu cadastro", "Complete your sign-up", "Completa tu registro") : tx(idioma, "Meu cadastro", "My profile", "Mi registro")}
           </h1>
           <p className="mt-4 text-mist/90">
             {primeiraVez
