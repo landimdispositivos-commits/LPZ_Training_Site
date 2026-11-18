@@ -10,6 +10,9 @@ export const PRODUTOS = {
   jack_and_jill: { nome: "Jack and Jill", nomeEn: "Jack and Jill", nomeEs: "Jack and Jill", entrada: false },
   paparazzi_video: { nome: "Paparazzi — vídeo", nomeEn: "Paparazzi — video", nomeEs: "Paparazzi — video", entrada: false },
   paparazzi_foto: { nome: "Paparazzi — fotos", nomeEn: "Paparazzi — photos", nomeEs: "Paparazzi — fotos", entrada: false },
+  camiseta: { nome: "Camiseta", nomeEn: "T-shirt", nomeEs: "Camiseta", entrada: false },
+  massagem_pri: { nome: "Massagem — Pri", nomeEn: "Massage — Pri", nomeEs: "Masaje — Pri", entrada: false },
+  massagem_jessica: { nome: "Massagem — Jéssica", nomeEn: "Massage — Jéssica", nomeEs: "Masaje — Jéssica", entrada: false },
 } as const;
 export type TipoProduto = keyof typeof PRODUTOS;
 export const TIPOS_PRODUTO = Object.keys(PRODUTOS) as TipoProduto[];

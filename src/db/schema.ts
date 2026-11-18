@@ -174,6 +174,9 @@ export const tipoProdutoEnum = pgEnum("tipo_produto", [
   "jack_and_jill",
   "paparazzi_video",
   "paparazzi_foto",
+  "camiseta",
+  "massagem_pri",
+  "massagem_jessica",
 ]);
 
 export const lotes = pgTable("lotes", {

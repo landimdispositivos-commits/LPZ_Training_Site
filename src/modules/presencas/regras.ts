@@ -15,6 +15,9 @@ export const REGRAS_PRESENCA: Record<TipoProduto, { tipo: TipoPresenca; dias: Di
   jack_and_jill: { tipo: "servico", dias: ["unico"] },
   paparazzi_video: { tipo: "servico", dias: ["unico"] },
   paparazzi_foto: { tipo: "servico", dias: ["unico"] },
+  camiseta: { tipo: "servico", dias: ["unico"] },
+  massagem_pri: { tipo: "servico", dias: ["unico"] },
+  massagem_jessica: { tipo: "servico", dias: ["unico"] },
 };
 
 export function ehDiaPresenca(v: unknown): v is DiaPresenca {
@@ -41,6 +44,8 @@ export function rotuloPresenca(tipoProduto: TipoProduto, dia: DiaPresenca, idiom
   }
   if (tipoProduto === "baile_avulso") return tx(idioma, "Entrada no baile", "Party entry", "Entrada al baile");
   if (tipoProduto === "jack_and_jill") return tx(idioma, "Participou do Jack and Jill", "Took part in Jack and Jill", "Participó del Jack and Jill");
+  if (tipoProduto === "camiseta") return tx(idioma, "Camiseta retirada", "T-shirt picked up", "Camiseta retirada");
+  if (tipoProduto === "massagem_pri" || tipoProduto === "massagem_jessica") return tx(idioma, "Massagem realizada", "Massage done", "Masaje realizado");
   return tx(idioma, "Paparazzi realizado", "Paparazzi done", "Paparazzi realizado");
 }
 
@@ -49,5 +54,7 @@ export function rotuloBotaoPresenca(tipoProduto: TipoProduto, dia: DiaPresenca):
   if (dia !== "unico") return `Registrar entrada — ${NOME_DIA[dia][0]}`;
   if (tipoProduto === "baile_avulso") return "Registrar entrada no baile";
   if (tipoProduto === "jack_and_jill") return "Registrar participação no Jack and Jill";
+  if (tipoProduto === "camiseta") return "Marcar camiseta como retirada";
+  if (tipoProduto === "massagem_pri" || tipoProduto === "massagem_jessica") return "Marcar massagem como realizada";
   return "Marcar paparazzi como realizado";
 }

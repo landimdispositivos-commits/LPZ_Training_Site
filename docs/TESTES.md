@@ -1,0 +1,95 @@
+---
+projeto: LPZ Training — Site
+assunto: Lista de testes (roteiro para conferir o site antes de publicar)
+data: 2026-11-17
+status: em andamento
+relacionado: "[[LPZ Training - Site]]"
+---
+
+# Lista de testes — LPZ Training
+
+Marque `[x]` conforme for testando. Site local: http://localhost:3005 ·
+e-mails de teste: http://localhost:8026/emails (Mailpit).
+
+Legenda: ✅ já testado pelo Claude · 🔑 precisa do login da organização.
+
+## 1. Navegação e visual
+- [ ] Página inicial mostra só a apresentação; Cronograma, Professores, DJs, Ingressos e Galeria abrem como subpáginas
+- [ ] Menu no celular (botão ☰) abre e fecha; o submenu do nome fecha ao clicar fora
+- [ ] Todas as páginas públicas com o fundo da página de Ingressos
+- [ ] Rodapé: Política de Privacidade, Fale conosco e Área da organização
+
+## 2. Idiomas (bandeiras Brasil, EUA e Espanha)
+- [x] Páginas públicas em inglês e espanhol sem texto em português ✅
+- [ ] Trocar o idioma em cada página e conferir que a escolha fica guardada
+- [ ] Cadastro, login, ficha e esqueci a senha em en/es
+- [ ] E-mail de compra no idioma em que a pessoa comprou (pt, en, es)
+
+## 3. Cadastro e conta do congressista
+- [ ] Cadastro com e-mail e senha → e-mail de confirmação chega no Mailpit
+- [ ] Entrar com o Google (depende das credenciais do Google no .env)
+- [ ] Ficha completa obrigatória no primeiro acesso; erros aparecem nos campos certos
+- [ ] Esqueci minha senha → e-mail → nova senha
+- [x] Apelido ("Como prefere ser chamado(a)?") aparece no topo e na saudação ✅
+- [ ] Menu do nome: "Minha área e ingressos" e "Meu cadastro" (sem "Comprar ingresso")
+- [ ] "Meu cadastro": editar dados depois da compra e salvar
+- [ ] 🔑 Auditoria mostra cada alteração com antes → depois (CPF, celular, nascimento e endereço mascarados)
+
+## 4. Ingressos e sacola
+- [x] Valores: Full pass 349,99 · Pacote de bailes 199,99 · Baile avulso 69,99 · Jack and Jill 69,99 · Paparazzi vídeo/fotos 49,99 ✅
+- [ ] Camiseta R$ 59,99, caixa "Novidade em breve" e Massagem Pri / Massagem Jéssica ("valor em breve")
+- [x] Aviso de intransferível + reembolso em 7 dias (CDC art. 49) na página e no e-mail ✅
+- [ ] Visitante clica numa caixinha → login/cadastro → volta e segue para o pagamento
+- [x] Adicionar à sacola (2 itens) → ícone com a quantidade no topo → página da sacola ✅
+- [ ] Remover item da sacola (a vaga volta para o lote)
+- [x] "Pagar tudo" → um único pagamento → os dois itens pagos ✅
+- [ ] "Comprar só este agora" (um item) continua funcionando
+- [ ] Reserva vence em 30 minutos e a vaga volta ao lote
+- [ ] Pagamento recusado / desistir → pedidos cancelados
+
+## 5. Pagamento (modo de teste e Mercado Pago)
+- [ ] Tela de teste: Pix, crédito em até 12x, débito — forma de pagamento salva na compra
+- [ ] Credenciais de TESTE do Mercado Pago no .env → checkout real de sandbox
+- [ ] Webhook do Mercado Pago (precisa do site publicado com https)
+
+## 6. E-mails
+- [x] Compra de um item: e-mail completo com QR, cronograma, professores, DJs ✅
+- [x] Compra pela sacola: um único e-mail com todos os produtos ✅
+- [ ] Conferir se cada QR do e-mail da sacola abre a página certa
+- [ ] 🔑 Financeiro → reenviar e-mails a todos (um por compra)
+- [ ] E-mail de verdade (Brevo + domínio) — só em produção
+
+## 7. QR code, check-in e presença
+- [x] QR na visão do dono (só a compra dele) ✅
+- [ ] QR na visão de quem não está logado (nenhum dado pessoal)
+- [ ] 🔑 QR na visão da organização: todos os dados e compras da pessoa
+- [ ] 🔑 Full pass / Pacote de bailes: registrar entrada na sexta, no sábado e no domingo
+- [ ] 🔑 Tentar registrar o mesmo dia duas vezes → "JÁ REGISTRADO NESTE DIA"
+- [ ] 🔑 Baile avulso: uma entrada só
+- [ ] 🔑 Paparazzi, Jack and Jill, camiseta e massagens: marcar como realizado/retirado
+- [ ] 🔑 Tela Check-in: ler QR pela câmera do celular, buscar por código, nome ou e-mail
+- [ ] 🔑 Usuários: coluna/detalhe "Compareceu" e exportação Excel
+- [ ] Minha área do cliente mostra a presença registrada
+
+## 8. Área da organização 🔑
+- [ ] Login com duas etapas (app autenticador)
+- [ ] Usuários: filtros, colunas "Comprou" com todos os produtos (inclui camiseta e massagens), detalhe, Excel
+- [ ] Editar cadastro de um usuário → aparece na Auditoria com antes → depois
+- [ ] Excluir usuário (pede para digitar EXCLUIR)
+- [ ] Permissões (perfis), Acesso total
+- [ ] Financeiro: lotes, valores, relatório
+- [ ] Canetinha: editar bios de professores e DJs, contatos do Fale conosco
+- [ ] Menus DJ, MC e Jack and Jill em ordem alfabética
+
+## 9. Fale conosco
+- [ ] Contatos com ícones: lpztraining@gmail.com, +55 11 94502-6344 (abre o WhatsApp), @lpztrainingsp
+- [ ] Enviar mensagem pelo formulário → chega no e-mail da organização (Mailpit em teste)
+
+## 10. Celular e acessibilidade
+- [ ] Todas as telas no celular (compra, sacola, Minha área, QR, check-in)
+- [ ] Navegação só pelo teclado (Tab) nos formulários principais
+
+## 11. Antes de publicar
+- [ ] Revisão por advogado do texto de reembolso e da Política de Privacidade
+- [ ] Credenciais de produção (Mercado Pago, Google, Brevo) só no .env da VPS
+- [ ] Deploy na VPS e teste completo de novo em produção

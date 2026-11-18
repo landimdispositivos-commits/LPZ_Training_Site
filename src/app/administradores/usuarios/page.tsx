@@ -31,6 +31,9 @@ const SIGLA_PRODUTO: Record<string, string> = {
   baile_avulso: "Baile avulso",
   paparazzi_video: "Pap. vídeo",
   paparazzi_foto: "Pap. fotos",
+  camiseta: "Camiseta",
+  massagem_pri: "Mass. Pri",
+  massagem_jessica: "Mass. Jéssica",
 };
 
 const STATUS_PEDIDO: Record<string, string> = {

@@ -26,7 +26,7 @@ const TEXTOS = traducoes(
     escreva: "Envie sua mensagem",
     contatos: "Nossos contatos",
     email: "E-mail",
-    whatsapp: "WhatsApp",
+    whatsapp: "Celular / WhatsApp",
     instagram: "Instagram",
     emBreve: "Contatos em breve.",
     editar: "Editar contatos",
@@ -43,7 +43,7 @@ const TEXTOS = traducoes(
     escreva: "Send us a message",
     contatos: "Our contacts",
     email: "Email",
-    whatsapp: "WhatsApp",
+    whatsapp: "Phone / WhatsApp",
     instagram: "Instagram",
     emBreve: "Contacts coming soon.",
     editar: "Edit contacts",
@@ -60,7 +60,7 @@ const TEXTOS = traducoes(
     escreva: "Envíanos tu mensaje",
     contatos: "Nuestros contactos",
     email: "Correo",
-    whatsapp: "WhatsApp",
+    whatsapp: "Celular / WhatsApp",
     instagram: "Instagram",
     emBreve: "Contactos próximamente.",
     editar: "Editar contactos",
@@ -84,10 +84,10 @@ export default async function Page(props: PageProps<"/fale-conosco">) {
   const whats = linkWhatsapp(contatos.whatsapp);
   const insta = linkInstagram(contatos.instagram);
   const itens = [
-    contatos.email && { rotulo: t.email, texto: contatos.email, href: `mailto:${contatos.email}` },
-    whats && { rotulo: t.whatsapp, texto: contatos.whatsapp!, href: whats },
-    insta && { rotulo: t.instagram, texto: contatos.instagram!, href: insta },
-  ].filter(Boolean) as { rotulo: string; texto: string; href: string }[];
+    contatos.email && { rotulo: t.email, texto: contatos.email, href: `mailto:${contatos.email}`, icone: <IconeEmail /> },
+    whats && { rotulo: t.whatsapp, texto: contatos.whatsapp!, href: whats, icone: <IconeTelefone /> },
+    insta && { rotulo: t.instagram, texto: contatos.instagram!, href: insta, icone: <IconeInstagram /> },
+  ].filter(Boolean) as { rotulo: string; texto: string; href: string; icone: React.ReactNode }[];
 
   return (
     <>
@@ -108,11 +108,16 @@ export default async function Page(props: PageProps<"/fale-conosco">) {
             ) : (
               <ul className="mt-4 space-y-4">
                 {itens.map((c) => (
-                  <li key={c.rotulo}>
-                    <p className="text-xs uppercase tracking-wider text-mist/60">{c.rotulo}</p>
-                    <a href={c.href} target="_blank" rel="noopener noreferrer" className="break-all font-medium text-teal-300 hover:underline">
-                      {c.texto}
-                    </a>
+                  <li key={c.rotulo} className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-gold-500/50 bg-gold-400/10 text-gold-300">
+                      {c.icone}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-xs uppercase tracking-wider text-mist/60">{c.rotulo}</p>
+                      <a href={c.href} target="_blank" rel="noopener noreferrer" className="break-all font-medium text-teal-300 hover:underline">
+                        {c.texto}
+                      </a>
+                    </div>
                   </li>
                 ))}
               </ul>
@@ -146,5 +151,33 @@ export default async function Page(props: PageProps<"/fale-conosco">) {
       </PaginaPublica>
       <RodapeSite />
     </>
+  );
+}
+
+// Ícones simples (traço), na cor dourada do site.
+function IconeEmail() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="m3 7 9 6 9-6" />
+    </svg>
+  );
+}
+
+function IconeTelefone() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2" />
+    </svg>
+  );
+}
+
+function IconeInstagram() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <circle cx="12" cy="12" r="4" />
+      <circle cx="17.5" cy="6.5" r="0.8" fill="currentColor" />
+    </svg>
   );
 }

@@ -15,6 +15,8 @@ const TEXTOS = traducoes(
     pedidoEm: "pedido em",
     aguardando: "Aguardando pagamento.",
     continuar: "Continuar pagamento",
+    camiseta: "Compra confirmada. Retire sua camiseta no evento mostrando o QR code.",
+    massagem: "Compra confirmada. Mostre o QR code na hora da massagem.",
     presenca: "Presença registrada",
     servico: "Compra confirmada. A equipe entra em contato sobre o serviço.",
     jackAndJill: "Inscrição no Jack and Jill confirmada. A organização passa os detalhes da competição.",
@@ -29,6 +31,8 @@ const TEXTOS = traducoes(
     pedidoEm: "ordered on",
     aguardando: "Awaiting payment.",
     continuar: "Continue payment",
+    camiseta: "Purchase confirmed. Pick up your T-shirt at the event by showing the QR code.",
+    massagem: "Purchase confirmed. Show the QR code at your massage.",
     presenca: "Attendance recorded",
     servico: "Purchase confirmed. The team will contact you about the service.",
     jackAndJill: "Jack and Jill registration confirmed. The organizers will share the competition details.",
@@ -43,6 +47,8 @@ const TEXTOS = traducoes(
     pedidoEm: "pedido el",
     aguardando: "Esperando el pago.",
     continuar: "Continuar el pago",
+    camiseta: "Compra confirmada. Retira tu camiseta en el evento mostrando el código QR.",
+    massagem: "Compra confirmada. Muestra el código QR en el momento del masaje.",
     presenca: "Asistencia registrada",
     servico: "Compra confirmada. El equipo se pondrá en contacto sobre el servicio.",
     jackAndJill: "Inscripción en el Jack and Jill confirmada. La organización compartirá los detalles de la competencia.",
@@ -90,7 +96,13 @@ export async function MeusIngressos({ email, idioma = "pt" }: { email: string; i
           )}
 
           {p.status === "pago" && !PRODUTOS[p.tipo].entrada && (
-            <p className="mt-3 text-sm text-teal-300">{p.tipo === "jack_and_jill" ? t.jackAndJill : t.servico}</p>
+            <p className="mt-3 text-sm text-teal-300">{p.tipo === "jack_and_jill"
+                ? t.jackAndJill
+                : p.tipo === "camiseta"
+                  ? t.camiseta
+                  : p.tipo.startsWith("massagem")
+                    ? t.massagem
+                    : t.servico}</p>
           )}
 
           {p.status === "pago" && p.ingressoStatus !== "cancelado" && (

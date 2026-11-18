@@ -1,3 +1,4 @@
+import { Fragment } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { urlLoginParaComprar } from "@/modules/auth/proximo";
@@ -34,6 +35,7 @@ const TEXTOS = traducoes(
     desistir: "Desistir",
     comprar: "Ir para o pagamento",
     comprarVisitante: "Comprar",
+    novidade: "Novidade em breve",
     naSacola: "✓ Na sacola",
     adicionar: "Adicionar à sacola",
     comprarAgora: "Comprar só este agora",
@@ -62,6 +64,7 @@ const TEXTOS = traducoes(
     desistir: "Cancel",
     comprar: "Go to payment",
     comprarVisitante: "Buy",
+    novidade: "Coming soon",
     naSacola: "✓ In your cart",
     adicionar: "Add to cart",
     comprarAgora: "Buy just this one now",
@@ -90,6 +93,7 @@ const TEXTOS = traducoes(
     desistir: "Desistir",
     comprar: "Ir al pago",
     comprarVisitante: "Comprar",
+    novidade: "Próximamente",
     naSacola: "✓ En tu bolsa",
     adicionar: "Agregar a la bolsa",
     comprarAgora: "Comprar solo este ahora",
@@ -174,8 +178,8 @@ export default async function Page(props: PageProps<"/ingressos">) {
               {itens.map((item) => {
                 const minha = situacao?.[item.tipo];
                 return (
+                  <Fragment key={item.tipo}>
                   <li
-                    key={item.tipo}
                     className={`relative flex flex-col rounded-2xl border bg-petrol-950/70 p-6 text-center transition ${
                       escolhido === item.tipo
                         ? "border-gold-300 shadow-[0_0_30px_rgb(230_181_74/0.35)] ring-2 ring-gold-400"
@@ -236,6 +240,16 @@ export default async function Page(props: PageProps<"/ingressos">) {
                       ) : null}
                     </div>
                   </li>
+                  {item.tipo === "camiseta" && (
+                    // Espaço reservado para o próximo produto (ainda sem definição).
+                    <li
+                      aria-label={t.novidade}
+                      className="flex min-h-48 flex-col items-center justify-center rounded-2xl border border-dashed border-gold-500/40 bg-petrol-950/40 p-6 text-center"
+                    >
+                      <p className="font-display text-sm uppercase tracking-[0.15em] text-gold-300/70">{t.novidade}</p>
+                    </li>
+                  )}
+                  </Fragment>
                 );
               })}
             </ul>

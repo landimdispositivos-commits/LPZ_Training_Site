@@ -134,6 +134,20 @@
       "when": 1795052000000,
       "tag": "0018_sacola",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1795053000000,
+      "tag": "0019_novos_produtos",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1795054000000,
+      "tag": "0020_lote_camiseta",
+      "breakpoints": true
     }
   ]
 }
