@@ -3,8 +3,9 @@ import type {
   CriarPreferenciaResultado,
   PaymentProvider,
   ReferenciaPagamento,
-  StatusPagamento,
+  SituacaoPagamento,
 } from "./payment-provider";
+import type { FormaPagamento } from "./formas";
 
 // Mercado Pago — Checkout Pro (o comprador paga na página do Mercado Pago;
 // dados de cartão nunca passam pelo nosso servidor).
@@ -18,7 +19,24 @@ import type {
 // do painel do Mercado Pago em desenvolvimento.
 const API = "https://api.mercadopago.com";
 
-type PagamentoMP = { id: number; status: string; external_reference: string | null };
+type PagamentoMP = {
+  id: number;
+  status: string;
+  external_reference: string | null;
+  payment_type_id?: string;
+  payment_method_id?: string;
+  installments?: number;
+};
+
+// Tipo de pagamento do Mercado Pago → nossa forma de pagamento.
+function formaDoMP(p: PagamentoMP): FormaPagamento | null {
+  if (p.payment_method_id === "pix" || p.payment_type_id === "bank_transfer") return "pix";
+  if (p.payment_type_id === "credit_card") return "credito";
+  if (p.payment_type_id === "debit_card" || p.payment_type_id === "prepaid_card") return "debito";
+  if (p.payment_type_id === "account_money") return "saldo";
+  if (p.payment_type_id === "ticket") return "boleto";
+  return null;
+}
 
 export class MercadoPagoProvider implements PaymentProvider {
   constructor(
@@ -82,14 +100,14 @@ export class MercadoPagoProvider implements PaymentProvider {
 
   // Status pelo nosso pedido (external_reference): pode haver várias
   // tentativas (ex: cartão recusado e depois Pix aprovado).
-  async consultarStatus({ pedidoId }: ReferenciaPagamento): Promise<StatusPagamento> {
+  async consultarPagamento({ pedidoId }: ReferenciaPagamento): Promise<SituacaoPagamento> {
     const busca = await this.chamar<{ results: PagamentoMP[] }>(
       `/v1/payments/search?external_reference=${encodeURIComponent(pedidoId)}&sort=date_created&criteria=desc`,
     );
-    const status = busca.results.map((p) => p.status);
-    if (status.includes("approved")) return "pago";
-    if (status.some((s) => s === "refunded" || s === "charged_back")) return "reembolsado";
-    return "pendente";
+    const aprovado = busca.results.find((p) => p.status === "approved");
+    if (aprovado) return { status: "pago", forma: formaDoMP(aprovado), parcelas: aprovado.installments ?? null };
+    if (busca.results.some((p) => p.status === "refunded" || p.status === "charged_back")) return { status: "reembolsado" };
+    return { status: "pendente" };
   }
 
   // Webhook: o aviso traz só o id do pagamento; descobrimos o pedido aqui.

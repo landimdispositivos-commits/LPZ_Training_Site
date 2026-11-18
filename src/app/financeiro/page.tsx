@@ -181,11 +181,12 @@ export default async function Page(props: PageProps<"/financeiro">) {
           </section>
 
           <section className="rounded-2xl border border-white/10 bg-petrol-900/80 p-6">
-            <h2 className="text-sm font-semibold uppercase tracking-wider text-teal-300">Enviar ingressos por e-mail</h2>
+            <h2 className="text-sm font-semibold uppercase tracking-wider text-teal-300">Reenviar e-mail completo aos compradores</h2>
             <p className="mt-2 text-sm text-mist/80">
-              O e-mail com o QR code já sai sozinho assim que o pagamento é aprovado. Use este botão para mandar de novo
-              a todos os compradores com ingresso válido — por exemplo, alguns dias antes do evento. Cada pessoa recebe
-              no idioma em que comprou.
+              O e-mail da compra (dados da compra, forma de pagamento, QR code, cronograma, professores e DJs) já sai
+              sozinho assim que o pagamento é aprovado. Use este botão para mandar de novo a todas as compras pagas, com
+              a programação atualizada — por exemplo, alguns dias antes do evento. Cada pessoa recebe no idioma em que
+              comprou.
             </p>
             <form action={reenviarIngressosAction} className="mt-4 flex flex-wrap items-end gap-3">
               <Campo id="confirmar-envio" label="Digite ENVIAR para confirmar">

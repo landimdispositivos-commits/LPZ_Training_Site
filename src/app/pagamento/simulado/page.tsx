@@ -5,13 +5,15 @@ import { db } from "@/db";
 import { lotes, pedidos } from "@/db/schema";
 import { formatarPreco } from "@/lib/formatar";
 import { obterSessao } from "@/modules/auth/sessao";
-import { classeBotao } from "../../_components/form-ui";
 import { obterIdioma } from "@/i18n/servidor";
 import { SiteHeader } from "../../_components/site-header";
-import { decidirPagamentoSimuladoAction } from "./actions";
+import { CheckoutSimulado } from "./checkout";
+import { RodapeSite } from "../../_components/rodape-site";
+import { LOCALE } from "@/i18n";
+import { MINUTOS_RESERVA, nomeDoProduto } from "@/modules/ingressos";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await obterIdioma()) === "en" ? "Test payment — LPZ Training" : "Pagamento simulado — LPZ Training" };
+  return { title: (await obterIdioma()) === "en" ? "Payment — LPZ Training" : "Pagamento — LPZ Training" };
 }
 
 // Página de desenvolvimento (TEST_MODE): faz o papel da tela do Mercado Pago.
@@ -25,7 +27,16 @@ export default async function Page(props: PageProps<"/pagamento/simulado">) {
   if (typeof preference !== "string") notFound();
 
   const pedido = await db
-    .select({ id: pedidos.id, status: pedidos.status, valorCentavos: pedidos.valorCentavos, loteNome: lotes.nome })
+    .select({
+      id: pedidos.id,
+      status: pedidos.status,
+      valorCentavos: pedidos.valorCentavos,
+      criadoEm: pedidos.criadoEm,
+      nome: pedidos.nome,
+      email: pedidos.email,
+      loteNome: lotes.nome,
+      tipo: lotes.tipo,
+    })
     .from(pedidos)
     .innerJoin(lotes, eq(lotes.id, pedidos.loteId))
     .where(and(eq(pedidos.gatewayPreferenceId, preference), eq(pedidos.email, sessao.user.email)))
@@ -34,46 +45,59 @@ export default async function Page(props: PageProps<"/pagamento/simulado">) {
   if (pedido.status !== "pendente") redirect("/ingressos");
   const idioma = await obterIdioma();
   const en = idioma === "en";
+  const reservaAte = new Date(pedido.criadoEm.getTime() + MINUTOS_RESERVA * 60 * 1000).toLocaleTimeString(LOCALE[idioma], {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "America/Sao_Paulo",
+  });
 
   return (
     <>
       <SiteHeader />
       <main className="bg-city-glow min-h-[80vh] px-4 py-16">
-        <div className="mx-auto max-w-md space-y-6 text-center">
-          <p className="rounded-lg border border-ember-500/50 bg-ember-500/10 px-4 py-3 text-sm">
+        <div className="mx-auto max-w-lg space-y-6">
+          <h1 className="text-center font-display text-2xl uppercase tracking-[0.2em] text-gold-metal">
+            {en ? "Payment" : "Pagamento"}
+          </h1>
+          <p className="rounded-lg border border-ember-500/50 bg-ember-500/10 px-4 py-3 text-center text-sm">
             {en ? (
               <>
-                <strong>Test mode.</strong> This screen replaces Mercado Pago until the real integration is turned on.
-                No money is charged.
+                <strong>Test mode.</strong> This screen shows how checkout will work. Mercado Pago is not connected yet:
+                no money is charged.
               </>
             ) : (
               <>
-                <strong>Modo de teste.</strong> Esta tela substitui o Mercado Pago enquanto a integração real não está
-                ligada. Nenhum dinheiro é cobrado.
+                <strong>Modo de teste.</strong> Esta tela mostra como vai ser o pagamento. O Mercado Pago ainda não está
+                conectado: nenhum dinheiro é cobrado.
               </>
             )}
           </p>
-          <h1 className="font-display text-xl uppercase tracking-[0.2em] text-gold-metal">{en ? "Test payment" : "Pagamento simulado"}</h1>
-          <div className="rounded-2xl border border-white/10 bg-petrol-900/80 p-6">
-            <p className="text-sm text-teal-300">{pedido.loteNome}</p>
-            <p className="text-gold-metal mt-1 text-3xl font-extrabold">{formatarPreco(pedido.valorCentavos, idioma)}</p>
-          </div>
-          <form action={decidirPagamentoSimuladoAction} className="space-y-3">
-            <input type="hidden" name="pedidoId" value={pedido.id} />
-            <button type="submit" name="decisao" value="aprovar" className={classeBotao}>
-              {en ? "Approve payment" : "Aprovar pagamento"}
-            </button>
-            <button
-              type="submit"
-              name="decisao"
-              value="recusar"
-              className="w-full rounded-full border border-gold-500/60 px-6 py-3 text-sm font-semibold text-gold-300 hover:bg-gold-500/10"
-            >
-              {en ? "Decline / cancel" : "Recusar / desistir"}
-            </button>
-          </form>
+
+          <section className="rounded-2xl border border-gold-500/40 bg-petrol-950/70 p-5">
+            <h2 className="font-display text-xs uppercase tracking-[0.15em] text-teal-300">{en ? "Order summary" : "Resumo do pedido"}</h2>
+            <div className="mt-3 flex items-start justify-between gap-4">
+              <div>
+                <p className="font-semibold text-white">{nomeDoProduto(pedido.tipo, idioma)}</p>
+                <p className="text-sm text-mist/70">{pedido.loteNome}</p>
+                <p className="mt-2 text-xs text-mist/60">{pedido.nome} · {pedido.email}</p>
+              </div>
+              <p className="text-gold-metal whitespace-nowrap text-2xl font-extrabold">{formatarPreco(pedido.valorCentavos, idioma)}</p>
+            </div>
+            <p className="mt-3 border-t border-white/10 pt-3 text-xs text-mist/60">
+              {en ? `Your spot is held until ${reservaAte}.` : `Sua vaga fica reservada até ${reservaAte}.`}
+            </p>
+          </section>
+
+          <CheckoutSimulado pedidoId={pedido.id} valorCentavos={pedido.valorCentavos} />
+
+          <p className="text-center text-xs text-mist/50">
+            {en
+              ? "Payment processed by Mercado Pago. Card details are entered on Mercado Pago's page and never pass through our site."
+              : "Pagamento processado pelo Mercado Pago. Os dados do cartão são digitados na página do Mercado Pago e nunca passam pelo nosso site."}
+          </p>
         </div>
       </main>
+      <RodapeSite />
     </>
   );
 }

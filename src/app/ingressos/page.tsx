@@ -9,6 +9,7 @@ import { MENSAGENS_ERRO_COMPRA, MINUTOS_RESERVA, nomeDoProduto, situacaoDoCompra
 import { formatarPreco } from "@/lib/formatar";
 import { Aviso, classeBotao } from "../_components/form-ui";
 import { RodapeSite } from "../_components/rodape-site";
+import { AutoComprar } from "./auto-comprar";
 import { SiteHeader } from "../_components/site-header";
 import { comprarAction, desistirAction, retomarPagamentoAction } from "./actions";
 
@@ -39,7 +40,7 @@ const TEXTOS = traducoes(
     desistir: "Desistir",
     comprar: "Ir para o pagamento",
     comprarVisitante: "Comprar",
-    escolheu: (nome: string) => `Você escolheu ${nome}. Clique em “Ir para o pagamento” para pagar no Mercado Pago.`,
+    escolheu: (nome: string) => `Você escolheu ${nome}. Levando você para o pagamento…`,
     aguardando: "Recebemos seu pedido e o pagamento está em processamento (o Pix pode levar alguns minutos). Assim que for aprovado, você recebe um e-mail de confirmação.",
     meios: "Pix, cartão de crédito, cartão de débito virtual Caixa ou saldo do Mercado Pago.",
     rodape: (min: number) =>
@@ -59,7 +60,7 @@ const TEXTOS = traducoes(
     desistir: "Cancel",
     comprar: "Go to payment",
     comprarVisitante: "Buy",
-    escolheu: (nome: string) => `You chose ${nome}. Click “Go to payment” to pay with Mercado Pago.`,
+    escolheu: (nome: string) => `You chose ${nome}. Taking you to payment…`,
     aguardando: "We received your order and the payment is being processed (Pix may take a few minutes). As soon as it is approved, you will receive a confirmation email.",
     meios: "Pix, credit card, Caixa virtual debit card or Mercado Pago balance.",
     rodape: (min: number) =>
@@ -101,7 +102,7 @@ export default async function Page(props: PageProps<"/ingressos">) {
           {mensagemErro && <Aviso tipo="erro">{mensagemErro}</Aviso>}
           {cancelado && <Aviso tipo="ok">{t.cancelado}</Aviso>}
           {aguardando && <Aviso tipo="ok">{t.aguardando}</Aviso>}
-          {escolhido && congressista && !situacao?.[escolhido]?.pago && (
+          {escolhido && congressista && user?.cadastroCompletoEm && !situacao?.[escolhido]?.pago && (
             <Aviso tipo="ok">{t.escolheu(nomeDoProduto(escolhido, idioma))}</Aviso>
           )}
 
@@ -157,8 +158,11 @@ export default async function Page(props: PageProps<"/ingressos">) {
                           </form>
                         </>
                       ) : congressista && item.lote ? (
-                        <form action={comprarAction}>
+                        <form id={`comprar-${item.tipo}`} action={comprarAction}>
                           <input type="hidden" name="tipo" value={item.tipo} />
+                          {escolhido === item.tipo && user?.cadastroCompletoEm && (
+                            <AutoComprar formId={`comprar-${item.tipo}`} tipo={item.tipo} />
+                          )}
                           <button type="submit" className={classeBotao}>{t.comprar}</button>
                         </form>
                       ) : !user && item.lote ? (

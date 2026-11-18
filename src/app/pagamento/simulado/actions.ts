@@ -9,6 +9,7 @@ import { obterSessao } from "@/modules/auth/sessao";
 import { cancelarPedidoPendente, confirmarPagamento } from "@/modules/ingressos";
 import { paymentProvider } from "@/modules/pagamentos";
 import { FakePaymentProvider } from "@/modules/pagamentos/fake-payment-provider";
+import { MAX_PARCELAS } from "@/modules/pagamentos/formas";
 
 // Só existe em TEST_MODE: simula o que o Mercado Pago faria. Em produção o
 // provider real não é o FakePaymentProvider e estas ações viram 404.
@@ -28,7 +29,10 @@ export async function decidirPagamentoSimuladoAction(form: FormData) {
   if (!pedido?.gatewayPreferenceId) notFound();
 
   if (form.get("decisao") === "aprovar") {
-    simulador.aprovarManualmente(pedido.gatewayPreferenceId);
+    // Forma escolhida na tela de teste (no real, quem informa é o Mercado Pago).
+    const forma = z.enum(["pix", "credito", "debito"]).catch("pix").parse(form.get("forma"));
+    const parcelas = forma === "credito" ? z.coerce.number().int().min(1).max(MAX_PARCELAS).catch(1).parse(form.get("parcelas")) : 1;
+    simulador.aprovarManualmente(pedido.gatewayPreferenceId, forma, parcelas);
     await confirmarPagamento(pedido.id);
     redirect("/congressistas/minha-area?pago=1");
   }

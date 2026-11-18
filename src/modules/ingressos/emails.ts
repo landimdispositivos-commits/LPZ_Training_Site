@@ -1,17 +1,24 @@
-import { eq } from "drizzle-orm";
+import { asc, eq } from "drizzle-orm";
 import qrcode from "qrcode-generator";
 import { db } from "@/db";
-import { ingressos, lotes, pedidos } from "@/db/schema";
+import { cronogramaItens, ingressos, lotes, pedidos, professores } from "@/db/schema";
 import { ehIdioma, type Idioma } from "@/i18n";
+import { dataCurta, DIAS_EVENTO, diaDaSemana } from "@/lib/dias-evento";
 import { formatarDataHora, formatarPreco } from "@/lib/formatar";
 import { enviarEmail, escaparHtml } from "@/modules/email";
+import { descreverPagamento } from "@/modules/pagamentos/formas";
+import { linkInstagram, listarPerfis } from "@/modules/perfis";
 import { nomeDoProduto, PRODUTOS, type TipoProduto } from "./produtos";
 
-// E-mails da compra, no idioma em que a pessoa estava no site:
-// 1. Confirmação da compra (todo produto pago).
-// 2. Ingresso com QR code (só produtos de entrada) — também reenviado pela
-//    organização dias antes do evento (Financeiro → Enviar ingressos).
-// O QR contém só o id do ingresso; a portaria sempre confere no banco.
+// E-mail completo da compra, enviado assim que o pagamento é aprovado, no
+// idioma em que a pessoa estava no site. Traz: dados da compra e forma de
+// pagamento, QR code, cronograma, professores e DJs (com o aviso de que tudo
+// pode mudar até o dia do evento). A organização pode reenviar a todos pelo
+// Financeiro (ex.: dias antes do evento) — sai com a programação atualizada.
+//
+// O QR leva ao endereço do site /ingresso/<id>: a organização logada vê ali
+// todos os dados da pessoa; quem não é da organização não vê dados pessoais.
+// Na portaria, o leitor de check-in entende esse endereço.
 
 const COR = {
   fundo: "#04161b",
@@ -23,14 +30,15 @@ const COR = {
   texto: "#e8f4f3",
   suave: "#9fb9b7",
   tinta: "#1a1204",
+  alerta: "#f26b1d",
 };
 
 function urlSite(caminho: string) {
   return `${(process.env.APP_URL ?? "http://localhost:3005").replace(/\/$/, "")}${caminho}`;
 }
 
-function codigoCurto(ingressoId: string) {
-  return ingressoId.slice(0, 8).toUpperCase();
+export function urlDoQr(id: string) {
+  return urlSite(`/ingresso/${id}`);
 }
 
 // QR em GIF (gerado no servidor, sem serviço externo).
@@ -38,65 +46,93 @@ function imagemQr(conteudo: string): Buffer {
   const qr = qrcode(0, "M");
   qr.addData(conteudo);
   qr.make();
-  const dataUrl = qr.createDataURL(8, 4);
-  return Buffer.from(dataUrl.split(",")[1], "base64");
+  return Buffer.from(qr.createDataURL(6, 4).split(",")[1], "base64");
 }
 
 const TEXTOS = {
   pt: {
-    assuntoCompra: (produto: string) => `Compra confirmada — ${produto} | LPZ Training`,
-    assuntoIngresso: (produto: string) => `Seu ingresso — ${produto} | LPZ Training`,
+    assunto: (produto: string) => `Compra confirmada — ${produto} | LPZ Training`,
     ola: (nome: string) => `Olá, ${nome}!`,
-    compraOk: "Seu pagamento foi aprovado. Obrigado por fazer parte do LPZ Training!",
+    intro: "Seu pagamento foi aprovado. Obrigado por fazer parte do LPZ Training! Aqui está tudo o que você precisa saber.",
+    suaCompra: "Sua compra",
     produto: "Produto",
     lote: "Lote",
     valor: "Valor",
-    data: "Data",
+    pagamento: "Forma de pagamento",
+    data: "Data da compra",
     pedido: "Pedido",
-    proximoIngresso: "Seu ingresso com o QR code de entrada chega em um e-mail separado e também fica na sua área do site.",
-    proximoJJ: "Sua inscrição no Jack and Jill está confirmada. A organização passa os detalhes da competição.",
-    proximoServico: "A equipe do LPZ entra em contato sobre o serviço.",
-    verArea: "Ver minha área",
-    seuIngresso: "Seu ingresso",
-    mostre: "Mostre este QR code na entrada do evento. Pode ser no celular — não precisa imprimir.",
-    codigo: "Código do ingresso (se a câmera falhar)",
+    seuQr: "Seu QR code",
+    qrEntrada: "Mostre este QR code na entrada do evento — pode ser no celular, não precisa imprimir.",
+    qrServico: "Este QR code identifica a sua compra para a equipe do LPZ.",
+    jj: "Sua inscrição no Jack and Jill está confirmada. A organização passa os detalhes da competição.",
+    codigo: "Código",
     titular: "Titular",
-    pessoal: "O ingresso é pessoal: guarde este e-mail e não compartilhe o QR code.",
+    pessoal: "O QR code é pessoal: não compartilhe.",
+    cronograma: "Cronograma",
+    horariosEmBreve: "Horários em breve.",
+    professores: "Professores",
+    djs: "DJs",
+    emBreve: "Em breve.",
+    alteracoes:
+      "Atenção: cronograma, professores e DJs podem sofrer alterações até o dia do evento. A versão mais atualizada está sempre no site.",
+    verArea: "Ver minha área no site",
     rodape: "LPZ Training — congresso de zouk",
-    duvidas: "Dúvidas? Responda este e-mail.",
+    duvidas: "Dúvidas? Responda este e-mail ou use o Fale conosco do site.",
   },
   en: {
-    assuntoCompra: (produto: string) => `Purchase confirmed — ${produto} | LPZ Training`,
-    assuntoIngresso: (produto: string) => `Your ticket — ${produto} | LPZ Training`,
+    assunto: (produto: string) => `Purchase confirmed — ${produto} | LPZ Training`,
     ola: (nome: string) => `Hi, ${nome}!`,
-    compraOk: "Your payment has been approved. Thank you for being part of LPZ Training!",
+    intro: "Your payment has been approved. Thank you for being part of LPZ Training! Here is everything you need to know.",
+    suaCompra: "Your purchase",
     produto: "Product",
     lote: "Batch",
     valor: "Amount",
-    data: "Date",
+    pagamento: "Payment method",
+    data: "Purchase date",
     pedido: "Order",
-    proximoIngresso: "Your ticket with the entry QR code arrives in a separate email and is also available in your area on the site.",
-    proximoJJ: "Your Jack and Jill registration is confirmed. The organizers will share the competition details.",
-    proximoServico: "The LPZ team will contact you about the service.",
-    verArea: "Go to my area",
-    seuIngresso: "Your ticket",
-    mostre: "Show this QR code at the event entrance. It can be on your phone — no need to print.",
-    codigo: "Ticket code (if the camera fails)",
-    titular: "Ticket holder",
-    pessoal: "This ticket is personal: keep this email and do not share the QR code.",
+    seuQr: "Your QR code",
+    qrEntrada: "Show this QR code at the event entrance — it can be on your phone, no need to print.",
+    qrServico: "This QR code identifies your purchase for the LPZ team.",
+    jj: "Your Jack and Jill registration is confirmed. The organizers will share the competition details.",
+    codigo: "Code",
+    titular: "Holder",
+    pessoal: "This QR code is personal: do not share it.",
+    cronograma: "Schedule",
+    horariosEmBreve: "Times coming soon.",
+    professores: "Teachers",
+    djs: "DJs",
+    emBreve: "Coming soon.",
+    alteracoes:
+      "Please note: the schedule, teachers and DJs may change until the day of the event. The latest version is always on the website.",
+    verArea: "Go to my area on the site",
     rodape: "LPZ Training — zouk congress",
-    duvidas: "Questions? Just reply to this email.",
+    duvidas: "Questions? Reply to this email or use Contact us on the site.",
   },
 } satisfies Record<Idioma, unknown>;
 
-// Moldura comum (tabelas e estilos inline: é o que funciona nos e-mails).
+// ---- Peças de HTML (tabelas e estilos inline: é o que funciona em e-mail) --
+
+const e = escaparHtml;
+
+function titulo(texto: string) {
+  return `<p style="margin:28px 0 10px;font-size:13px;letter-spacing:3px;font-weight:bold;color:${COR.ouro}">${e(texto.toUpperCase())}</p>`;
+}
+
+function linha(rotulo: string, valor: string) {
+  return `<tr><td style="padding:6px 0;color:${COR.suave};font-size:14px;vertical-align:top">${e(rotulo)}</td><td style="padding:6px 0 6px 12px;text-align:right;font-size:14px;color:${COR.texto};font-weight:bold">${e(valor)}</td></tr>`;
+}
+
+function botao(texto: string, url: string) {
+  return `<p style="margin:28px 0 4px;text-align:center"><a href="${e(url)}" style="background:${COR.ouro};color:${COR.tinta};padding:12px 28px;border-radius:999px;text-decoration:none;font-weight:bold;display:inline-block">${e(texto)}</a></p>`;
+}
+
 function moldura(conteudo: string, idioma: Idioma) {
   const t = TEXTOS[idioma];
   return `<!DOCTYPE html>
 <html lang="${idioma === "en" ? "en" : "pt-BR"}"><body style="margin:0;padding:0;background:${COR.fundo}">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${COR.fundo};padding:24px 12px">
 <tr><td align="center">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;font-family:Arial,Helvetica,sans-serif;color:${COR.texto}">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;font-family:Arial,Helvetica,sans-serif;color:${COR.texto}">
 <tr><td align="center" style="padding:8px 0 20px">
 <div style="font-size:22px;letter-spacing:8px;font-weight:bold;color:${COR.ouro}">LPZ</div>
 <div style="font-size:12px;letter-spacing:10px;color:${COR.texto};margin-top:4px">TRAINING</div>
@@ -105,26 +141,23 @@ function moldura(conteudo: string, idioma: Idioma) {
 ${conteudo}
 </td></tr>
 <tr><td align="center" style="padding:20px 8px;font-size:12px;color:${COR.suave}">
-${escaparHtml(t.rodape)}<br>${escaparHtml(t.duvidas)}
+${e(t.rodape)}<br>${e(t.duvidas)}
 </td></tr>
 </table></td></tr></table></body></html>`;
 }
 
-function botao(texto: string, url: string) {
-  return `<p style="margin:24px 0 4px;text-align:center"><a href="${escaparHtml(url)}" style="background:${COR.ouro};color:${COR.tinta};padding:12px 28px;border-radius:999px;text-decoration:none;font-weight:bold;display:inline-block">${escaparHtml(texto)}</a></p>`;
-}
-
-function linha(rotulo: string, valor: string) {
-  return `<tr><td style="padding:6px 0;color:${COR.suave};font-size:14px">${escaparHtml(rotulo)}</td><td style="padding:6px 0;text-align:right;font-size:14px;color:${COR.texto};font-weight:bold">${escaparHtml(valor)}</td></tr>`;
-}
+// ---- Dados ------------------------------------------------------------------
 
 type DadosPedido = {
   pedidoId: string;
   nome: string;
   email: string;
+  status: string;
   valorCentavos: number;
   atualizadoEm: Date;
   idioma: Idioma;
+  formaPagamento: string | null;
+  parcelas: number | null;
   tipo: TipoProduto;
   loteNome: string;
 };
@@ -135,9 +168,12 @@ async function carregarPedido(pedidoId: string): Promise<DadosPedido | null> {
       pedidoId: pedidos.id,
       nome: pedidos.nome,
       email: pedidos.email,
+      status: pedidos.status,
       valorCentavos: pedidos.valorCentavos,
       atualizadoEm: pedidos.atualizadoEm,
       idioma: pedidos.idioma,
+      formaPagamento: pedidos.formaPagamento,
+      parcelas: pedidos.parcelas,
       tipo: lotes.tipo,
       loteNome: lotes.nome,
     })
@@ -149,123 +185,183 @@ async function carregarPedido(pedidoId: string): Promise<DadosPedido | null> {
   return { ...p, idioma: ehIdioma(p.idioma) ? p.idioma : "pt" };
 }
 
-export async function enviarEmailConfirmacao(d: DadosPedido) {
+async function programacao() {
+  const [cronograma, listaProfessores, listaDjs] = await Promise.all([
+    db
+      .select({
+        dia: cronogramaItens.dia,
+        horarioInicio: cronogramaItens.horarioInicio,
+        horarioFim: cronogramaItens.horarioFim,
+        titulo: cronogramaItens.titulo,
+        local: cronogramaItens.local,
+        professorNome: professores.nome,
+      })
+      .from(cronogramaItens)
+      .leftJoin(professores, eq(cronogramaItens.professorId, professores.id))
+      .orderBy(asc(cronogramaItens.dia), asc(cronogramaItens.horarioInicio), asc(cronogramaItens.ordem)),
+    listarPerfis("professor"),
+    listarPerfis("dj"),
+  ]);
+  return { cronograma, listaProfessores, listaDjs };
+}
+
+function blocoCronograma(itens: Awaited<ReturnType<typeof programacao>>["cronograma"], idioma: Idioma) {
+  const t = TEXTOS[idioma];
+  const en = idioma === "en";
+  return DIAS_EVENTO.map((d) => {
+    const doDia = itens.filter((i) => diaDaSemana(i.dia) === d.semana);
+    const datas = [...new Set(doDia.map((i) => dataCurta(i.dia, en)))].join(" · ");
+    const linhas = doDia.length
+      ? doDia
+          .map(
+            (i) =>
+              `<tr><td style="padding:6px 10px 6px 0;color:${COR.agua};font-size:13px;white-space:nowrap;vertical-align:top">${e(i.horarioInicio)}${i.horarioFim ? `–${e(i.horarioFim)}` : ""}</td><td style="padding:6px 0;font-size:14px"><strong>${e(i.titulo)}</strong>${
+                i.professorNome || i.local
+                  ? `<br><span style="color:${COR.suave};font-size:12px">${e([i.professorNome, i.local].filter(Boolean).join(" · "))}</span>`
+                  : ""
+              }</td></tr>`,
+          )
+          .join("")
+      : `<tr><td style="padding:6px 0;color:${COR.suave};font-size:13px">${e(t.horariosEmBreve)}</td></tr>`;
+    return `<div style="margin:0 0 12px;border:1px solid ${COR.borda};border-radius:12px;padding:12px 14px">
+<p style="margin:0 0 6px;font-size:13px;font-weight:bold;color:${COR.ouroClaro}">${e(en ? d.en : d.pt)}${datas ? ` <span style="color:${COR.agua};font-weight:normal">${e(datas)}</span>` : ""}</p>
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%">${linhas}</table></div>`;
+  }).join("");
+}
+
+function blocoPerfis(lista: Awaited<ReturnType<typeof listarPerfis>>, idioma: Idioma) {
+  const t = TEXTOS[idioma];
+  if (lista.length === 0) return `<p style="color:${COR.suave};font-size:13px">${e(t.emBreve)}</p>`;
+  // Duas colunas: funciona bem no celular e no computador.
+  const celulas = lista.map((p) => {
+    const insta = linkInstagram(p.instagram);
+    return `<td width="50%" style="padding:4px;vertical-align:top"><div style="border:1px solid ${COR.borda};border-radius:10px;padding:10px 12px">
+<div style="font-size:13px;font-weight:bold;color:${COR.texto}">${e(p.nome)}</div>
+${insta ? `<a href="${e(insta)}" style="font-size:12px;color:${COR.agua};text-decoration:none">${e(p.instagram ?? "")}</a>` : ""}
+</div></td>`;
+  });
+  const linhas: string[] = [];
+  for (let i = 0; i < celulas.length; i += 2) linhas.push(`<tr>${celulas[i]}${celulas[i + 1] ?? '<td width="50%"></td>'}</tr>`);
+  return `<table role="presentation" cellpadding="0" cellspacing="0" width="100%">${linhas.join("")}</table>`;
+}
+
+// ---- Envio ------------------------------------------------------------------
+
+export async function enviarEmailCompra(pedidoId: string) {
+  const d = await carregarPedido(pedidoId);
+  if (!d || d.status !== "pago") return false;
+  const ingresso = await db.query.ingressos.findFirst({ where: eq(ingressos.pedidoId, pedidoId) });
+  if (ingresso && ingresso.status === "cancelado") return false;
+
   const t = TEXTOS[d.idioma];
+  const en = d.idioma === "en";
   const produto = nomeDoProduto(d.tipo, d.idioma);
   const primeiroNome = d.nome.split(" ")[0];
-  const proximo = PRODUTOS[d.tipo].entrada ? t.proximoIngresso : d.tipo === "jack_and_jill" ? t.proximoJJ : t.proximoServico;
   const valor = formatarPreco(d.valorCentavos, d.idioma);
+  const forma = descreverPagamento(d.formaPagamento, d.parcelas, d.valorCentavos, d.idioma);
   const data = formatarDataHora(d.atualizadoEm, d.idioma);
-  const pedido = d.pedidoId.slice(0, 8).toUpperCase();
+  const idQr = ingresso?.id ?? d.pedidoId;
+  const codigo = idQr.slice(0, 8).toUpperCase();
+  const entrada = PRODUTOS[d.tipo].entrada;
+  const { cronograma, listaProfessores, listaDjs } = await programacao();
 
   const html = moldura(
-    `<p style="margin:0 0 8px;font-size:18px;font-weight:bold;color:${COR.ouroClaro}">${escaparHtml(t.ola(primeiroNome))}</p>
-<p style="margin:0 0 20px;font-size:15px;line-height:1.5">${escaparHtml(t.compraOk)}</p>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid ${COR.borda};border-bottom:1px solid ${COR.borda};padding:8px 0">
-${linha(t.produto, produto)}${linha(t.lote, d.loteNome)}${linha(t.valor, valor)}${linha(t.data, data)}${linha(t.pedido, pedido)}
+    `<p style="margin:0 0 8px;font-size:18px;font-weight:bold;color:${COR.ouroClaro}">${e(t.ola(primeiroNome))}</p>
+<p style="margin:0;font-size:15px;line-height:1.5">${e(t.intro)}</p>
+
+${titulo(t.suaCompra)}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid ${COR.borda};border-bottom:1px solid ${COR.borda}">
+${linha(t.produto, produto)}${linha(t.lote, d.loteNome)}${linha(t.valor, valor)}${linha(t.pagamento, forma)}${linha(t.data, data)}${linha(t.pedido, d.pedidoId.slice(0, 8).toUpperCase())}
 </table>
-<p style="margin:20px 0 0;font-size:14px;line-height:1.5;color:${COR.agua}">${escaparHtml(proximo)}</p>
+${d.tipo === "jack_and_jill" ? `<p style="margin:14px 0 0;font-size:14px;color:${COR.agua}">${e(t.jj)}</p>` : ""}
+
+${titulo(t.seuQr)}
+<table role="presentation" align="center" cellpadding="0" cellspacing="0" style="margin:0 auto"><tr><td style="background:#ffffff;border-radius:16px;padding:12px;border:3px solid ${COR.ouro}">
+<img src="cid:qr-compra" width="220" height="220" alt="QR code" style="display:block;width:220px;height:220px">
+</td></tr></table>
+<p style="margin:14px 0 0;text-align:center;font-family:'Courier New',monospace;font-size:24px;letter-spacing:6px;font-weight:bold">${codigo}</p>
+<p style="margin:4px 0 0;text-align:center;font-size:13px;color:${COR.suave}">${e(t.titular)}: ${e(d.nome)}</p>
+<p style="margin:12px 0 0;text-align:center;font-size:14px;line-height:1.5">${e(entrada ? t.qrEntrada : t.qrServico)}</p>
+<p style="margin:6px 0 0;text-align:center;font-size:12px;color:${COR.suave}">${e(t.pessoal)}</p>
+
+<div style="margin:28px 0 0;border:1px solid ${COR.alerta};border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.5;color:${COR.texto};background:rgba(242,107,29,0.08)">⚠ ${e(t.alteracoes)}</div>
+
+${titulo(t.cronograma)}
+${blocoCronograma(cronograma, d.idioma)}
+
+${titulo(t.professores)}
+${blocoPerfis(listaProfessores, d.idioma)}
+
+${titulo(t.djs)}
+${blocoPerfis(listaDjs, d.idioma)}
+
 ${botao(t.verArea, urlSite("/congressistas/minha-area"))}`,
     d.idioma,
   );
+
+  const textoCronograma = DIAS_EVENTO.map((dia) => {
+    const doDia = cronograma.filter((i) => diaDaSemana(i.dia) === dia.semana);
+    const itens = doDia.length
+      ? doDia.map((i) => `  ${i.horarioInicio}${i.horarioFim ? `-${i.horarioFim}` : ""} ${i.titulo}${i.professorNome ? ` (${i.professorNome})` : ""}`).join("\n")
+      : `  ${t.horariosEmBreve}`;
+    return `${en ? dia.en : dia.pt}\n${itens}`;
+  }).join("\n");
+
   const texto = [
     t.ola(primeiroNome),
     "",
-    t.compraOk,
+    t.intro,
     "",
+    `${t.suaCompra.toUpperCase()}`,
     `${t.produto}: ${produto}`,
     `${t.lote}: ${d.loteNome}`,
     `${t.valor}: ${valor}`,
+    `${t.pagamento}: ${forma}`,
     `${t.data}: ${data}`,
-    `${t.pedido}: ${pedido}`,
-    "",
-    proximo,
-    urlSite("/congressistas/minha-area"),
-    "",
-    t.rodape,
-  ].join("\n");
-
-  await enviarEmail({ para: d.email, assunto: t.assuntoCompra(produto), texto, html });
-}
-
-export async function enviarEmailIngresso(ingressoId: string) {
-  const dados = await db
-    .select({ pedidoId: ingressos.pedidoId, status: ingressos.status })
-    .from(ingressos)
-    .where(eq(ingressos.id, ingressoId))
-    .then((r) => r[0]);
-  if (!dados || dados.status !== "valido") return false;
-  const d = await carregarPedido(dados.pedidoId);
-  if (!d) return false;
-
-  const t = TEXTOS[d.idioma];
-  const produto = nomeDoProduto(d.tipo, d.idioma);
-  const codigo = codigoCurto(ingressoId);
-
-  const html = moldura(
-    `<p style="margin:0;text-align:center;font-size:12px;letter-spacing:4px;color:${COR.agua}">${escaparHtml(t.seuIngresso.toUpperCase())}</p>
-<p style="margin:6px 0 4px;text-align:center;font-size:24px;font-weight:bold;letter-spacing:2px;color:${COR.ouroClaro}">${escaparHtml(produto.toUpperCase())}</p>
-<p style="margin:0 0 20px;text-align:center;font-size:13px;color:${COR.suave}">${escaparHtml(d.loteNome)}</p>
-<table role="presentation" align="center" cellpadding="0" cellspacing="0" style="margin:0 auto"><tr><td style="background:#ffffff;border-radius:16px;padding:14px;border:3px solid ${COR.ouro}">
-<img src="cid:qr-ingresso" width="240" height="240" alt="QR code" style="display:block;width:240px;height:240px">
-</td></tr></table>
-<p style="margin:18px 0 2px;text-align:center;font-size:12px;color:${COR.suave}">${escaparHtml(t.codigo)}</p>
-<p style="margin:0;text-align:center;font-family:'Courier New',monospace;font-size:28px;letter-spacing:6px;font-weight:bold;color:${COR.texto}">${codigo}</p>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:20px;border-top:1px solid ${COR.borda};padding-top:8px">
-${linha(t.titular, d.nome)}
-</table>
-<p style="margin:18px 0 0;font-size:14px;line-height:1.5;text-align:center">${escaparHtml(t.mostre)}</p>
-<p style="margin:10px 0 0;font-size:12px;line-height:1.5;text-align:center;color:${COR.suave}">${escaparHtml(t.pessoal)}</p>
-${botao(t.verArea, urlSite("/congressistas/minha-area"))}`,
-    d.idioma,
-  );
-  const texto = [
-    t.ola(d.nome.split(" ")[0]),
-    "",
-    `${t.seuIngresso}: ${produto} (${d.loteNome})`,
     `${t.codigo}: ${codigo}`,
-    `${t.titular}: ${d.nome}`,
     "",
-    t.mostre,
-    t.pessoal,
+    entrada ? t.qrEntrada : t.qrServico,
+    "",
+    t.alteracoes,
+    "",
+    t.cronograma.toUpperCase(),
+    textoCronograma,
+    "",
+    `${t.professores.toUpperCase()}: ${listaProfessores.map((p) => p.nome).join(", ") || t.emBreve}`,
+    `${t.djs.toUpperCase()}: ${listaDjs.map((p) => p.nome).join(", ") || t.emBreve}`,
+    "",
     urlSite("/congressistas/minha-area"),
   ].join("\n");
 
   await enviarEmail({
     para: d.email,
-    assunto: t.assuntoIngresso(produto),
+    assunto: t.assunto(produto),
     texto,
     html,
-    anexos: [{ nomeArquivo: `ingresso-${codigo}.gif`, conteudo: imagemQr(ingressoId), tipo: "image/gif", cid: "qr-ingresso" }],
+    anexos: [{ nomeArquivo: `lpz-${codigo}.gif`, conteudo: imagemQr(urlDoQr(idQr)), tipo: "image/gif", cid: "qr-compra" }],
   });
   return true;
 }
 
 // Chamado quando o pagamento é confirmado. Não trava a confirmação: se o
-// e-mail falhar, só registra (o ingresso continua na Minha área).
+// e-mail falhar, só registra (a compra continua na Minha área).
 export function enviarEmailsDaCompra(pedidoId: string) {
-  (async () => {
-    const d = await carregarPedido(pedidoId);
-    if (!d) return;
-    await enviarEmailConfirmacao(d);
-    const ingresso = await db.query.ingressos.findFirst({ where: eq(ingressos.pedidoId, pedidoId) });
-    if (ingresso) await enviarEmailIngresso(ingresso.id);
-  })().catch((erro: unknown) => {
-    console.error("[email] Falha ao enviar e-mails da compra", { pedidoId, erro: (erro as Error)?.message });
+  enviarEmailCompra(pedidoId).catch((erro: unknown) => {
+    console.error("[email] Falha ao enviar e-mail da compra", { pedidoId, erro: (erro as Error)?.message });
   });
 }
 
-// Reenvio em massa (organização, dias antes do evento): todos os ingressos
-// válidos ainda sem check-in. Devolve quantos e-mails saíram.
+// Reenvio em massa (organização, ex.: dias antes do evento): o e-mail
+// completo, com a programação atualizada, para todas as compras pagas.
 export async function reenviarTodosOsIngressos() {
-  const validos = await db.select({ id: ingressos.id }).from(ingressos).where(eq(ingressos.status, "valido"));
+  const pagos = await db.select({ id: pedidos.id }).from(pedidos).where(eq(pedidos.status, "pago"));
   let enviados = 0;
-  for (const i of validos) {
+  for (const p of pagos) {
     try {
-      if (await enviarEmailIngresso(i.id)) enviados++;
+      if (await enviarEmailCompra(p.id)) enviados++;
     } catch (erro) {
-      console.error("[email] Falha ao reenviar ingresso", { ingressoId: i.id, erro: (erro as Error).message });
+      console.error("[email] Falha ao reenviar", { pedidoId: p.id, erro: (erro as Error).message });
     }
   }
-  return { total: validos.length, enviados };
+  return { total: pagos.length, enviados };
 }

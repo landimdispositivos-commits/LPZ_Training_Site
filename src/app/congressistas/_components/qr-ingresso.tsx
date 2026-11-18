@@ -3,13 +3,14 @@
 import QRCode from "react-qr-code";
 import { useIdioma } from "@/i18n/cliente";
 
-// QR do ingresso: contém só o ID do ingresso. Na portaria o ID é sempre
-// conferido no banco — o QR sozinho não vale como prova de pagamento.
-export function QrIngresso({ ingressoId }: { ingressoId: string }) {
+// QR do ingresso: contém o endereço /ingresso/<id> do site. Na portaria o
+// ingresso é sempre conferido no banco — o QR sozinho não vale como prova de
+// pagamento; e só a organização logada vê os dados da pessoa nesse endereço.
+export function QrIngresso({ valor }: { valor: string }) {
   const en = useIdioma() === "en";
   return (
     <div className="inline-block rounded-xl bg-white p-3">
-      <QRCode value={ingressoId} size={192} aria-label={en ? "Your ticket QR code" : "QR code do seu ingresso"} />
+      <QRCode value={valor} size={192} aria-label={en ? "Your ticket QR code" : "QR code do seu ingresso"} />
     </div>
   );
 }

@@ -3,6 +3,8 @@ import { traducoes, type Idioma } from "@/i18n";
 import { codigoCurto, nomeDoProduto, pedidosDoComprador, PRODUTOS } from "@/modules/ingressos";
 import { formatarDataHora, formatarPreco } from "@/lib/formatar";
 import { QrIngresso } from "./qr-ingresso";
+import { urlDoQr } from "@/modules/ingressos/emails";
+import { descreverPagamento } from "@/modules/pagamentos/formas";
 
 const TEXTOS = traducoes(
   {
@@ -56,6 +58,7 @@ export async function MeusIngressos({ email, idioma = "pt" }: { email: string; i
           <p className="text-sm font-medium text-teal-300">{p.loteNome}</p>
           <p className="text-sm text-mist/70">
             {formatarPreco(p.valorCentavos, idioma)} · {t.pedidoEm} {formatarDataHora(p.criadoEm, idioma)}
+              {p.status === "pago" && p.formaPagamento ? ` · ${descreverPagamento(p.formaPagamento, p.parcelas, p.valorCentavos, idioma)}` : ""}
           </p>
 
           {p.status === "pendente" && (
@@ -75,7 +78,7 @@ export async function MeusIngressos({ email, idioma = "pt" }: { email: string; i
             <div className="mt-4">
               {p.ingressoStatus === "valido" ? (
                 <>
-                  <QrIngresso ingressoId={p.ingressoId} />
+                  <QrIngresso valor={urlDoQr(p.ingressoId)} />
                   <p className="mt-3 text-xs text-mist/60">{t.codigo}</p>
                   <p className="font-mono text-2xl tracking-[0.3em] text-white">{codigoCurto(p.ingressoId)}</p>
                   <p className="mt-2 text-xs text-mist/60">{t.mostre}</p>

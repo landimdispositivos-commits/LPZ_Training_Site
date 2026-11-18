@@ -207,6 +207,10 @@ export const pedidos = pgTable("pedidos", {
   // Idioma em que o comprador estava no site ("pt"/"en"): usado nos e-mails
   // de confirmação e do ingresso, que podem sair depois (webhook do Pix).
   idioma: text("idioma").notNull().default("pt"),
+  // Forma de pagamento informada pelo gateway na aprovação (pix, credito,
+  // debito, saldo, boleto) e nº de parcelas no crédito.
+  formaPagamento: text("forma_pagamento"),
+  parcelas: integer("parcelas"),
   criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
   atualizadoEm: timestamp("atualizado_em", { withTimezone: true }).notNull().defaultNow(),
 });

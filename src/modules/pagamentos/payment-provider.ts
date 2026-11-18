@@ -5,7 +5,17 @@
 // Importante: o adapter real (Mercado Pago) usa Checkout Pro (redirect
 // hospedado) — dados de cartão nunca devem passar pelo nosso servidor.
 
+import type { FormaPagamento } from "./formas";
+
 export type StatusPagamento = "pendente" | "pago" | "cancelado" | "reembolsado";
+
+// Situação do pagamento no gateway, com a forma escolhida pelo comprador
+// (quando o gateway informa).
+export interface SituacaoPagamento {
+  status: StatusPagamento;
+  forma?: FormaPagamento | null;
+  parcelas?: number | null;
+}
 
 export interface CriarPreferenciaInput {
   pedidoId: string;
@@ -33,5 +43,5 @@ export interface PaymentProvider {
 
   // Sempre consulta a API do gateway — nunca confia apenas no payload do
   // webhook, que pode chegar duplicado, fora de ordem ou ser forjado.
-  consultarStatus(ref: ReferenciaPagamento): Promise<StatusPagamento>;
+  consultarPagamento(ref: ReferenciaPagamento): Promise<SituacaoPagamento>;
 }

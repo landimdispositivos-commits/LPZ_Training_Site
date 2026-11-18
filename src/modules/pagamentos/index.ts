@@ -28,4 +28,5 @@ export type {
   CriarPreferenciaInput,
   CriarPreferenciaResultado,
   ReferenciaPagamento,
+  SituacaoPagamento,
 } from "./payment-provider";

@@ -5,6 +5,7 @@ import { cronogramaItens, professores } from "@/db/schema";
 import { obterIdioma } from "@/i18n/servidor";
 import { SiteHeader } from "../_components/site-header";
 import { RodapeSite } from "../_components/rodape-site";
+import { dataCurta, DIAS_EVENTO, diaDaSemana } from "@/lib/dias-evento";
 import { PaginaPublica } from "../_components/pagina-publica";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -16,24 +17,6 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export const dynamic = "force-dynamic";
-
-// Os três dias do congresso ficam sempre na tela (sexta, sábado e domingo),
-// mesmo antes de ter horários. Cada aula entra no dia da semana da sua data.
-const DIAS = [
-  { semana: 5, pt: "Sexta-feira", en: "Friday" },
-  { semana: 6, pt: "Sábado", en: "Saturday" },
-  { semana: 0, pt: "Domingo", en: "Sunday" },
-] as const;
-
-function diaDaSemana(dia: string) {
-  const [a, m, d] = dia.split("-").map(Number);
-  return new Date(Date.UTC(a, (m ?? 1) - 1, d ?? 1)).getUTCDay();
-}
-
-function dataCurta(dia: string, en: boolean) {
-  const [, m, d] = dia.split("-");
-  return en ? `${m}/${d}` : `${d}/${m}`;
-}
 
 export default async function Page() {
   const idioma = await obterIdioma();
@@ -61,7 +44,7 @@ export default async function Page() {
         largura="max-w-3xl"
       >
         <div className="space-y-6">
-          {DIAS.map((d) => {
+          {DIAS_EVENTO.map((d) => {
             const itens = cronograma.filter((i) => diaDaSemana(i.dia) === d.semana);
             const datas = [...new Set(itens.map((i) => dataCurta(i.dia, en)))];
             return (

@@ -16,7 +16,7 @@ export { nomeDoProduto, PRODUTOS, TIPOS_PRODUTO, type TipoProduto } from "./prod
 // MINUTOS_RESERVA é cancelado e a vaga volta para o lote.
 //
 // Confirmação: o status do pagamento vem SEMPRE da consulta ao gateway
-// (`paymentProvider.consultarStatus`), nunca de parâmetro de URL ou payload.
+// (`paymentProvider.consultarPagamento`), nunca de parâmetro de URL ou payload.
 // ---------------------------------------------------------------------------
 
 export const MINUTOS_RESERVA = 30;
@@ -212,11 +212,11 @@ export async function confirmarPagamento(pedidoId: string) {
   const pedido = await db.query.pedidos.findFirst({ where: eq(pedidos.id, pedidoId) });
   if (!pedido?.gatewayPreferenceId) return pedido?.status ?? null;
 
-  const status = await paymentProvider.consultarStatus({
+  const situacao = await paymentProvider.consultarPagamento({
     preferenceId: pedido.gatewayPreferenceId,
     pedidoId: pedido.id,
   });
-  if (status !== "pago") return pedido.status;
+  if (situacao.status !== "pago") return pedido.status;
 
   // true só na primeira confirmação: e-mails saem uma vez, mesmo que o
   // retorno do checkout e o webhook cheguem juntos.
@@ -235,7 +235,15 @@ export async function confirmarPagamento(pedidoId: string) {
         .set({ quantidadeVendida: sql`${lotes.quantidadeVendida} + 1` })
         .where(eq(lotes.id, atual.loteId));
     }
-    await tx.update(pedidos).set({ status: "pago", atualizadoEm: new Date() }).where(eq(pedidos.id, pedidoId));
+    await tx
+      .update(pedidos)
+      .set({
+        status: "pago",
+        formaPagamento: situacao.forma ?? null,
+        parcelas: situacao.parcelas ?? null,
+        atualizadoEm: new Date(),
+      })
+      .where(eq(pedidos.id, pedidoId));
     // Só produtos de entrada geram ingresso com QR (paparazzi não).
     if (!lote || PRODUTOS[lote.tipo].entrada) await tx.insert(ingressos).values({ pedidoId });
   });
@@ -279,6 +287,8 @@ export async function pedidosDoComprador(email: string) {
       status: pedidos.status,
       valorCentavos: pedidos.valorCentavos,
       criadoEm: pedidos.criadoEm,
+      formaPagamento: pedidos.formaPagamento,
+      parcelas: pedidos.parcelas,
       loteNome: lotes.nome,
       tipo: lotes.tipo,
       ingressoId: ingressos.id,

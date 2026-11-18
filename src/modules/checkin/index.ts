@@ -36,7 +36,9 @@ function escaparLike(texto: string) {
 // parte do nome/e-mail (mín. 3 letras) para quando o celular do participante
 // não ajudar.
 export async function buscarIngressos(termoBruto: string) {
-  const termo = termoBruto.trim();
+  // QR novo traz o endereço do site (…/ingresso/<id>): usa só o id.
+  const doEndereco = /\/ingresso\/([0-9a-f-]{36})/i.exec(termoBruto);
+  const termo = (doEndereco?.[1] ?? termoBruto).trim();
   let filtro;
   if (REGEX_UUID.test(termo)) {
     filtro = eq(ingressos.id, termo.toLowerCase());
