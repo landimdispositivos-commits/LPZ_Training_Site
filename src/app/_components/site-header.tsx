@@ -1,3 +1,4 @@
+import { comoChamar } from "@/modules/perfil/apelido";
 import Link from "next/link";
 import { traducoes, type Idioma } from "@/i18n";
 import { obterIdioma } from "@/i18n/servidor";
@@ -42,6 +43,23 @@ const TEXTOS = traducoes(
       { href: "/galeria", label: "Gallery" },
     ],
   },
+  {
+    navegacao: "Navegación principal",
+    entrar: "Entrar",
+    cadastre: "Regístrate",
+    ou: "o",
+    facaLogin: "inicia sesión",
+    abrirMenu: "Abrir menú",
+    fecharMenu: "Cerrar menú",
+    faleConosco: "Contáctanos",
+    links: [
+      { href: "/cronograma", label: "Cronograma" },
+      { href: "/professores", label: "Profesores" },
+      { href: "/djs", label: "DJs" },
+      { href: "/ingressos", label: "Entradas" },
+      { href: "/galeria", label: "Galería" },
+    ],
+  },
 );
 
 const classeLink = "text-mist/80 hover:text-gold-300";
@@ -84,7 +102,7 @@ async function MenuConta({ idioma }: { idioma: Idioma }) {
       resumo={
         <>
           <IconePessoa className="h-5 w-5" />
-          <span className="max-w-[9rem] truncate">{user.name.split(" ")[0]}</span>
+          <span className="max-w-[9rem] truncate">{comoChamar(user)}</span>
           <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 transition group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M6 9l6 6 6-6" />
           </svg>

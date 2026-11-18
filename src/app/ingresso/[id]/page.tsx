@@ -10,7 +10,7 @@ import { obterIdioma } from "@/i18n/servidor";
 import { formatarDataHora, formatarPreco } from "@/lib/formatar";
 import { ehAdmin } from "@/modules/auth/papeis";
 import { exigirAdmin, obterSessao } from "@/modules/auth/sessao";
-import { nomeDoProduto } from "@/modules/ingressos";
+import { nomeDoLote, nomeDoProduto } from "@/modules/ingressos";
 import { descreverPagamento } from "@/modules/pagamentos/formas";
 import { PaginaPublica } from "../../_components/pagina-publica";
 import { RodapeSite } from "../../_components/rodape-site";
@@ -77,6 +77,32 @@ const TEXTOS = traducoes(
     checkin: "Go to check-in for this ticket",
     suaCompra: "Your purchase",
     minhaArea: "Go to my area",
+  },
+  {
+    titulo: "Entrada LPZ",
+    restrito: "Este es un código de LPZ Training. Los datos del participante solo se muestran a la organización del evento.",
+    entrarOrg: "Soy de la organización — entrar",
+    entrarDono: "¿Es tuyo? Entra en tu cuenta",
+    participante: "Participante",
+    nome: "Nombre",
+    email: "Correo",
+    celular: "Celular",
+    nascimento: "Fecha de nacimiento",
+    mora: "Vive en",
+    cpf: "CPF",
+    semCadastro: "Compra hecha sin registro completo en el sitio.",
+    compras: "Compras",
+    pagamento: "Pago",
+    status: { pago: "Pagado", pendente: "Esperando el pago", cancelado: "Cancelado", reembolsado: "Reembolsado" } as Record<string, string>,
+    ingresso: "Entrada",
+    valido: "Válida — entrada aún no registrada",
+    usado: (quando: string) => `Entrada registrada el ${quando}`,
+    cancelado: "Cancelada",
+    semIngresso: "Sin entrada de acceso (servicio/inscripción)",
+    este: "este QR",
+    checkin: "Ir al check-in de esta entrada",
+    suaCompra: "Tu compra",
+    minhaArea: "Ver mi área",
   },
 );
 
@@ -197,7 +223,7 @@ export default async function Page(props: PageProps<"/ingresso/[id]">) {
                 >
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <p className="font-semibold text-gold-300">
-                      {nomeDoProduto(c.tipo, idioma)} <span className="text-sm font-normal text-mist/70">· {c.loteNome}</span>
+                      {nomeDoProduto(c.tipo, idioma)} <span className="text-sm font-normal text-mist/70">· {nomeDoLote(c.loteNome, idioma)}</span>
                     </p>
                     <p className="text-sm text-mist/80">{t.status[c.status] ?? c.status}</p>
                   </div>

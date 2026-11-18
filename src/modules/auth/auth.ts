@@ -60,6 +60,7 @@ export const auth = betterAuth({
     // Todos com input: false — só o servidor grava (a ficha é salva pela ação
     // de /congressistas/completar-cadastro, que valida tudo antes).
     additionalFields: {
+      apelido: { type: "string", required: false, input: false },
       celular: { type: "string", required: false, input: false },
       cpf: { type: "string", required: false, input: false },
       pais: { type: "string", required: false, input: false },

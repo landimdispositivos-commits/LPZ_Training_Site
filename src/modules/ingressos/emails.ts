@@ -2,13 +2,13 @@ import { asc, eq } from "drizzle-orm";
 import qrcode from "qrcode-generator";
 import { db } from "@/db";
 import { cronogramaItens, ingressos, lotes, pedidos, professores } from "@/db/schema";
-import { ehIdioma, type Idioma } from "@/i18n";
+import { ehIdioma, LOCALE, type Idioma } from "@/i18n";
 import { dataCurta, DIAS_EVENTO, diaDaSemana } from "@/lib/dias-evento";
 import { formatarDataHora, formatarPreco } from "@/lib/formatar";
 import { enviarEmail, escaparHtml } from "@/modules/email";
 import { descreverPagamento } from "@/modules/pagamentos/formas";
 import { linkInstagram, listarPerfis } from "@/modules/perfis";
-import { nomeDoProduto, PRODUTOS, type TipoProduto } from "./produtos";
+import { nomeDoLote, nomeDoProduto, PRODUTOS, type TipoProduto } from "./produtos";
 
 // E-mail completo da compra, enviado assim que o pagamento é aprovado, no
 // idioma em que a pessoa estava no site. Traz: dados da compra e forma de
@@ -108,6 +108,35 @@ const TEXTOS = {
     rodape: "LPZ Training — zouk congress",
     duvidas: "Questions? Reply to this email or use Contact us on the site.",
   },
+  es: {
+    assunto: (produto: string) => `Compra confirmada — ${produto} | LPZ Training`,
+    ola: (nome: string) => `¡Hola, ${nome}!`,
+    intro: "Tu pago fue aprobado. ¡Gracias por ser parte de LPZ Training! Aquí tienes todo lo que necesitas saber.",
+    suaCompra: "Tu compra",
+    produto: "Producto",
+    lote: "Lote",
+    valor: "Valor",
+    pagamento: "Forma de pago",
+    data: "Fecha de compra",
+    pedido: "Pedido",
+    seuQr: "Tu código QR",
+    qrEntrada: "Muestra este código QR en la entrada del evento — puede ser en el celular, no hace falta imprimirlo.",
+    qrServico: "Este código QR identifica tu compra para el equipo de LPZ.",
+    jj: "Tu inscripción en el Jack and Jill está confirmada. La organización compartirá los detalles de la competencia.",
+    codigo: "Código",
+    titular: "Titular",
+    pessoal: "El código QR es personal: no lo compartas.",
+    cronograma: "Cronograma",
+    horariosEmBreve: "Horarios próximamente.",
+    professores: "Profesores",
+    djs: "DJs",
+    emBreve: "Próximamente.",
+    alteracoes:
+      "Atención: el cronograma, los profesores y los DJs pueden cambiar hasta el día del evento. La versión más actualizada está siempre en el sitio.",
+    verArea: "Ver mi área en el sitio",
+    rodape: "LPZ Training — congreso de zouk",
+    duvidas: "¿Dudas? Responde este correo o usa Contáctanos en el sitio.",
+  },
 } satisfies Record<Idioma, unknown>;
 
 // ---- Peças de HTML (tabelas e estilos inline: é o que funciona em e-mail) --
@@ -129,7 +158,7 @@ function botao(texto: string, url: string) {
 function moldura(conteudo: string, idioma: Idioma) {
   const t = TEXTOS[idioma];
   return `<!DOCTYPE html>
-<html lang="${idioma === "en" ? "en" : "pt-BR"}"><body style="margin:0;padding:0;background:${COR.fundo}">
+<html lang="${LOCALE[idioma]}"><body style="margin:0;padding:0;background:${COR.fundo}">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${COR.fundo};padding:24px 12px">
 <tr><td align="center">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;font-family:Arial,Helvetica,sans-serif;color:${COR.texto}">
@@ -224,7 +253,7 @@ function blocoCronograma(itens: Awaited<ReturnType<typeof programacao>>["cronogr
           .join("")
       : `<tr><td style="padding:6px 0;color:${COR.suave};font-size:13px">${e(t.horariosEmBreve)}</td></tr>`;
     return `<div style="margin:0 0 12px;border:1px solid ${COR.borda};border-radius:12px;padding:12px 14px">
-<p style="margin:0 0 6px;font-size:13px;font-weight:bold;color:${COR.ouroClaro}">${e(en ? d.en : d.pt)}${datas ? ` <span style="color:${COR.agua};font-weight:normal">${e(datas)}</span>` : ""}</p>
+<p style="margin:0 0 6px;font-size:13px;font-weight:bold;color:${COR.ouroClaro}">${e(d[idioma])}${datas ? ` <span style="color:${COR.agua};font-weight:normal">${e(datas)}</span>` : ""}</p>
 <table role="presentation" cellpadding="0" cellspacing="0" width="100%">${linhas}</table></div>`;
   }).join("");
 }
@@ -271,7 +300,7 @@ export async function enviarEmailCompra(pedidoId: string) {
 
 ${titulo(t.suaCompra)}
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid ${COR.borda};border-bottom:1px solid ${COR.borda}">
-${linha(t.produto, produto)}${linha(t.lote, d.loteNome)}${linha(t.valor, valor)}${linha(t.pagamento, forma)}${linha(t.data, data)}${linha(t.pedido, d.pedidoId.slice(0, 8).toUpperCase())}
+${linha(t.produto, produto)}${linha(t.lote, nomeDoLote(d.loteNome, d.idioma))}${linha(t.valor, valor)}${linha(t.pagamento, forma)}${linha(t.data, data)}${linha(t.pedido, d.pedidoId.slice(0, 8).toUpperCase())}
 </table>
 ${d.tipo === "jack_and_jill" ? `<p style="margin:14px 0 0;font-size:14px;color:${COR.agua}">${e(t.jj)}</p>` : ""}
 
@@ -304,7 +333,7 @@ ${botao(t.verArea, urlSite("/congressistas/minha-area"))}`,
     const itens = doDia.length
       ? doDia.map((i) => `  ${i.horarioInicio}${i.horarioFim ? `-${i.horarioFim}` : ""} ${i.titulo}${i.professorNome ? ` (${i.professorNome})` : ""}`).join("\n")
       : `  ${t.horariosEmBreve}`;
-    return `${en ? dia.en : dia.pt}\n${itens}`;
+    return `${dia[d.idioma]}\n${itens}`;
   }).join("\n");
 
   const texto = [
@@ -314,7 +343,7 @@ ${botao(t.verArea, urlSite("/congressistas/minha-area"))}`,
     "",
     `${t.suaCompra.toUpperCase()}`,
     `${t.produto}: ${produto}`,
-    `${t.lote}: ${d.loteNome}`,
+    `${t.lote}: ${nomeDoLote(d.loteNome, d.idioma)}`,
     `${t.valor}: ${valor}`,
     `${t.pagamento}: ${forma}`,
     `${t.data}: ${data}`,

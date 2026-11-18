@@ -5,7 +5,8 @@ import { LOCALE, type Idioma } from "@/i18n";
 const FUSO = "America/Sao_Paulo";
 
 export function formatarPreco(centavos: number, idioma: Idioma = "pt") {
-  return (centavos / 100).toLocaleString(LOCALE[idioma], { style: "currency", currency: "BRL" });
+  // Espanhol usa o formato brasileiro do real ("R$ 199,99"); o es-ES poria o símbolo no fim.
+  return (centavos / 100).toLocaleString(LOCALE[idioma === "es" ? "pt" : idioma], { style: "currency", currency: "BRL" });
 }
 
 export function formatarDataHora(data: Date, idioma: Idioma = "pt") {
@@ -26,6 +27,10 @@ export function formatarDiaCronograma(dia: string, idioma: Idioma = "pt") {
   const data = new Date(Date.UTC(a, m - 1, d));
   if (idioma === "en") {
     return data.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric", timeZone: "UTC" });
+  }
+  if (idioma === "es") {
+    const semanaEs = data.toLocaleDateString("es-ES", { weekday: "long", timeZone: "UTC" });
+    return `${semanaEs}, ${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}`;
   }
   const semana = data.toLocaleDateString("pt-BR", { weekday: "long", timeZone: "UTC" });
   return `${semana}, ${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}`;

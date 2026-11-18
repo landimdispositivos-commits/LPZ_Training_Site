@@ -9,11 +9,11 @@ import { obterIdioma } from "@/i18n/servidor";
 import { SiteHeader } from "../../_components/site-header";
 import { CheckoutSimulado } from "./checkout";
 import { RodapeSite } from "../../_components/rodape-site";
-import { LOCALE } from "@/i18n";
-import { MINUTOS_RESERVA, nomeDoProduto } from "@/modules/ingressos";
+import { LOCALE, tx } from "@/i18n";
+import { MINUTOS_RESERVA, nomeDoLote, nomeDoProduto } from "@/modules/ingressos";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await obterIdioma()) === "en" ? "Payment — LPZ Training" : "Pagamento — LPZ Training" };
+  return { title: tx(await obterIdioma(), "Pagamento — LPZ Training", "Payment — LPZ Training", "Pago — LPZ Training") };
 }
 
 // Página de desenvolvimento (TEST_MODE): faz o papel da tela do Mercado Pago.
@@ -44,7 +44,6 @@ export default async function Page(props: PageProps<"/pagamento/simulado">) {
   if (!pedido) notFound();
   if (pedido.status !== "pendente") redirect("/ingressos");
   const idioma = await obterIdioma();
-  const en = idioma === "en";
   const reservaAte = new Date(pedido.criadoEm.getTime() + MINUTOS_RESERVA * 60 * 1000).toLocaleTimeString(LOCALE[idioma], {
     hour: "2-digit",
     minute: "2-digit",
@@ -57,13 +56,18 @@ export default async function Page(props: PageProps<"/pagamento/simulado">) {
       <main className="bg-city-glow min-h-[80vh] px-4 py-16">
         <div className="mx-auto max-w-lg space-y-6">
           <h1 className="text-center font-display text-2xl uppercase tracking-[0.2em] text-gold-metal">
-            {en ? "Payment" : "Pagamento"}
+            {tx(idioma, "Pagamento", "Payment", "Pago")}
           </h1>
           <p className="rounded-lg border border-ember-500/50 bg-ember-500/10 px-4 py-3 text-center text-sm">
-            {en ? (
+            {idioma === "en" ? (
               <>
                 <strong>Test mode.</strong> This screen shows how checkout will work. Mercado Pago is not connected yet:
                 no money is charged.
+              </>
+            ) : idioma === "es" ? (
+              <>
+                <strong>Modo de prueba.</strong> Esta pantalla muestra cómo será el pago. Mercado Pago aún no está
+                conectado: no se cobra dinero.
               </>
             ) : (
               <>
@@ -74,26 +78,29 @@ export default async function Page(props: PageProps<"/pagamento/simulado">) {
           </p>
 
           <section className="rounded-2xl border border-gold-500/40 bg-petrol-950/70 p-5">
-            <h2 className="font-display text-xs uppercase tracking-[0.15em] text-teal-300">{en ? "Order summary" : "Resumo do pedido"}</h2>
+            <h2 className="font-display text-xs uppercase tracking-[0.15em] text-teal-300">{tx(idioma, "Resumo do pedido", "Order summary", "Resumen del pedido")}</h2>
             <div className="mt-3 flex items-start justify-between gap-4">
               <div>
                 <p className="font-semibold text-white">{nomeDoProduto(pedido.tipo, idioma)}</p>
-                <p className="text-sm text-mist/70">{pedido.loteNome}</p>
+                <p className="text-sm text-mist/70">{nomeDoLote(pedido.loteNome, idioma)}</p>
                 <p className="mt-2 text-xs text-mist/60">{pedido.nome} · {pedido.email}</p>
               </div>
               <p className="text-gold-metal whitespace-nowrap text-2xl font-extrabold">{formatarPreco(pedido.valorCentavos, idioma)}</p>
             </div>
             <p className="mt-3 border-t border-white/10 pt-3 text-xs text-mist/60">
-              {en ? `Your spot is held until ${reservaAte}.` : `Sua vaga fica reservada até ${reservaAte}.`}
+              {tx(idioma, `Sua vaga fica reservada até ${reservaAte}.`, `Your spot is held until ${reservaAte}.`, `Tu lugar queda reservado hasta las ${reservaAte}.`)}
             </p>
           </section>
 
           <CheckoutSimulado pedidoId={pedido.id} valorCentavos={pedido.valorCentavos} />
 
           <p className="text-center text-xs text-mist/50">
-            {en
-              ? "Payment processed by Mercado Pago. Card details are entered on Mercado Pago's page and never pass through our site."
-              : "Pagamento processado pelo Mercado Pago. Os dados do cartão são digitados na página do Mercado Pago e nunca passam pelo nosso site."}
+            {tx(
+              idioma,
+              "Pagamento processado pelo Mercado Pago. Os dados do cartão são digitados na página do Mercado Pago e nunca passam pelo nosso site.",
+              "Payment processed by Mercado Pago. Card details are entered on Mercado Pago's page and never pass through our site.",
+              "Pago procesado por Mercado Pago. Los datos de la tarjeta se ingresan en la página de Mercado Pago y nunca pasan por nuestro sitio.",
+            )}
           </p>
         </div>
       </main>

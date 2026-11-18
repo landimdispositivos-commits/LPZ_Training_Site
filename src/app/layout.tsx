@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Michroma, Mrs_Saint_Delafield, Poppins } from "next/font/google";
 import "./globals.css";
-import { LOCALE } from "@/i18n";
+import { LOCALE, tx } from "@/i18n";
 import { ProvedorIdioma } from "@/i18n/cliente";
 import { obterIdioma } from "@/i18n/servidor";
 
@@ -28,10 +28,12 @@ export async function generateMetadata(): Promise<Metadata> {
   const idioma = await obterIdioma();
   return {
     title: "LPZ Training",
-    description:
-      idioma === "en"
-        ? "LPZ Training — zouk congress and training. Schedule, teachers, tickets and event photos."
-        : "LPZ Training — congresso e treinamento de zouk. Cronograma, professores, ingressos e fotos do evento.",
+    description: tx(
+      idioma,
+      "LPZ Training — congresso e treinamento de zouk. Cronograma, professores, ingressos e fotos do evento.",
+      "LPZ Training — zouk congress and training. Schedule, teachers, tickets and event photos.",
+      "LPZ Training — congreso y entrenamiento de zouk. Cronograma, profesores, entradas y fotos del evento.",
+    ),
   };
 }
 

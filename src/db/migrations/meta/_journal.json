@@ -113,6 +113,13 @@
       "when": 1794965000000,
       "tag": "0015_forma_pagamento",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1795050000000,
+      "tag": "0016_apelido",
+      "breakpoints": true
     }
   ]
 }

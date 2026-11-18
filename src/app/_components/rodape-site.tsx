@@ -1,3 +1,4 @@
+import { tx } from "@/i18n";
 import Link from "next/link";
 import { obterIdioma } from "@/i18n/servidor";
 
@@ -8,16 +9,16 @@ export async function RodapeSite() {
       <span className="font-display tracking-[0.25em]">LPZ TRAINING</span>
       <p className="mt-3">
         <Link href="/privacidade" className="hover:text-gold-300 hover:underline">
-          {idioma === "en" ? "Privacy Policy" : "Política de Privacidade"}
+          {tx(idioma, "Política de Privacidade", "Privacy Policy", "Política de Privacidad")}
         </Link>
         <span aria-hidden="true" className="mx-2">·</span>
         <Link href="/fale-conosco" className="hover:text-gold-300 hover:underline">
-          {idioma === "en" ? "Contact us" : "Fale conosco"}
+          {tx(idioma, "Fale conosco", "Contact us", "Contáctanos")}
         </Link>
         <span aria-hidden="true" className="mx-2">·</span>
         {/* Entrada da organização: depois de entrar, aparecem as canetinhas de edição. */}
         <Link href="/administradores" className="hover:text-gold-300 hover:underline">
-          {idioma === "en" ? "Organizers area" : "Área da organização"}
+          {tx(idioma, "Área da organização", "Organizers area", "Área de la organización")}
         </Link>
       </p>
     </footer>

@@ -1,3 +1,5 @@
+import { comoChamar } from "@/modules/perfil/apelido";
+import { CampoApelido } from "@/app/_components/campo-apelido";
 import { and, asc, count, eq, isNull } from "drizzle-orm";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -83,7 +85,7 @@ export default async function Page(props: PageProps<"/administradores/painel">) 
           <div>
             <h1 className="font-display text-2xl uppercase tracking-[0.2em] text-gold-metal">Painel</h1>
             <p className="mt-3 text-mist/90">
-              Olá, {user.name.split(" ")[0]}! · <span className="text-teal-300">{ROTULO_PAPEL[user.papel]}</span>
+              Olá, {comoChamar(user)}! · <span className="text-teal-300">{ROTULO_PAPEL[user.papel]}</span>
             </p>
           </div>
 
@@ -105,6 +107,8 @@ export default async function Page(props: PageProps<"/administradores/painel">) 
               </Link>
             ))}
           </nav>
+
+          <CampoApelido apelido={user.apelido ?? null} primeiroNome={user.name.split(" ")[0]} />
 
           {ehGestor(user.papel) && <PainelOrganizador />}
 

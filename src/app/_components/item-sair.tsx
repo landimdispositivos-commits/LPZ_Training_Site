@@ -1,5 +1,7 @@
 "use client";
 
+import { tx } from "@/i18n";
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useIdioma } from "@/i18n/cliente";
@@ -25,7 +27,7 @@ export function ItemSair() {
       disabled={saindo}
       className="block w-full rounded px-3 py-2.5 text-left text-sm font-medium text-ember-400 hover:bg-petrol-800 disabled:opacity-60"
     >
-      {idioma === "en" ? (saindo ? "Signing out..." : "Sign out / switch user") : saindo ? "Saindo..." : "Sair / trocar de usuário"}
+      {saindo ? tx(idioma, "Saindo...", "Signing out...", "Saliendo...") : tx(idioma, "Sair / trocar de usuário", "Sign out / switch user", "Salir / cambiar de usuario")}
     </button>
   );
 }

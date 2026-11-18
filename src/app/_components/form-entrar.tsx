@@ -59,6 +59,31 @@ const TEXTOS = traducoes(
     enviarLink: "Send link",
     voltar: "Back to sign in",
   },
+  {
+    codigoInvalido: "Código inválido.",
+    tempoEsgotado: "Se acabó el tiempo. Entra de nuevo con correo y contraseña.",
+    acessoRestrito: "Acceso restringido.",
+    explicaCodigo:
+      "Tu cuenta usa verificación en dos pasos. Abre la app de autenticación en tu celular e ingresa el código de 6 dígitos de LPZ Training.",
+    explicaRecuperacao:
+      "Ingresa uno de los códigos de recuperación que guardaste al activar los dos pasos. Cada código funciona una vez.",
+    codigo6: "Código de 6 dígitos",
+    codigoRecuperacao: "Código de recuperación",
+    verificando: "Verificando...",
+    entrar: "Entrar",
+    entrando: "Entrando...",
+    usarRecuperacao: "Perdí el acceso a la app — usar un código de recuperación",
+    usarApp: "Usar el código de la app",
+    email: "Correo",
+    senha: "Contraseña",
+    esqueci: "Olvidé mi contraseña",
+    linkEnviado:
+      "Si existe una cuenta con este correo, recibirás un enlace para restablecer la contraseña. El enlace vale por 1 hora.",
+    informeEmail: "Ingresa el correo de tu cuenta y te enviaremos un enlace para crear una nueva contraseña.",
+    enviando: "Enviando...",
+    enviarLink: "Enviar enlace",
+    voltar: "Volver a entrar",
+  },
 );
 
 // Login único por e-mail/senha. Depois de entrar, cada pessoa vai para a área

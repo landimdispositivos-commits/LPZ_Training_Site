@@ -3,9 +3,26 @@
 export function mensagemErroGoogle(
   codigo: string | undefined,
   area: "congressistas" | "profissionais",
-  idioma: "pt" | "en" = "pt",
+  idioma: "pt" | "en" | "es" = "pt",
 ) {
   if (!codigo) return undefined;
+  if (idioma === "es") {
+    switch (codigo) {
+      case "access_denied":
+        return "Inicio de sesión con Google cancelado.";
+      case "signup_disabled":
+        return area === "profissionais"
+          ? "No encontramos una cuenta de profesional con este correo de Google. Usa el mismo correo de la invitación o entra con correo y contraseña."
+          : "No fue posible crear la cuenta con Google. Inténtalo de nuevo.";
+      case "account_not_linked":
+        return "Ya existe una cuenta con este correo, pero aún no fue confirmado. Entra con correo y contraseña (confirmando el correo) y después podrás usar Google.";
+      case "unable_to_link_account":
+      case "unable_to_create_session":
+        return "No fue posible entrar con Google en esta cuenta. Las cuentas de administrador entran solo con correo, contraseña y verificación en dos pasos.";
+      default:
+        return "No fue posible entrar con Google. Inténtalo de nuevo o usa correo y contraseña.";
+    }
+  }
   if (idioma === "en") {
     switch (codigo) {
       case "access_denied":

@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { traducoes } from "@/i18n";
+import { traducoes, tx } from "@/i18n";
 import { obterIdioma } from "@/i18n/servidor";
 import { PaginaPublica } from "../_components/pagina-publica";
 import { RodapeSite } from "../_components/rodape-site";
 import { SiteHeader } from "../_components/site-header";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await obterIdioma()) === "en" ? "Gallery — LPZ Training" : "Galeria — LPZ Training" };
+  return { title: tx(await obterIdioma(), "Galeria — LPZ Training", "Gallery — LPZ Training", "Galería — LPZ Training") };
 }
 
 const TEXTOS = traducoes(
@@ -30,6 +30,16 @@ const TEXTOS = traducoes(
       { href: "/galeria/paparazzi", titulo: "Paparazzi", texto: "Your best dancing moments, on video and in photos." },
     ],
     abrir: "Open",
+  },
+  {
+    titulo: "Galería",
+    subtitulo: "Elige lo que quieres ver.",
+    caixas: [
+      { href: "/galeria/videos", titulo: "Videos", texto: "Videos y música de LPZ." },
+      { href: "/galeria/fotos", titulo: "Fotos", texto: "Fotos de los eventos." },
+      { href: "/galeria/paparazzi", titulo: "Paparazzi", texto: "Tus mejores momentos bailando, en video y en fotos." },
+    ],
+    abrir: "Abrir",
   },
 );
 

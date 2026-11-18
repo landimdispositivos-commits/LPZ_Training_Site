@@ -1,3 +1,4 @@
+import { tx } from "@/i18n";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { areaDoPapel } from "@/modules/auth/papeis";
@@ -9,7 +10,7 @@ import { SiteHeader } from "../../_components/site-header";
 import { FormFicha } from "./form-ficha";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await obterIdioma()) === "en" ? "My details — LPZ Training" : "Meus dados — LPZ Training" };
+  return { title: tx(await obterIdioma(), "Meus dados — LPZ Training", "My details — LPZ Training", "Mis datos — LPZ Training") };
 }
 
 // Ficha do congressista: obrigatória no primeiro acesso (e-mail/senha ou
@@ -22,7 +23,7 @@ export default async function Page(props: PageProps<"/congressistas/completar-ca
   if (user.papel !== "congressista") redirect(areaDoPapel(user.papel));
 
   const primeiraVez = !user.cadastroCompletoEm;
-  const en = (await obterIdioma()) === "en";
+  const idioma = await obterIdioma();
   const primeiroNome = user.name.split(" ")[0];
 
   return (
@@ -31,16 +32,22 @@ export default async function Page(props: PageProps<"/congressistas/completar-ca
       <main className="bg-city-glow min-h-[80vh] px-4 py-16">
         <div className="mx-auto max-w-xl">
           <h1 className="font-display text-2xl uppercase tracking-[0.2em] text-gold-metal">
-            {primeiraVez ? (en ? "Complete your sign-up" : "Complete seu cadastro") : en ? "My details" : "Meus dados"}
+            {primeiraVez ? tx(idioma, "Complete seu cadastro", "Complete your sign-up", "Completa tu registro") : tx(idioma, "Meus dados", "My details", "Mis datos")}
           </h1>
           <p className="mt-4 text-mist/90">
-            {en
-              ? primeiraVez
-                ? `Hi, ${primeiroNome}! Almost done: we need a few details to issue your ticket and organize the event.`
-                : "Check and correct your details whenever you need."
-              : primeiraVez
-                ? `Olá, ${primeiroNome}! Falta pouco: precisamos de alguns dados para emitir seu ingresso e organizar o evento.`
-                : "Confira e corrija seus dados sempre que precisar."}
+            {primeiraVez
+              ? tx(
+                  idioma,
+                  `Olá, ${primeiroNome}! Falta pouco: precisamos de alguns dados para emitir seu ingresso e organizar o evento.`,
+                  `Hi, ${primeiroNome}! Almost done: we need a few details to issue your ticket and organize the event.`,
+                  `¡Hola, ${primeiroNome}! Falta poco: necesitamos algunos datos para emitir tu entrada y organizar el evento.`,
+                )
+              : tx(
+                  idioma,
+                  "Confira e corrija seus dados sempre que precisar.",
+                  "Check and correct your details whenever you need.",
+                  "Revisa y corrige tus datos cuando lo necesites.",
+                )}
           </p>
 
           <div className="mt-8">

@@ -47,6 +47,24 @@ export const TEXTOS_PERFIS = traducoes(
     fotoDica: "The photo is changed in Dashboard → Teachers.",
     fotoDe: (n: string) => `Photo of ${n}`,
   },
+  {
+    verBio: "Bio",
+    instagramEmBreve: "Instagram próximamente",
+    bioEmBreve: "Bio próximamente.",
+    editar: "Editar",
+    editarBio: "Editar bio",
+    voltar: (c: Categoria): string => (c === "dj" ? "Volver a los DJs" : "Volver a los profesores"),
+    salvo: "¡Guardado con éxito!",
+    erro: "Revisa los campos: el nombre es obligatorio e Instagram solo admite letras, números, punto y _.",
+    editando: "Editar perfil (solo la organización lo ve)",
+    nome: "Nombre",
+    bio: "Bio en portugués",
+    bioEn: "Bio en inglés (opcional — sin ella, se muestra la bio en portugués)",
+    instagram: "Instagram",
+    salvar: "Guardar",
+    fotoDica: "La foto se cambia en Panel → Profesores.",
+    fotoDe: (n: string) => `Foto de ${n}`,
+  },
 );
 
 export async function podeEditar() {
@@ -55,6 +73,7 @@ export async function podeEditar() {
 }
 
 function bioDoIdioma(p: Perfil, idioma: Idioma) {
+  // Espanhol usa a bio em português (idioma próximo) até haver uma bio própria.
   return idioma === "en" ? (p.bioEn ?? p.bio) : p.bio;
 }
 

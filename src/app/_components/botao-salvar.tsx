@@ -1,12 +1,14 @@
 "use client";
 
+import { tx } from "@/i18n";
+
 import { useFormStatus } from "react-dom";
 import { useIdioma } from "@/i18n/cliente";
 
 // Botão de envio que mostra "Salvando..." enquanto o servidor processa.
 export function BotaoSalvar({ children, className }: { children?: React.ReactNode; className?: string }) {
   const { pending } = useFormStatus();
-  const en = useIdioma() === "en";
+  const idioma = useIdioma();
   return (
     <button
       type="submit"
@@ -16,7 +18,7 @@ export function BotaoSalvar({ children, className }: { children?: React.ReactNod
         "bg-gold-metal rounded-full px-5 py-2 text-sm font-semibold text-gold-ink hover:brightness-110 disabled:cursor-wait disabled:opacity-60"
       }
     >
-      {pending ? (en ? "Saving..." : "Salvando...") : (children ?? (en ? "Save" : "Salvar"))}
+      {pending ? tx(idioma, "Salvando...", "Saving...", "Guardando...") : (children ?? tx(idioma, "Salvar", "Save", "Guardar"))}
     </button>
   );
 }

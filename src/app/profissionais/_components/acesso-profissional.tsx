@@ -1,5 +1,7 @@
 "use client";
 
+import { tx } from "@/i18n";
+
 import { useState } from "react";
 import { useIdioma } from "@/i18n/cliente";
 import { BotaoGoogle, SeparadorOu } from "../../_components/botao-google";
@@ -11,7 +13,7 @@ const AREA = "/profissionais/minha-area";
 // Sem cadastro público: contas de profissionais só existem por convite.
 export function AcessoProfissional({ avisoInicial, googleAtivo }: { avisoInicial?: string; googleAtivo: boolean }) {
   const [esqueci, setEsqueci] = useState(false);
-  const en = useIdioma() === "en";
+  const idioma = useIdioma();
 
   return (
     <div className="mx-auto w-full max-w-md rounded-2xl border border-white/10 bg-petrol-900/80 p-6 shadow-xl backdrop-blur">
@@ -20,7 +22,7 @@ export function AcessoProfissional({ avisoInicial, googleAtivo }: { avisoInicial
       {googleAtivo && !esqueci && (
         <>
           <BotaoGoogle destino={AREA} paginaErro="/profissionais" />
-          <p className="mt-3 text-center text-xs text-mist/60">{en ? "Use the same email where you received the invitation." : "Use o mesmo e-mail em que recebeu o convite."}</p>
+          <p className="mt-3 text-center text-xs text-mist/60">{tx(idioma, "Use o mesmo e-mail em que recebeu o convite.", "Use the same email where you received the invitation.", "Usa el mismo correo en el que recibiste la invitación.")}</p>
           <SeparadorOu />
         </>
       )}
@@ -32,16 +34,22 @@ export function AcessoProfissional({ avisoInicial, googleAtivo }: { avisoInicial
           onEsqueci={() => setEsqueci(true)}
           papelExigido="profissional"
           msgPapelRecusado={
-            en
-              ? "This area is only for teachers and DJs invited by the organizers. If you are an attendee, sign in through the Attendees area."
-              : "Esta área é exclusiva para professores e DJs convidados pela organização. Se você é congressista, entre pela área de Congressistas."
+            tx(
+              idioma,
+              "Esta área é exclusiva para professores e DJs convidados pela organização. Se você é congressista, entre pela área de Congressistas.",
+              "This area is only for teachers and DJs invited by the organizers. If you are an attendee, sign in through the Attendees area.",
+              "Esta área es exclusiva para profesores y DJs invitados por la organización. Si eres participante, entra por el área de Participantes.",
+            )
           }
         />
       )}
       <p className="mt-6 border-t border-white/10 pt-4 text-center text-xs text-mist/60">
-        {en
-          ? "Are you a teacher or DJ at the event and don't have access yet? Ask the organizers for an invitation."
-          : "É professor(a) ou DJ do evento e ainda não tem acesso? Peça o convite à organização."}
+        {tx(
+          idioma,
+          "É professor(a) ou DJ do evento e ainda não tem acesso? Peça o convite à organização.",
+          "Are you a teacher or DJ at the event and don't have access yet? Ask the organizers for an invitation.",
+          "¿Eres profesor(a) o DJ del evento y aún no tienes acceso? Pide la invitación a la organización.",
+        )}
       </p>
     </div>
   );

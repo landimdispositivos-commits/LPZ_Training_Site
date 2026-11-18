@@ -11,7 +11,7 @@ import {
   PAIS_BRASIL,
   UFS,
 } from "@/modules/auth/cadastro";
-import { COMO_CONHECEU_EN, mensagemFichaEn } from "@/modules/auth/cadastro-en";
+import { COMO_CONHECEU_EN, COMO_CONHECEU_ES, mensagemFicha } from "@/modules/auth/cadastro-en";
 import { traducoes } from "@/i18n";
 import { useIdioma } from "@/i18n/cliente";
 import { Aviso, Campo, classeBotao, classeInput } from "../../_components/form-ui";
@@ -117,6 +117,45 @@ const TEXTOS = traducoes(
     salvando: "Saving...",
     salvar: "Save my details",
   },
+  {
+    confira: "Revisa los campos destacados abajo.",
+    dadosPessoais: "Datos personales",
+    nome: "Nombre completo *",
+    email: "Correo",
+    emailDica: "Correo de tu cuenta — no se puede cambiar aquí.",
+    nascimento: "Fecha de nacimiento *",
+    celular: "Celular (WhatsApp) *",
+    celularDicaBr: "Con código de área, ej.: (11) 91234-5678.",
+    celularDicaExt: "Con código del país, ej.: +34 612 345 678.",
+    ondeMora: "Dónde vives",
+    paisOndeMora: "País donde vives",
+    noBrasil: "En Brasil",
+    outroPais: "En otro país",
+    estado: "Estado *",
+    cidade: "Ciudad *",
+    pais: "País *",
+    cpfDica: "Necesario para pagar la entrada con Mercado Pago (documento fiscal brasileño).",
+    endereco: "Dirección",
+    opcional: "(opcional)",
+    enderecoDica: "Se usa solo para enviar materiales del evento, si los hay. Puedes dejarla en blanco.",
+    cep: "CEP (código postal)",
+    codigoPostal: "Código postal",
+    rua: "Calle / avenida",
+    numero: "Número",
+    complemento: "Piso, departamento, etc.",
+    bairro: "Barrio",
+    maisSobre: "Más sobre ti",
+    natCidade: "Ciudad donde naciste",
+    natEstado: "Estado o país donde naciste",
+    como: "¿Cómo conociste LPZ?",
+    prefiro: "Prefiero no decirlo",
+    comoOutro: "Cuéntanos cómo nos conociste",
+    liAceito: "Leí y acepto la",
+    politica: "Política de Privacidad",
+    obrigatorios: "* Campos obligatorios.",
+    salvando: "Guardando...",
+    salvar: "Guardar mis datos",
+  },
 );
 
 // "Outro: texto livre" é guardado numa coluna só; separa para o formulário.
@@ -138,7 +177,7 @@ export function FormFicha({
   const en = idioma === "en";
   const t = TEXTOS[idioma];
   // Mensagens de validação vêm em português (regras compartilhadas com o servidor).
-  const traduzir = (msg?: string) => (msg && en ? mensagemFichaEn(msg) : msg);
+  const traduzir = (msg?: string) => (msg ? mensagemFicha(msg, idioma) : msg);
   const traduzirErros = (lista: Erros) =>
     Object.fromEntries(Object.entries(lista).map(([k, v]) => [k, traduzir(v)])) as Erros;
   const [pendente, iniciar] = useTransition();
@@ -372,7 +411,7 @@ export function FormFicha({
         <Campo id="f-como" label={t.como} erro={erros.comoConheceu}>
           <select {...ligar("comoConheceu", "f-como")} value={comoConheceu} onChange={(e) => setComoConheceu(e.target.value)}>
             <option value="">{t.prefiro}</option>
-            {COMO_CONHECEU.map((o) => <option key={o} value={o}>{en ? (COMO_CONHECEU_EN[o] ?? o) : o}</option>)}
+            {COMO_CONHECEU.map((o) => <option key={o} value={o}>{en ? (COMO_CONHECEU_EN[o] ?? o) : idioma === "es" ? (COMO_CONHECEU_ES[o] ?? o) : o}</option>)}
           </select>
         </Campo>
         {comoConheceu === "Outro" && (

@@ -1,3 +1,4 @@
+import { tx } from "@/i18n";
 import Image from "next/image";
 import Link from "next/link";
 import { SiteHeader } from "./_components/site-header";
@@ -27,14 +28,14 @@ function LinhasDecorativas() {
 }
 
 export default async function Home() {
-  const en = (await obterIdioma()) === "en";
+  const idioma = await obterIdioma();
   return (
     <>
       <a
         href="#conteudo"
         className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded focus:bg-gold-300 focus:px-4 focus:py-2 focus:text-gold-ink focus:shadow"
       >
-        {en ? "Skip to content" : "Pular para o conteúdo"}
+        {tx(idioma, "Pular para o conteúdo", "Skip to content", "Saltar al contenido")}
       </a>
 
       <SiteHeader />
@@ -61,10 +62,15 @@ export default async function Home() {
               </span>
             </h1>
             <p className="mx-auto mt-10 max-w-xl text-base text-mist/90 sm:text-lg">
-              {en ? (
+              {idioma === "en" ? (
                 <>
                   A <strong className="font-semibold text-white">zouk congress</strong> focused on{" "}
                   <strong className="font-semibold text-white">training and continuous practice</strong>.
+                </>
+              ) : idioma === "es" ? (
+                <>
+                  Es un <strong className="font-semibold text-white">congreso de zouk</strong> enfocado en el{" "}
+                  <strong className="font-semibold text-white">entrenamiento y la práctica continua</strong>.
                 </>
               ) : (
                 <>
@@ -78,7 +84,7 @@ export default async function Home() {
               href="/quem-somos"
               className="bg-gold-metal mt-10 inline-block rounded-full px-8 py-3 font-semibold text-gold-ink shadow-[0_0_30px_rgb(230_181_74/0.35)] transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold-300"
             >
-              {en ? "About us" : "Quem somos"}
+              {tx(idioma, "Quem somos", "About us", "Quiénes somos")}
             </Link>
           </div>
         </section>

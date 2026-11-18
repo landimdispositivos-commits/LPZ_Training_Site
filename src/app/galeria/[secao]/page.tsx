@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { traducoes } from "@/i18n";
+import { traducoes, tx } from "@/i18n";
 import { obterIdioma } from "@/i18n/servidor";
 import { urlCompra } from "@/modules/auth/proximo";
 import { ehSpotify } from "@/modules/midia/audio";
@@ -36,6 +36,17 @@ const TEXTOS = traducoes(
     videosTitulo: "Videos",
     audiosTitulo: "Audio",
   },
+  {
+    titulo: { videos: "Videos", fotos: "Fotos", paparazzi: "Paparazzi" } as Record<Secao, string>,
+    vazio: { videos: "Videos próximamente.", fotos: "Fotos próximamente.", paparazzi: "" } as Record<Secao, string>,
+    voltar: "Volver a la galería",
+    paparazzi:
+      "El Paparazzi de LPZ te registra bailando durante el evento, en video o en fotos profesionales. El material de cada persona se entrega después del congreso a quien lo contrató.",
+    comprarVideo: "Contratar Paparazzi — video",
+    comprarFoto: "Contratar Paparazzi — fotos",
+    videosTitulo: "Videos",
+    audiosTitulo: "Audios",
+  },
 );
 
 function secaoValida(valor: string): Secao | null {
@@ -54,7 +65,6 @@ export default async function Page(props: PageProps<"/galeria/[secao]">) {
   const secao = secaoValida((await props.params).secao);
   if (!secao) notFound();
   const idioma = await obterIdioma();
-  const en = idioma === "en";
   const t = TEXTOS[idioma];
 
   const itens = secao === "paparazzi" ? [] : await itensDaGaleria();
@@ -91,7 +101,7 @@ export default async function Page(props: PageProps<"/galeria/[secao]">) {
                     <div className="aspect-video overflow-hidden rounded-xl border border-white/10 bg-black">
                       <iframe
                         src={v.url}
-                        title={v.titulo ?? (en ? "LPZ video" : "Vídeo do LPZ")}
+                        title={v.titulo ?? tx(idioma, "Vídeo do LPZ", "LPZ video", "Video de LPZ")}
                         loading="lazy"
                         allow="accelerometer; encrypted-media; gyroscope; picture-in-picture"
                         allowFullScreen
@@ -113,7 +123,7 @@ export default async function Page(props: PageProps<"/galeria/[secao]">) {
                   <li key={a.id}>
                     <iframe
                       src={a.url}
-                      title={a.titulo ?? (en ? "LPZ audio" : "Áudio do LPZ")}
+                      title={a.titulo ?? tx(idioma, "Áudio do LPZ", "LPZ audio", "Audio de LPZ")}
                       loading="lazy"
                       allow="encrypted-media"
                       className={`w-full rounded-xl ${ehSpotify(a.url) ? "h-[152px]" : "h-[166px]"}`}
@@ -135,7 +145,7 @@ export default async function Page(props: PageProps<"/galeria/[secao]">) {
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={f.url}
-                        alt={f.titulo ?? (en ? "LPZ event photo" : "Foto do evento LPZ")}
+                        alt={f.titulo ?? tx(idioma, "Foto do evento LPZ", "LPZ event photo", "Foto del evento LPZ")}
                         loading="lazy"
                         className="aspect-square w-full object-cover transition hover:scale-105"
                       />

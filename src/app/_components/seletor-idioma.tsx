@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import type { Idioma } from "@/i18n";
+import { LOCALE, tx, type Idioma } from "@/i18n";
 import { useIdioma } from "@/i18n/cliente";
 import { trocarIdiomaAction } from "@/i18n/acoes";
 
@@ -35,9 +35,20 @@ function BandeiraEUA() {
   );
 }
 
+// Bandeira civil da Espanha (vermelho, amarelo, vermelho — sem o brasão).
+function BandeiraEspanha() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 28 20" className="h-5 w-7 rounded-[3px]">
+      <rect width="28" height="20" fill="#aa151b" />
+      <rect y="5" width="28" height="10" fill="#f1bf00" />
+    </svg>
+  );
+}
+
 const OPCOES: { idioma: Idioma; rotulo: string; Bandeira: () => React.ReactElement }[] = [
   { idioma: "pt", rotulo: "Português", Bandeira: BandeiraBrasil },
   { idioma: "en", rotulo: "English", Bandeira: BandeiraEUA },
+  { idioma: "es", rotulo: "Español", Bandeira: BandeiraEspanha },
 ];
 
 export function SeletorIdioma() {
@@ -56,7 +67,7 @@ export function SeletorIdioma() {
   return (
     <div
       role="group"
-      aria-label={atual === "pt" ? "Idioma do site" : "Site language"}
+      aria-label={tx(atual, "Idioma do site", "Site language", "Idioma del sitio")}
       className={`flex items-center gap-1 rounded-full border border-white/15 p-1 ${trocando ? "opacity-60" : ""}`}
     >
       {OPCOES.map(({ idioma, rotulo, Bandeira }) => {
@@ -70,7 +81,7 @@ export function SeletorIdioma() {
             aria-pressed={ativo}
             aria-label={rotulo}
             title={rotulo}
-            lang={idioma === "pt" ? "pt-BR" : "en"}
+            lang={LOCALE[idioma]}
             className={`flex h-9 w-9 items-center justify-center rounded-full transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-300 ${
               ativo ? "bg-white/15 ring-1 ring-gold-400" : "opacity-50 grayscale-[40%] hover:bg-white/10 hover:opacity-100"
             }`}

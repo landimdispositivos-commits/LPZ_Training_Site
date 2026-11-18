@@ -1,5 +1,7 @@
 "use client";
 
+import { tx } from "@/i18n";
+
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useIdioma } from "@/i18n/cliente";
@@ -24,7 +26,7 @@ export function BotaoSair({ destino }: { destino: string }) {
       disabled={saindo}
       className="rounded-full border border-gold-500/60 px-6 py-2.5 text-sm font-semibold text-gold-300 hover:bg-gold-500/10 disabled:opacity-60"
     >
-      {idioma === "en" ? (saindo ? "Signing out..." : "Sign out") : saindo ? "Saindo..." : "Sair"}
+      {saindo ? tx(idioma, "Saindo...", "Signing out...", "Saliendo...") : tx(idioma, "Sair", "Sign out", "Salir")}
     </button>
   );
 }

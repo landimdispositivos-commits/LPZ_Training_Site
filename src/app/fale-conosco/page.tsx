@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { traducoes } from "@/i18n";
+import { traducoes, tx } from "@/i18n";
 import { obterIdioma } from "@/i18n/servidor";
 import { obterSessao } from "@/modules/auth/sessao";
 import { linkWhatsapp, obterContatos } from "@/modules/contato";
@@ -14,7 +14,7 @@ import { salvarContatosAction } from "./actions";
 import { FormContato } from "./form-contato";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await obterIdioma()) === "en" ? "Contact us — LPZ Training" : "Fale conosco — LPZ Training" };
+  return { title: tx(await obterIdioma(), "Fale conosco — LPZ Training", "Contact us — LPZ Training", "Contáctanos — LPZ Training") };
 }
 
 export const dynamic = "force-dynamic";
@@ -53,6 +53,23 @@ const TEXTOS = traducoes(
     salvar: "Save",
     salvo: "Saved successfully!",
     erro: "Check the fields: valid email, WhatsApp with numbers only and Instagram with letters, numbers, dot and _ only.",
+  },
+  {
+    titulo: "Contáctanos",
+    subtitulo: "Dudas, sugerencias o reclamos sobre el cronograma, profesores, DJs, entradas o cualquier parte del congreso. Escríbenos.",
+    escreva: "Envíanos tu mensaje",
+    contatos: "Nuestros contactos",
+    email: "Correo",
+    whatsapp: "WhatsApp",
+    instagram: "Instagram",
+    emBreve: "Contactos próximamente.",
+    editar: "Editar contactos",
+    editando: "Editar contactos (solo la organización lo ve)",
+    dicaEmail: "Los mensajes del formulario llegan a este correo.",
+    dicaWhats: "Con código de área, ej.: (11) 91234-5678.",
+    salvar: "Guardar",
+    salvo: "¡Guardado con éxito!",
+    erro: "Revisa los campos: correo válido, WhatsApp solo con números e Instagram solo con letras, números, punto y _.",
   },
 );
 

@@ -5,7 +5,7 @@ import type { Idioma } from "@/i18n";
 import { paymentProvider } from "@/modules/pagamentos";
 import { enviarEmailsDaCompra } from "./emails";
 import { PRODUTOS, TIPOS_PRODUTO, type TipoProduto } from "./produtos";
-export { nomeDoProduto, PRODUTOS, TIPOS_PRODUTO, type TipoProduto } from "./produtos";
+export { nomeDoLote, nomeDoProduto, PRODUTOS, TIPOS_PRODUTO, type TipoProduto } from "./produtos";
 
 // ---------------------------------------------------------------------------
 // Regras de venda de ingressos.

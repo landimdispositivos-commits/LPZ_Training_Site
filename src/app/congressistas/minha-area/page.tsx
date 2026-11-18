@@ -1,3 +1,5 @@
+import { comoChamar } from "@/modules/perfil/apelido";
+import { CampoApelido } from "@/app/_components/campo-apelido";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
@@ -6,13 +8,13 @@ import { auth } from "@/modules/auth/auth";
 import { areaDoPapel } from "@/modules/auth/papeis";
 import { atualizarPendentesDoComprador } from "@/modules/ingressos";
 import { SiteHeader } from "../../_components/site-header";
-import { traducoes } from "@/i18n";
+import { traducoes, tx } from "@/i18n";
 import { obterIdioma } from "@/i18n/servidor";
 import { BotaoSair } from "../../_components/botao-sair";
 import { MeusIngressos } from "../_components/meus-ingressos";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await obterIdioma()) === "en" ? "My area — LPZ Training" : "Minha área — LPZ Training" };
+  return { title: tx(await obterIdioma(), "Minha área — LPZ Training", "My area — LPZ Training", "Mi área — LPZ Training") };
 }
 
 const TEXTOS = traducoes(
@@ -52,6 +54,24 @@ const TEXTOS = traducoes(
     naturalidade: "Place of birth",
     comoConheceu: "How you heard about us",
   },
+  {
+    titulo: "Mi área",
+    bemvindo: "Registro completo. ¡Bienvenido(a) a LPZ Training!",
+    atualizado: "Tus datos fueron actualizados.",
+    pago: "¡Pago confirmado! Tu entrada está justo abajo.",
+    ola: "Hola",
+    meusDados: "Mis datos",
+    editar: "Editar mis datos",
+    meusIngressos: "Mis entradas",
+    nome: "Nombre",
+    email: "Correo",
+    nascimento: "Fecha de nacimiento",
+    celular: "Celular",
+    moraEm: "Vive en",
+    endereco: "Dirección",
+    naturalidade: "Lugar de nacimiento",
+    comoConheceu: "Cómo nos conociste",
+  },
 );
 
 // Mostra só os 3 primeiros dígitos: a tela pode estar à vista de outras pessoas.
@@ -85,7 +105,7 @@ export default async function Page(props: PageProps<"/congressistas/minha-area">
     : null;
   const naturalidade = [user.naturalidadeCidade, user.naturalidadeEstado].filter(Boolean).join(" — ");
   const idioma = await obterIdioma();
-  const en = idioma === "en";
+  const en = idioma === "en"; // datas em mês/dia só em inglês
   const t = TEXTOS[idioma];
 
   const dados = [
@@ -121,7 +141,7 @@ export default async function Page(props: PageProps<"/congressistas/minha-area">
               {t.pago}
             </p>
           )}
-          <p className="mt-4 text-mist/90">{t.ola}, {user.name.split(" ")[0]}!</p>
+          <p className="mt-4 text-mist/90">{t.ola}, {comoChamar(user)}!</p>
 
           <section className="mt-8 rounded-2xl border border-white/10 bg-petrol-900/80 p-6">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-teal-300">{t.meusDados}</h2>
@@ -140,6 +160,8 @@ export default async function Page(props: PageProps<"/congressistas/minha-area">
               {t.editar}
             </Link>
           </section>
+
+          <CampoApelido apelido={user.apelido ?? null} primeiroNome={user.name.split(" ")[0]} />
 
           <section className="mt-6 rounded-2xl border border-white/10 bg-petrol-900/80 p-6">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-teal-300">{t.meusIngressos}</h2>

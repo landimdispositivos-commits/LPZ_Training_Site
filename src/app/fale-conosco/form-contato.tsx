@@ -40,6 +40,22 @@ const TEXTOS = traducoes(
     erroMensagem: "Write your message (at least 5 characters).",
     privacidade: "We use your name and email only to reply to this message.",
   },
+  {
+    nome: "Tu nombre",
+    email: "Tu correo (para responderte)",
+    assunto: "¿Sobre qué quieres hablar?",
+    escolha: "Elige un asunto",
+    mensagem: "Tu mensaje",
+    enviar: "Enviar mensaje",
+    enviando: "Enviando...",
+    ok: "¡Mensaje enviado! Nuestro equipo te responderá por correo.",
+    falhou: "No pudimos enviarlo ahora. Inténtalo de nuevo en unos minutos o escríbenos por nuestros contactos.",
+    erroNome: "Ingresa tu nombre.",
+    erroEmail: "Ingresa un correo válido.",
+    erroAssunto: "Elige un asunto.",
+    erroMensagem: "Escribe tu mensaje (al menos 5 caracteres).",
+    privacidade: "Usamos tu nombre y correo solo para responder este mensaje.",
+  },
 );
 
 export function FormContato({ nome, email }: { nome?: string; email?: string }) {

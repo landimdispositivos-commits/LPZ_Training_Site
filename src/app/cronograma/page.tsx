@@ -1,3 +1,4 @@
+import { tx } from "@/i18n";
 import type { Metadata } from "next";
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -9,10 +10,10 @@ import { dataCurta, DIAS_EVENTO, diaDaSemana } from "@/lib/dias-evento";
 import { PaginaPublica } from "../_components/pagina-publica";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const en = (await obterIdioma()) === "en";
+  const idioma = await obterIdioma();
   return {
-    title: en ? "Schedule — LPZ Training" : "Cronograma — LPZ Training",
-    description: en ? "LPZ Training classes and activities, day by day." : "Aulas e atividades do LPZ Training, dia a dia.",
+    title: tx(idioma, "Cronograma — LPZ Training", "Schedule — LPZ Training", "Cronograma — LPZ Training"),
+    description: tx(idioma, "Aulas e atividades do LPZ Training, dia a dia.", "LPZ Training classes and activities, day by day.", "Clases y actividades de LPZ Training, día a día."),
   };
 }
 
@@ -39,8 +40,8 @@ export default async function Page() {
     <>
       <SiteHeader />
       <PaginaPublica
-        titulo={en ? "Schedule" : "Cronograma"}
-        subtitulo={en ? "Congress classes and activities, day by day." : "Aulas e atividades do congresso, dia a dia."}
+        titulo={tx(idioma, "Cronograma", "Schedule", "Cronograma")}
+        subtitulo={tx(idioma, "Aulas e atividades do congresso, dia a dia.", "Congress classes and activities, day by day.", "Clases y actividades del congreso, día a día.")}
         largura="max-w-3xl"
       >
         <div className="space-y-6">
@@ -50,11 +51,11 @@ export default async function Page() {
             return (
               <section key={d.semana} className="rounded-2xl border border-gold-500/40 bg-petrol-950/70 p-6">
                 <h2 className="font-display text-sm uppercase tracking-[0.15em] text-gold-300">
-                  {en ? d.en : d.pt}
+                  {d[idioma]}
                   {datas.length > 0 && <span className="ml-2 text-teal-300">{datas.join(" · ")}</span>}
                 </h2>
                 {itens.length === 0 ? (
-                  <p className="mt-3 text-sm text-mist/70">{en ? "Times coming soon." : "Horários em breve."}</p>
+                  <p className="mt-3 text-sm text-mist/70">{tx(idioma, "Horários em breve.", "Times coming soon.", "Horarios próximamente.")}</p>
                 ) : (
                   <ol className="mt-4 space-y-3">
                     {itens.map((item) => (

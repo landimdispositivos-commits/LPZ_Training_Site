@@ -21,6 +21,7 @@ export type Coluna = { id: string; titulo: string; basica: boolean; valor: (u: C
 
 export const COLUNAS: Coluna[] = [
   { id: "nome", titulo: "Nome", basica: true, valor: (u) => u.nome },
+  { id: "apelido", titulo: "Apelido", basica: false, valor: (u) => u.apelido },
   { id: "email", titulo: "E-mail", basica: true, valor: (u) => u.email },
   { id: "celular", titulo: "Celular", basica: true, valor: (u) => u.celular },
   { id: "perfil", titulo: "Perfil", basica: true, valor: (u) => ROTULO_PAPEL[u.papel] ?? u.papel },

@@ -1,9 +1,10 @@
+import { tx } from "@/i18n";
 import type { Metadata } from "next";
 import { obterIdioma } from "@/i18n/servidor";
 import { SiteHeader } from "../_components/site-header";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await obterIdioma()) === "en" ? "Privacy Policy — LPZ Training" : "Política de Privacidade — LPZ Training" };
+  return { title: tx(await obterIdioma(), "Política de Privacidade — LPZ Training", "Privacy Policy — LPZ Training", "Política de Privacidad — LPZ Training") };
 }
 
 const classeArtigo =
@@ -156,12 +157,82 @@ function ConteudoEn() {
   );
 }
 
+// Versão em espanhol (tradução do rascunho; a versão em português é a de referência).
+function ConteudoEs() {
+  return (
+    <article className={classeArtigo}>
+      <h1 className="font-display text-2xl uppercase tracking-[0.2em] text-gold-metal">Política de Privacidad</h1>
+      <p className="rounded-lg border border-ember-500/50 bg-ember-500/10 px-4 py-3 text-sm">
+        Borrador en revisión. Última actualización: [fecha]. En caso de duda, prevalece la versión en portugués.
+      </p>
+
+      <p>
+        Esta política explica cómo LPZ Training ([nombre/razón social del responsable], [CNPJ o CPF]) trata los datos
+        personales de las personas que se registran en este sitio, según la Ley General de Protección de Datos de
+        Brasil (Ley 13.709/2018 — LGPD).
+      </p>
+
+      <h2>Qué datos recopilamos y por qué</h2>
+      <ul className="space-y-2">
+        <li><strong className="text-white">Nombre y correo</strong> — para identificarte, darte acceso a tu cuenta y enviarte mensajes sobre tu entrada y el evento.</li>
+        <li><strong className="text-white">Celular</strong> — contacto sobre el evento (por ejemplo, cambios de horario) y atención.</li>
+        <li><strong className="text-white">CPF</strong> (solo para quienes viven en Brasil) — lo exige Mercado Pago para procesar el pago de la entrada.</li>
+        <li><strong className="text-white">Estado o país y ciudad donde vives</strong> — planificación del evento (por ejemplo, saber de dónde vienen los participantes).</li>
+        <li><strong className="text-white">Fecha de nacimiento</strong> — para confirmar la edad del participante (reglas de acceso al evento y de compra de entradas).</li>
+        <li><strong className="text-white">Dirección</strong> (opcional) — para enviar materiales del evento, si los hay. Puedes dejarla en blanco.</li>
+        <li><strong className="text-white">Ciudad y estado/país de nacimiento</strong> (opcional) — estadísticas sobre el público del evento. Puedes dejarlo en blanco.</li>
+        <li><strong className="text-white">Cómo nos conociste</strong> (opcional) — para saber qué canales de difusión funcionan.</li>
+        <li><strong className="text-white">Inicio de sesión con Google</strong> (si lo eliges) — recibimos de Google solo tu nombre, correo y foto de perfil. No tenemos acceso a tu contraseña de Google ni a ningún otro dato de tu cuenta.</li>
+        <li><strong className="text-white">Datos técnicos de acceso</strong> (dirección IP y navegador) — seguridad de la cuenta y prevención de fraudes.</li>
+      </ul>
+      <p>
+        No pedimos datos sensibles y no usamos tus datos para marketing sin tu consentimiento específico. Tu contraseña
+        se guarda cifrada (hash) y nadie de la organización tiene acceso a ella.
+      </p>
+
+      <h2>Base legal</h2>
+      <p>
+        Tratamos estos datos para ejecutar el contrato de compra de la entrada y los pasos previos a él (art. 7, V,
+        LGPD), para cumplir obligaciones legales (art. 7, II) y, en el caso de los datos técnicos de acceso, con base en
+        nuestro interés legítimo en la seguridad del sitio (art. 7, IX). Los datos marcados como opcionales se tratan
+        con base en tu consentimiento (art. 7, I), que puedes retirar en cualquier momento borrándolos en Mi área →
+        Editar mis datos.
+      </p>
+
+      <h2>Con quién los compartimos</h2>
+      <ul className="space-y-2">
+        <li><strong className="text-white">Mercado Pago</strong> — procesamiento de pagos. Los datos de tu tarjeta se ingresan directamente en Mercado Pago; LPZ Training no los recibe ni los guarda.</li>
+        <li><strong className="text-white">Google</strong> — solo si eliges entrar con Google: confirma tu identidad y nos informa tu nombre, correo y foto.</li>
+        <li><strong className="text-white">Proveedores de infraestructura</strong> — alojamiento del sitio y envío de correos, solo para que el servicio funcione.</li>
+      </ul>
+      <p>No vendemos tus datos.</p>
+
+      <h2>Por cuánto tiempo los guardamos</h2>
+      <p>
+        Mientras tu cuenta esté activa. Los datos relacionados con pagos pueden guardarse durante el plazo exigido por la
+        ley fiscal, incluso después de eliminar la cuenta. [Definir plazo.]
+      </p>
+
+      <h2>Tus derechos</h2>
+      <p>
+        En cualquier momento puedes solicitar: confirmación y acceso a tus datos, corrección, eliminación, información
+        sobre con quién se comparten y retiro del consentimiento (art. 18, LGPD). Puedes corregir tus datos tú mismo en
+        Mi área → Editar mis datos. Para otras solicitudes, escribe a{" "}
+        <strong className="text-white">[correo de contacto de privacidad]</strong>. Respondemos en hasta 15 días.
+      </p>
+
+      <h2>Contacto</h2>
+      <p>Dudas sobre esta política: [correo de contacto de privacidad].</p>
+    </article>
+  );
+}
+
 export default async function Page() {
-  const en = (await obterIdioma()) === "en";
+  const idioma = await obterIdioma();
   return (
     <>
       <SiteHeader />
-      <main className="px-4 py-16">{en ? <ConteudoEn /> : <ConteudoPt />}</main>
+      <main className="px-4 py-16">{tx(idioma, <ConteudoPt />, <ConteudoEn />, <ConteudoEs />)}</main>
     </>
   );
 }

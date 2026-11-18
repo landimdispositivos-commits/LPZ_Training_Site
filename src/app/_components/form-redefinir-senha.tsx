@@ -41,6 +41,22 @@ const TEXTOS = traducoes(
     definir: "Set password",
     salvar: "Save new password",
   },
+  {
+    conviteInvalido: "Enlace de invitación inválido o vencido. Pide una nueva invitación a la organización.",
+    linkInvalido: "Enlace inválido o vencido. Pide uno nuevo en “Olvidé mi contraseña”.",
+    voltar: "Volver a entrar",
+    definida: "¡Contraseña creada! Ahora solo entra con tu correo y la nueva contraseña.",
+    alterada: "Contraseña cambiada. Por seguridad, cerramos tu sesión en todos los dispositivos.",
+    entrar: "Entrar",
+    curta: (min: number) => `La contraseña debe tener al menos ${min} caracteres.`,
+    naoConferem: "Las contraseñas no coinciden.",
+    nova: "Nueva contraseña",
+    minimo: (min: number) => `Mínimo de ${min} caracteres.`,
+    confirme: "Confirma la nueva contraseña",
+    salvando: "Guardando...",
+    definir: "Crear contraseña",
+    salvar: "Guardar nueva contraseña",
+  },
 );
 
 // modo "definir": primeira senha de profissional convidado; "redefinir": esqueci a senha.

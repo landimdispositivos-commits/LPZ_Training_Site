@@ -23,6 +23,14 @@ const TEXTOS = traducoes(
     entrar: "Sign in with Google",
     ou: "or",
   },
+  {
+    configurando: "El inicio de sesión con Google lo está configurando la organización. Por ahora, entra con correo y contraseña.",
+    limite: "Demasiados intentos en poco tiempo. Espera un minuto e inténtalo de nuevo.",
+    falhou: "No pudimos abrir el inicio de sesión de Google. Inténtalo de nuevo.",
+    abrindo: "Abriendo Google...",
+    entrar: "Entrar con Google",
+    ou: "o",
+  },
 );
 
 // Botão "Entrar com Google" no padrão visual exigido pelo Google

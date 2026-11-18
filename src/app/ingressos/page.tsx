@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { urlLoginParaComprar } from "@/modules/auth/proximo";
 import { obterSessao } from "@/modules/auth/sessao";
-import { TIPOS_PRODUTO, type TipoProduto } from "@/modules/ingressos/produtos";
-import { traducoes } from "@/i18n";
+import { nomeDoLote, TIPOS_PRODUTO, type TipoProduto } from "@/modules/ingressos/produtos";
+import { traducoes, tx } from "@/i18n";
 import { obterIdioma } from "@/i18n/servidor";
 import { MENSAGENS_ERRO_COMPRA, MINUTOS_RESERVA, nomeDoProduto, situacaoDoComprador, vitrine } from "@/modules/ingressos";
 import { formatarPreco } from "@/lib/formatar";
@@ -14,7 +14,7 @@ import { SiteHeader } from "../_components/site-header";
 import { comprarAction, desistirAction, retomarPagamentoAction } from "./actions";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: (await obterIdioma()) === "en" ? "Tickets — LPZ Training" : "Ingressos — LPZ Training" };
+  return { title: tx(await obterIdioma(), "Ingressos — LPZ Training", "Tickets — LPZ Training", "Entradas — LPZ Training") };
 }
 
 const ERROS_EN: Record<keyof typeof MENSAGENS_ERRO_COMPRA, string> = {
@@ -23,6 +23,14 @@ const ERROS_EN: Record<keyof typeof MENSAGENS_ERRO_COMPRA, string> = {
   "ja-tem-ingresso": "You have already bought this product. It is in your area.",
   "pedido-invalido": "Order not found.",
   pagamento: "We could not open the payment right now. Please try again in a few minutes.",
+};
+
+const ERROS_ES: Record<keyof typeof MENSAGENS_ERRO_COMPRA, string> = {
+  "sem-lote": "No hay ningún lote a la venta en este momento.",
+  esgotado: "Este lote se agotó. Recarga la página para ver si abrió un nuevo lote.",
+  "ja-tem-ingresso": "Ya compraste este producto. Está en tu área.",
+  "pedido-invalido": "Pedido no encontrado.",
+  pagamento: "No pudimos abrir el pago ahora. Inténtalo de nuevo en unos minutos.",
 };
 
 const TEXTOS = traducoes(
@@ -45,6 +53,8 @@ const TEXTOS = traducoes(
     meios: "Pix, cartão de crédito, cartão de débito virtual Caixa ou saldo do Mercado Pago.",
     rodape: (min: number) =>
       `Pagamento processado pelo Mercado Pago — os dados do seu cartão não passam pelo nosso site. A vaga fica reservada por ${min} minutos enquanto você paga.`,
+    politica:
+      "Os pacotes são pessoais e intransferíveis. O reembolso só é possível se você desistir em até 7 dias após a compra, conforme o direito de arrependimento do Código de Defesa do Consumidor (art. 49). Em caso de não comparecimento, o pacote não pode ser transferido para a edição do ano seguinte.",
   },
   {
     titulo: "Tickets",
@@ -65,6 +75,30 @@ const TEXTOS = traducoes(
     meios: "Pix, credit card, Caixa virtual debit card or Mercado Pago balance.",
     rodape: (min: number) =>
       `Payment processed by Mercado Pago — your card details never pass through our site. Your spot is held for ${min} minutes while you pay.`,
+    politica:
+      "Packages are personal and non-transferable. Refunds are only available if you cancel within 7 days of purchase, under the right of withdrawal in the Brazilian Consumer Protection Code (art. 49). If you do not attend, the package cannot be carried over to next year's edition.",
+  },
+  {
+    titulo: "Entradas",
+    cancelado: "Pedido cancelado. El lugar volvió al lote.",
+    paraComprar: "Para comprar, entra en tu cuenta o regístrate rápidamente.",
+    cadastreLogin: "Regístrate o inicia sesión",
+    soCongressista: "La compra se hace con una cuenta de participante.",
+    naoAbertas: "Las ventas aún no están abiertas. Vuelve pronto.",
+    esgotado: "Agotado. El próximo lote abre pronto.",
+    emBreve: "Precio y ventas próximamente.",
+    comprado: "Comprado — ver en mi área",
+    continuar: "Continuar el pago",
+    desistir: "Desistir",
+    comprar: "Ir al pago",
+    comprarVisitante: "Comprar",
+    escolheu: (nome: string) => `Elegiste ${nome}. Llevándote al pago…`,
+    aguardando: "Recibimos tu pedido y el pago se está procesando (el Pix puede tardar unos minutos). En cuanto se apruebe, recibirás un correo de confirmación.",
+    meios: "Pix, tarjeta de crédito, tarjeta de débito virtual Caixa o saldo de Mercado Pago.",
+    rodape: (min: number) =>
+      `Pago procesado por Mercado Pago — los datos de tu tarjeta nunca pasan por nuestro sitio. Tu lugar queda reservado ${min} minutos mientras pagas.`,
+    politica:
+      "Los paquetes son personales e intransferibles. El reembolso solo es posible si desistes dentro de los 7 días posteriores a la compra, conforme al derecho de arrepentimiento del Código de Defensa del Consumidor de Brasil (art. 49). Si no asistes, el paquete no puede transferirse a la edición del año siguiente.",
   },
 );
 export const dynamic = "force-dynamic";
@@ -87,7 +121,7 @@ export default async function Page(props: PageProps<"/ingressos">) {
   ]);
   const mensagemErro =
     typeof erro === "string" && erro in MENSAGENS_ERRO_COMPRA
-      ? (idioma === "en" ? ERROS_EN : MENSAGENS_ERRO_COMPRA)[erro as keyof typeof MENSAGENS_ERRO_COMPRA]
+      ? tx(idioma, MENSAGENS_ERRO_COMPRA, ERROS_EN, ERROS_ES)[erro as keyof typeof MENSAGENS_ERRO_COMPRA]
       : null;
 
   return (
@@ -134,7 +168,7 @@ export default async function Page(props: PageProps<"/ingressos">) {
                     <p className="font-display text-sm uppercase tracking-[0.15em] text-gold-300">{nomeDoProduto(item.tipo, idioma)}</p>
                     {item.lote ? (
                       <>
-                        <p className="mt-1 text-sm text-teal-300">{item.lote.nome}</p>
+                        <p className="mt-1 text-sm text-teal-300">{nomeDoLote(item.lote.nome, idioma)}</p>
                         <p className="text-gold-metal mt-1 text-3xl font-extrabold">{formatarPreco(item.lote.precoCentavos, idioma)}</p>
                       </>
                     ) : (
@@ -183,6 +217,9 @@ export default async function Page(props: PageProps<"/ingressos">) {
 
           <p className="text-center text-xs text-mist/60">
             {t.meios} {t.rodape(MINUTOS_RESERVA)}
+          </p>
+          <p className="mx-auto max-w-2xl rounded-lg border border-gold-500/30 bg-petrol-900/60 px-4 py-3 text-center text-xs text-mist/80">
+            {t.politica}
           </p>
         </div>
       </main>

@@ -77,6 +77,7 @@ export async function listarCadastros({ busca, papel, limite = 500 }: { busca?: 
     .select({
       id: usuarios.id,
       nome: usuarios.name,
+      apelido: usuarios.apelido,
       email: usuarios.email,
       emailVerificado: usuarios.emailVerified,
       papel: usuarios.papel,

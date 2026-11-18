@@ -46,3 +46,54 @@ export const COMO_CONHECEU_EN: Record<string, string> = {
   "Outro evento de dança": "Another dance event",
   Outro: "Other",
 };
+
+// ---- Espanhol ---------------------------------------------------------------
+
+const MENSAGENS_ES: Record<string, string> = {
+  "Informe seu nome completo.": "Ingresa tu nombre completo.",
+  "Nome longo demais.": "El nombre es demasiado largo.",
+  "Informe a data de nascimento.": "Ingresa tu fecha de nacimiento.",
+  "Informe o celular.": "Ingresa tu celular.",
+  "Informe o país.": "Ingresa el país.",
+  "Informe a cidade.": "Ingresa la ciudad.",
+  "Nome de cidade longo demais.": "El nombre de la ciudad es demasiado largo.",
+  "Escolha uma das opções da lista.": "Elige una de las opciones de la lista.",
+  "Data de nascimento inválida.": "Fecha de nacimiento inválida.",
+  "Confira a data de nascimento.": "Revisa la fecha de nacimiento.",
+  "Celular inválido. Use DDD + número, ex: (11) 91234-5678.": "Celular inválido. Usa código de área + número, ej.: (11) 91234-5678.",
+  "Celular inválido. Inclua o código do país, ex: +351 912 345 678.":
+    "Celular inválido. Incluye el código del país, ej.: +34 612 345 678.",
+  "Selecione o estado.": "Selecciona el estado.",
+  "CPF inválido.": "CPF inválido.",
+  "Informe a rua/avenida ou deixe o endereço todo em branco.": "Ingresa la calle o deja toda la dirección en blanco.",
+  'Informe o número (ou "s/n").': 'Ingresa el número (o "s/n").',
+  "CEP inválido. Use 8 dígitos, ex: 01310-100.": "CEP inválido. Usa 8 dígitos, ej.: 01310-100.",
+  "Conte como nos conheceu.": "Cuéntanos cómo nos conociste.",
+  "É preciso aceitar a Política de Privacidade.": "Debes aceptar la Política de Privacidad.",
+  "Não foi possível usar este CPF. Se você já tem outra conta com ele, entre por ela ou fale com a organização.":
+    "No es posible usar este CPF. Si ya tienes otra cuenta con él, entra con esa cuenta o contacta a la organización.",
+  "Não foi possível salvar seus dados agora. Tente de novo em instantes.":
+    "No pudimos guardar tus datos ahora. Inténtalo de nuevo en unos momentos.",
+};
+
+// Mensagem da ficha no idioma do visitante (as regras geram em português).
+export function mensagemFicha(mensagem: string, idioma: "pt" | "en" | "es") {
+  if (idioma === "en") return mensagemFichaEn(mensagem);
+  if (idioma === "es") {
+    const limite = /^Use no máximo (\d+) caracteres\.$/.exec(mensagem);
+    if (limite) return `Usa como máximo ${limite[1]} caracteres.`;
+    return MENSAGENS_ES[mensagem] ?? mensagem;
+  }
+  return mensagem;
+}
+
+export const COMO_CONHECEU_ES: Record<string, string> = {
+  Instagram: "Instagram",
+  Facebook: "Facebook",
+  WhatsApp: "WhatsApp",
+  "Indicação de amigo(a)": "Recomendación de un(a) amigo(a)",
+  "Professor(a) ou escola de dança": "Profesor(a) o escuela de baile",
+  "Google / pesquisa na internet": "Google / búsqueda en internet",
+  "Outro evento de dança": "Otro evento de baile",
+  Outro: "Otro",
+};

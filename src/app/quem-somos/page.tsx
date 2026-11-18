@@ -1,20 +1,25 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { traducoes } from "@/i18n";
+import { traducoes, tx } from "@/i18n";
 import { obterIdioma } from "@/i18n/servidor";
 import { SiteHeader } from "../_components/site-header";
 
 export async function generateMetadata(): Promise<Metadata> {
-  const en = (await obterIdioma()) === "en";
-  return en
-    ? {
-        title: "About us — LPZ Training",
-        description: "Meet the team behind LPZ Training, a zouk congress focused on training and continuous practice.",
-      }
-    : {
-        title: "Quem somos — LPZ Training",
-        description: "Conheça a organização do LPZ Training, congresso de zouk focado em treinamento e prática continuada.",
-      };
+  return tx(
+    await obterIdioma(),
+    {
+      title: "Quem somos — LPZ Training",
+      description: "Conheça a organização do LPZ Training, congresso de zouk focado em treinamento e prática continuada.",
+    },
+    {
+      title: "About us — LPZ Training",
+      description: "Meet the team behind LPZ Training, a zouk congress focused on training and continuous practice.",
+    },
+    {
+      title: "Quiénes somos — LPZ Training",
+      description: "Conoce a la organización de LPZ Training, congreso de zouk enfocado en el entrenamiento y la práctica continua.",
+    },
+  );
 }
 
 // Estrutura pronta para os dados da organização. Trechos entre [colchetes]
@@ -48,6 +53,21 @@ const TEXTOS = traducoes(
       },
       { titulo: "Team", texto: "[Names and roles of the organizers. Photos only with each person's permission.]" },
       { titulo: "Contact", texto: "[Official email, Instagram and WhatsApp of the event.]" },
+    ],
+  },
+  {
+    titulo: "Quiénes somos",
+    subtitulo: "Conoce a quienes hacen posible LPZ Training.",
+    voltar: "Volver al inicio",
+    secoes: [
+      { titulo: "Nuestra historia", texto: "[Cómo y cuándo empezó LPZ, quién lo creó y qué motivó el evento.]" },
+      {
+        titulo: "Nuestra propuesta",
+        texto:
+          "LPZ Training es un congreso de zouk enfocado en el entrenamiento y la práctica continua. [Describir la metodología, el público y lo que diferencia al evento.]",
+      },
+      { titulo: "Organización", texto: "[Nombres y funciones de la organización. Fotos solo con autorización de cada persona.]" },
+      { titulo: "Contacto", texto: "[Correo, Instagram y WhatsApp oficiales del evento.]" },
     ],
   },
 );

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { traducoes, type Idioma } from "@/i18n";
-import { codigoCurto, nomeDoProduto, pedidosDoComprador, PRODUTOS } from "@/modules/ingressos";
+import { codigoCurto, nomeDoLote, nomeDoProduto, pedidosDoComprador, PRODUTOS } from "@/modules/ingressos";
 import { formatarDataHora, formatarPreco } from "@/lib/formatar";
 import { QrIngresso } from "./qr-ingresso";
 import { urlDoQr } from "@/modules/ingressos/emails";
@@ -33,6 +33,19 @@ const TEXTOS = traducoes(
     entrada: (quando: string) => `Entry recorded${quando ? ` on ${quando}` : ""}. Enjoy the event!`,
     cancelado: "Ticket cancelled. Please contact the organizers.",
   },
+  {
+    semIngresso: "Aún no tienes entrada.",
+    comprar: "Comprar entrada o paquete",
+    pedidoEm: "pedido el",
+    aguardando: "Esperando el pago.",
+    continuar: "Continuar el pago",
+    servico: "Compra confirmada. El equipo se pondrá en contacto sobre el servicio.",
+    jackAndJill: "Inscripción en el Jack and Jill confirmada. La organización compartirá los detalles de la competencia.",
+    codigo: "Código de la entrada",
+    mostre: "Muestra el código QR (o el código) en la entrada del evento.",
+    entrada: (quando: string) => `Entrada registrada${quando ? ` el ${quando}` : ""}. ¡Buen evento!`,
+    cancelado: "Entrada cancelada. Contacta a la organización.",
+  },
 );
 
 export async function MeusIngressos({ email, idioma = "pt" }: { email: string; idioma?: Idioma }) {
@@ -55,7 +68,7 @@ export async function MeusIngressos({ email, idioma = "pt" }: { email: string; i
       {lista.map((p) => (
         <li key={p.pedidoId} className="rounded-xl border border-white/10 bg-petrol-950/60 p-4 text-center">
           <p className="font-display text-sm uppercase tracking-[0.15em] text-gold-300">{nomeDoProduto(p.tipo, idioma)}</p>
-          <p className="text-sm font-medium text-teal-300">{p.loteNome}</p>
+          <p className="text-sm font-medium text-teal-300">{nomeDoLote(p.loteNome, idioma)}</p>
           <p className="text-sm text-mist/70">
             {formatarPreco(p.valorCentavos, idioma)} · {t.pedidoEm} {formatarDataHora(p.criadoEm, idioma)}
               {p.status === "pago" && p.formaPagamento ? ` · ${descreverPagamento(p.formaPagamento, p.parcelas, p.valorCentavos, idioma)}` : ""}

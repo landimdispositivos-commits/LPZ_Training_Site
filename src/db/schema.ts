@@ -38,6 +38,8 @@ export const papelUsuarioEnum = pgEnum("papel_usuario", [
 export const usuarios = pgTable("usuarios", {
   id: text("id").primaryKey(),
   name: text("nome").notNull(),
+  // Como a pessoa prefere ser chamada no site (opcional; ex: "Landim").
+  apelido: text("apelido"),
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verificado").notNull().default(false),
   image: text("imagem"),

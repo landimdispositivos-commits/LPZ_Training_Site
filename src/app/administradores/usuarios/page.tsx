@@ -238,6 +238,7 @@ function LinhaUsuario({
     : null;
 
   const ficha = [
+    { rotulo: "Apelido", valor: u.apelido },
     { rotulo: "Cadastro via", valor: u.formaCadastro },
     { rotulo: "Cadastrado em", valor: formatarDataHora(u.criadoEm) },
     { rotulo: "E-mail confirmado", valor: u.emailVerificado ? "Sim" : "Não" },
