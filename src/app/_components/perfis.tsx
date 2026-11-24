@@ -196,30 +196,6 @@ export function GradePerfis({
           id={`perfil-${p.id}`}
           className="relative flex scroll-mt-24 flex-col items-center rounded-2xl border border-gold-500/40 bg-petrol-950/70 p-6 pb-16 text-center transition hover:border-gold-300 hover:shadow-[0_0_24px_rgb(230_181_74/0.25)]"
         >
-          {editavel && (
-            // Setinhas para ordenar (só organização), por cima do link da caixa.
-            <div className="absolute right-3 top-3 z-10 flex flex-col gap-1">
-              {(["cima", "baixo"] as const).map((direcao) => {
-                const desabilitado = direcao === "cima" ? indice === 0 : indice === perfis.length - 1;
-                return (
-                  <form key={direcao} action={moverPerfilAction}>
-                    <input type="hidden" name="id" value={p.id} />
-                    <input type="hidden" name="categoria" value={categoria} />
-                    <input type="hidden" name="direcao" value={direcao} />
-                    <button
-                      type="submit"
-                      disabled={desabilitado}
-                      aria-label={`${direcao === "cima" ? t.moverAntes : t.moverDepois}: ${p.nome}`}
-                      title={direcao === "cima" ? t.moverAntes : t.moverDepois}
-                      className="flex h-8 w-8 items-center justify-center rounded-full bg-gold-400/15 text-gold-300 hover:bg-gold-400/30 disabled:opacity-30"
-                    >
-                      {direcao === "cima" ? "▲" : "▼"}
-                    </button>
-                  </form>
-                );
-              })}
-            </div>
-          )}
           <Foto perfil={p} idioma={idioma} />
           <Link
             href={`${base}/${p.id}`}
@@ -238,7 +214,31 @@ export function GradePerfis({
               <IconeCaneta />
             </Link>
           )}
-          <span className="absolute bottom-4 right-5 text-sm font-semibold text-teal-300">{t.verBio}</span>
+          <span className={`absolute right-5 text-sm font-semibold text-teal-300 ${editavel ? "bottom-10" : "bottom-4"}`}>{t.verBio}</span>
+          {editavel && (
+            // Setinhas delicadas para ordenar (só organização), no canto inferior direito.
+            <div className="absolute bottom-2.5 right-3 z-10 flex gap-1">
+              {(["cima", "baixo"] as const).map((direcao) => {
+                const desabilitado = direcao === "cima" ? indice === 0 : indice === perfis.length - 1;
+                return (
+                  <form key={direcao} action={moverPerfilAction}>
+                    <input type="hidden" name="id" value={p.id} />
+                    <input type="hidden" name="categoria" value={categoria} />
+                    <input type="hidden" name="direcao" value={direcao} />
+                    <button
+                      type="submit"
+                      disabled={desabilitado}
+                      aria-label={`${direcao === "cima" ? t.moverAntes : t.moverDepois}: ${p.nome}`}
+                      title={direcao === "cima" ? t.moverAntes : t.moverDepois}
+                      className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] leading-none text-gold-300 hover:bg-gold-400/20 disabled:opacity-25"
+                    >
+                      {direcao === "cima" ? "◀" : "▶"}
+                    </button>
+                  </form>
+                );
+              })}
+            </div>
+          )}
         </li>
       ))}
     </ul>

@@ -192,32 +192,12 @@ export default async function Page(props: PageProps<"/ingressos">) {
                   <Fragment key={item.tipo}>
                   <li
                     id={`produto-${item.tipo}`}
-                    className={`relative flex scroll-mt-24 flex-col rounded-2xl border bg-petrol-950/70 p-6 text-center transition ${
+                    className={`relative flex scroll-mt-24 flex-col rounded-2xl border bg-petrol-950/70 p-6 text-center transition ${organizacao ? "pb-10" : ""} ${
                       escolhido === item.tipo
                         ? "border-gold-300 shadow-[0_0_30px_rgb(230_181_74/0.35)] ring-2 ring-gold-400"
                         : "border-gold-500/40"
                     } ${!user && item.lote ? "hover:border-gold-300 hover:shadow-[0_0_24px_rgb(230_181_74/0.25)]" : ""}`}
                   >
-                    {organizacao && (
-                      // Setinhas para ordenar as caixas (só organização).
-                      <div className="absolute right-3 top-3 z-10 flex gap-1">
-                        {(["cima", "baixo"] as const).map((direcao) => (
-                          <form key={direcao} action={moverProdutoAction}>
-                            <input type="hidden" name="tipo" value={item.tipo} />
-                            <input type="hidden" name="direcao" value={direcao} />
-                            <button
-                              type="submit"
-                              disabled={direcao === "cima" ? indice === 0 : indice === itens.length - 1}
-                              aria-label={`${direcao === "cima" ? t.moverAntes : t.moverDepois}: ${nomeDoProduto(item.tipo, idioma)}`}
-                              title={direcao === "cima" ? t.moverAntes : t.moverDepois}
-                              className="flex h-8 w-8 items-center justify-center rounded-full bg-gold-400/15 text-gold-300 hover:bg-gold-400/30 disabled:opacity-30"
-                            >
-                              {direcao === "cima" ? "◀" : "▶"}
-                            </button>
-                          </form>
-                        ))}
-                      </div>
-                    )}
                     <p className="font-display text-sm uppercase tracking-[0.15em] text-gold-300">{nomeDoProduto(item.tipo, idioma)}</p>
                     {item.opcoes.length > 0 ? (
                       // Produto com opções (massagens): lista de durações e valores.
@@ -292,6 +272,26 @@ export default async function Page(props: PageProps<"/ingressos">) {
                         </Link>
                       ) : null}
                     </div>
+                    {organizacao && (
+                      // Setinhas delicadas para ordenar as caixas (só organização), no canto inferior direito.
+                      <div className="absolute bottom-2.5 right-3 z-10 flex gap-1">
+                        {(["cima", "baixo"] as const).map((direcao) => (
+                          <form key={direcao} action={moverProdutoAction}>
+                            <input type="hidden" name="tipo" value={item.tipo} />
+                            <input type="hidden" name="direcao" value={direcao} />
+                            <button
+                              type="submit"
+                              disabled={direcao === "cima" ? indice === 0 : indice === itens.length - 1}
+                              aria-label={`${direcao === "cima" ? t.moverAntes : t.moverDepois}: ${nomeDoProduto(item.tipo, idioma)}`}
+                              title={direcao === "cima" ? t.moverAntes : t.moverDepois}
+                              className="flex h-6 w-6 items-center justify-center rounded-full text-[10px] leading-none text-gold-300 hover:bg-gold-400/20 disabled:opacity-25"
+                            >
+                              {direcao === "cima" ? "◀" : "▶"}
+                            </button>
+                          </form>
+                        ))}
+                      </div>
+                    )}
                   </li>
                   {item.tipo === "camiseta" && (
                     // Espaço reservado para o próximo produto (ainda sem definição).
