@@ -1,5 +1,5 @@
 import { comoChamar } from "@/modules/perfil/apelido";
-import { perfisDo, temPerfil } from "@/modules/auth/papeis";
+import { ehGestor, perfisDo, temPerfil } from "@/modules/auth/papeis";
 import Link from "next/link";
 import { traducoes, type Idioma } from "@/i18n";
 import { obterIdioma } from "@/i18n/servidor";
@@ -8,6 +8,7 @@ import { obterSessao } from "@/modules/auth/sessao";
 import { contarSacola } from "@/modules/ingressos";
 import { ItemSair } from "./item-sair";
 import { MenuSuspenso } from "./menu-suspenso";
+import { pararVerComoAction } from "./ver-como-actions";
 import { SeletorIdioma } from "./seletor-idioma";
 
 const TEXTOS = traducoes(
@@ -160,10 +161,44 @@ async function MenuConta({ idioma }: { idioma: Idioma }) {
           ))}
         </ul>
         <div className="border-t border-white/10 pt-1">
-          <ItemSair />
+          {sessao.impersonador ? (
+            // Modo "ver como": voltar para a própria conta, sem sair do login.
+            <form action={pararVerComoAction}>
+              <button type="submit" className="block w-full rounded px-3 py-2.5 text-left text-sm font-medium text-teal-300 hover:bg-petrol-800">
+                ↩ Voltar para o meu admin
+              </button>
+            </form>
+          ) : (
+            <>
+              {ehGestor(user.papel) && (
+                <Link href="/administradores/usuarios" className={`block rounded px-3 py-2.5 text-sm font-medium hover:bg-white/10 ${classeLink}`}>
+                  👁 Ver o site como outro usuário
+                </Link>
+              )}
+              <ItemSair />
+            </>
+          )}
         </div>
       </div>
     </MenuSuspenso>
+  );
+}
+
+// Faixa do modo "ver o site como esta pessoa" (só a organização chega aqui).
+async function FaixaVerComo() {
+  const sessao = await obterSessao().catch(() => null);
+  if (!sessao?.impersonador) return null;
+  return (
+    <div role="status" className="flex flex-wrap items-center justify-center gap-3 bg-teal-400 px-4 py-2 text-sm font-semibold text-petrol-950">
+      <span>
+        👁 Você está vendo o site como <strong>{sessao.user.name}</strong> ({sessao.user.email}) — só visualização.
+      </span>
+      <form action={pararVerComoAction}>
+        <button type="submit" className="rounded-full bg-petrol-950 px-4 py-1 text-xs font-bold text-teal-300 hover:bg-petrol-900">
+          Voltar para o meu admin
+        </button>
+      </form>
+    </div>
   );
 }
 
@@ -172,6 +207,7 @@ export async function SiteHeader() {
   const t = TEXTOS[idioma];
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-petrol-950/85 backdrop-blur">
+      <FaixaVerComo />
       <nav
         aria-label={t.navegacao}
         className="mx-auto flex max-w-7xl items-center justify-between gap-6 px-4 py-4"

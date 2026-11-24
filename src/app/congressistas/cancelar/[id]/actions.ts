@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { z } from "zod";
-import { obterSessao } from "@/modules/auth/sessao";
+import { emModoVerComo, obterSessao } from "@/modules/auth/sessao";
 import { cancelarCompraDoCliente, ErroCancelamento } from "@/modules/ingressos";
 import { registrarAuditoria } from "@/modules/auditoria";
 
@@ -10,6 +10,7 @@ import { registrarAuditoria } from "@/modules/auditoria";
 export async function cancelarCompraAction(form: FormData) {
   const sessao = await obterSessao();
   if (!sessao) redirect("/congressistas");
+  if (emModoVerComo(sessao)) redirect("/congressistas/minha-area");
   const pedidoId = z.uuid().safeParse(form.get("pedidoId"));
   if (!pedidoId.success) redirect("/congressistas/minha-area");
   if (form.get("confirmo") !== "on") redirect(`/congressistas/cancelar/${pedidoId.data}?erro=confirmar`);

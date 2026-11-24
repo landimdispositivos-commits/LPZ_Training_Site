@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { usuarios } from "@/db/schema";
 import { type CampoFicha, fichaCongressistaSchema, PAIS_BRASIL } from "@/modules/auth/cadastro";
 import { areaDoPapel, temPerfil } from "@/modules/auth/papeis";
-import { obterSessao } from "@/modules/auth/sessao";
+import { emModoVerComo, obterSessao } from "@/modules/auth/sessao";
 import { diferencas, registrarAuditoria } from "@/modules/auditoria";
 import { proximoSeguro } from "@/modules/auth/proximo";
 import { enviarEmailCadastroAlterado, nomesDosCampos } from "@/modules/ingressos/emails";
@@ -27,6 +27,7 @@ const texto = (form: FormData, campo: string) => {
 export async function salvarFichaAction(form: FormData): Promise<ResultadoFicha> {
   const sessao = await obterSessao();
   if (!sessao) redirect("/congressistas");
+  if (emModoVerComo(sessao)) redirect("/congressistas/completar-cadastro");
   const { user } = sessao;
   if (!temPerfil(user, "congressista")) redirect(areaDoPapel(user.papel));
 

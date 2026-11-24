@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { perfisDo } from "@/modules/auth/papeis";
+import { ehAdmin, perfisDo } from "@/modules/auth/papeis";
 import { rotuloPresenca, type DiaPresenca } from "@/modules/presencas/regras";
 import Link from "next/link";
 import { exigirAdmin } from "@/modules/auth/sessao";
@@ -13,6 +13,7 @@ import { SiteHeader } from "../../_components/site-header";
 import { MarcarColunas } from "./marcar-colunas";
 import { alterarPapelAction } from "../permissoes/actions";
 import { editarCadastroAction, excluirUsuarioAction } from "./actions";
+import { iniciarVerComoAction } from "@/app/_components/ver-como-actions";
 import { BotaoSalvar } from "../../_components/botao-salvar";
 import { ACOES, descreverEvento, historicoDos, type RegistroAuditoria } from "@/modules/auditoria";
 
@@ -314,17 +315,39 @@ function LinhaUsuario({
               <form action={alterarPapelAction} className="mt-2 space-y-2">
                 <input type="hidden" name="usuarioId" value={u.id} />
                 <input type="hidden" name="voltar" value={voltar} />
-                <label htmlFor={`papel-${u.id}`} className="sr-only">Perfil de {u.nome}</label>
-                <select id={`papel-${u.id}`} name="papel" defaultValue={u.papel} className={classeInput}>
+                <fieldset className="grid gap-2">
+                  <legend className="mb-1 text-xs text-mist/60">Marque um ou mais perfis de {u.nome}.</legend>
                   {PAPEIS.map((p) => (
-                    <option key={p} value={p}>{ROTULO_PAPEL[p]} — {DESCRICAO_PAPEL[p]}</option>
+                    <label key={p} className="flex items-start gap-2 rounded-lg border border-white/10 p-2 text-sm text-mist has-[:checked]:border-gold-400">
+                      <input type="checkbox" name="perfis" value={p} defaultChecked={perfisDo(u).includes(p)} className="mt-1 h-4 w-4 accent-gold-400" />
+                      <span>
+                        <span className="font-medium text-white">{ROTULO_PAPEL[p]}</span>
+                        <span className="block text-xs text-mist/60">{DESCRICAO_PAPEL[p]}</span>
+                      </span>
+                    </label>
                   ))}
-                </select>
+                </fieldset>
                 <label className="flex items-center gap-2 text-xs text-mist/80">
                   <input type="checkbox" name="confirmo" className="h-4 w-4 accent-gold-400" />
-                  Confirmo (obrigatório para Portaria, Organizador ou Acesso total)
+                  Confirmo (obrigatório ao dar Portaria, Mídias, Organizador ou Acesso total)
                 </label>
-                <BotaoSalvar>Salvar permissão</BotaoSalvar>
+                <BotaoSalvar>Salvar perfis</BotaoSalvar>
+              </form>
+            )}
+
+            {!euMesmo && !perfisDo(u).some((p) => ehAdmin(p)) && (
+              <form action={iniciarVerComoAction} className="mt-5">
+                <input type="hidden" name="usuarioId" value={u.id} />
+                <button
+                  type="submit"
+                  className="inline-flex items-center gap-2 rounded-full border border-teal-400/60 px-4 py-2 text-sm font-semibold text-teal-300 hover:bg-teal-400/10"
+                >
+                  👁 Ver o site como esta pessoa
+                </button>
+                <p className="mt-1 text-xs text-mist/60">
+                  Você continua logado como organização e volta com um clique. Só visualização: compras e alterações
+                  ficam bloqueadas. Fica registrado na auditoria.
+                </p>
               </form>
             )}
 

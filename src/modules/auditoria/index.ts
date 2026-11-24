@@ -18,6 +18,8 @@ export const ACOES = {
   compra_cancelada: "Compra cancelada pelo cliente",
   estorno_aprovado: "Estorno aprovado",
   problema_reportado: "Problema reportado",
+  ver_como_iniciado: "Organização passou a ver o site como o usuário",
+  ver_como_encerrado: "Organização voltou para a própria conta",
 } as const;
 export type Acao = keyof typeof ACOES;
 

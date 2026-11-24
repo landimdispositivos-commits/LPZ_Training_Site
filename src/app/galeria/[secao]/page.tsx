@@ -6,7 +6,11 @@ import { obterIdioma } from "@/i18n/servidor";
 import { urlCompra } from "@/modules/auth/proximo";
 import { ehSpotify } from "@/modules/midia/audio";
 import { itensDaGaleria } from "@/modules/midia/galeria";
-import { classeBotao } from "../../_components/form-ui";
+import { Aviso, Campo, classeBotao, classeInput } from "../../_components/form-ui";
+import { obterSessao } from "@/modules/auth/sessao";
+import { perfisDo } from "@/modules/auth/papeis";
+import { obterLinksDrive } from "@/modules/midia/links-drive";
+import { salvarLinkDriveAction } from "./actions";
 import { RodapeSite } from "../../_components/rodape-site";
 import { SiteHeader } from "../../_components/site-header";
 
@@ -24,6 +28,13 @@ const TEXTOS = traducoes(
     comprarFoto: "Contratar Paparazzi — fotos",
     videosTitulo: "Vídeos",
     audiosTitulo: "Áudios",
+    drive: { videos: "Ver todos os vídeos no Google Drive", fotos: "Ver todas as fotos no Google Drive" } as Record<"videos" | "fotos", string>,
+    editarDrive: "Editar link do Google Drive",
+    linkDrive: "Link da pasta no Google Drive",
+    dicaDrive: "Cole o link de compartilhamento da pasta (começa com https://). Deixe em branco para tirar o botão.",
+    salvar: "Salvar link",
+    salvo: "Link salvo.",
+    erroLink: "Link inválido: use um endereço que comece com https://",
   },
   {
     titulo: { videos: "Videos", fotos: "Photos", paparazzi: "Paparazzi" } as Record<Secao, string>,
@@ -35,6 +46,13 @@ const TEXTOS = traducoes(
     comprarFoto: "Book Paparazzi — photos",
     videosTitulo: "Videos",
     audiosTitulo: "Audio",
+    drive: { videos: "See all videos on Google Drive", fotos: "See all photos on Google Drive" } as Record<"videos" | "fotos", string>,
+    editarDrive: "Edit Google Drive link",
+    linkDrive: "Google Drive folder link",
+    dicaDrive: "Paste the folder sharing link (starting with https://). Leave blank to remove the button.",
+    salvar: "Save link",
+    salvo: "Link saved.",
+    erroLink: "Invalid link: use an address starting with https://",
   },
   {
     titulo: { videos: "Videos", fotos: "Fotos", paparazzi: "Paparazzi" } as Record<Secao, string>,
@@ -46,6 +64,13 @@ const TEXTOS = traducoes(
     comprarFoto: "Contratar Paparazzi — fotos",
     videosTitulo: "Videos",
     audiosTitulo: "Audios",
+    drive: { videos: "Ver todos los videos en Google Drive", fotos: "Ver todas las fotos en Google Drive" } as Record<"videos" | "fotos", string>,
+    editarDrive: "Editar enlace de Google Drive",
+    linkDrive: "Enlace de la carpeta en Google Drive",
+    dicaDrive: "Pega el enlace para compartir la carpeta (empieza con https://). Déjalo en blanco para quitar el botón.",
+    salvar: "Guardar enlace",
+    salvo: "Enlace guardado.",
+    erroLink: "Enlace inválido: usa una dirección que empiece con https://",
   },
 );
 
@@ -66,6 +91,14 @@ export default async function Page(props: PageProps<"/galeria/[secao]">) {
   if (!secao) notFound();
   const idioma = await obterIdioma();
   const t = TEXTOS[idioma];
+  const busca = await props.searchParams;
+  const temDrive = secao === "videos" || secao === "fotos";
+  const [links, sessao] = await Promise.all([obterLinksDrive(), obterSessao().catch(() => null)]);
+  const linkDrive = temDrive ? links[secao] : null;
+  // Organização e Mídias editam o link (conferido de novo no servidor ao salvar).
+  const editavel =
+    temDrive && !!sessao && perfisDo(sessao.user).some((p) => p === "organizador" || p === "acesso_total" || p === "midias");
+  const editando = editavel && busca.editar === "1";
 
   const itens = secao === "paparazzi" ? [] : await itensDaGaleria();
   const fotos = secao === "fotos" ? itens.filter((i) => i.tipo === "foto") : [];
@@ -80,7 +113,60 @@ export default async function Page(props: PageProps<"/galeria/[secao]">) {
         <div className="mx-auto max-w-5xl space-y-12">
           <h1 className="text-center font-display text-2xl uppercase tracking-[0.2em] text-gold-metal sm:text-3xl">{t.titulo[secao]}</h1>
 
-          {vazio && <p className="text-center text-mist/70">{t.vazio[secao]}</p>}
+          {busca.salvo && editavel && <Aviso tipo="ok">{t.salvo}</Aviso>}
+          {busca.erro && editavel && <Aviso tipo="erro">{t.erroLink}</Aviso>}
+
+          {temDrive && (linkDrive || editavel) && (
+            <div className="flex flex-col items-center gap-3">
+              {linkDrive && (
+                <a
+                  href={linkDrive}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="bg-gold-metal inline-flex items-center gap-3 rounded-full px-7 py-3 font-semibold text-gold-ink shadow-lg hover:brightness-110"
+                >
+                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
+                    <path d="M8 3h8l6 10.5-4 7H6l-4-7Z" />
+                    <path d="M8 3l6 10.5M16 3 10 13.5M2 13.5h20" />
+                  </svg>
+                  {t.drive[secao as "videos" | "fotos"]}
+                  <span aria-hidden="true">↗</span>
+                </a>
+              )}
+              {editavel && !editando && (
+                <Link
+                  href={`/galeria/${secao}?editar=1#editar-drive`}
+                  className="inline-flex items-center gap-2 rounded-full bg-gold-400/15 px-4 py-2 text-sm font-semibold text-gold-300 hover:bg-gold-400/30"
+                >
+                  <span aria-hidden="true">✎</span> {t.editarDrive}
+                </Link>
+              )}
+              {editando && (
+                <form
+                  id="editar-drive"
+                  action={salvarLinkDriveAction}
+                  className="w-full max-w-xl scroll-mt-24 space-y-3 rounded-2xl border border-white/10 bg-petrol-900/80 p-6"
+                >
+                  <input type="hidden" name="secao" value={secao} />
+                  <Campo id="link-drive" label={t.linkDrive} dica={t.dicaDrive}>
+                    <input
+                      id="link-drive"
+                      name="link"
+                      type="url"
+                      inputMode="url"
+                      maxLength={500}
+                      defaultValue={linkDrive ?? ""}
+                      placeholder="https://drive.google.com/drive/folders/..."
+                      className={classeInput}
+                    />
+                  </Campo>
+                  <button type="submit" className={classeBotao}>{t.salvar}</button>
+                </form>
+              )}
+            </div>
+          )}
+
+          {vazio && !linkDrive && <p className="text-center text-mist/70">{t.vazio[secao]}</p>}
 
           {secao === "paparazzi" && (
             <div className="mx-auto max-w-xl space-y-6 rounded-2xl border border-gold-500/40 bg-petrol-950/70 p-8 text-center">

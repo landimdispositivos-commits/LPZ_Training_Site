@@ -4,7 +4,7 @@ import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { usuarios } from "@/db/schema";
-import { obterSessao } from "@/modules/auth/sessao";
+import { emModoVerComo, obterSessao } from "@/modules/auth/sessao";
 import { normalizarApelido } from "@/modules/perfil/apelido";
 import { diferencas, registrarAuditoria } from "@/modules/auditoria";
 import { enviarEmailCadastroAlterado, nomesDosCampos } from "@/modules/ingressos/emails";
@@ -15,7 +15,7 @@ export type ResultadoApelido = { ok?: boolean; erro?: "tamanho" | "sessao" };
 // Server action pública: confere a sessão e só altera o próprio usuário.
 export async function salvarApelidoAction(_: ResultadoApelido, form: FormData): Promise<ResultadoApelido> {
   const sessao = await obterSessao();
-  if (!sessao) return { erro: "sessao" };
+  if (!sessao || emModoVerComo(sessao)) return { erro: "sessao" };
   const r = normalizarApelido(form.get("apelido"));
   if (!r.ok) return { erro: "tamanho" };
   const { user } = sessao;

@@ -14,7 +14,7 @@ import {
 } from "@/modules/ingressos";
 import { areaDoPapel, temPerfil } from "@/modules/auth/papeis";
 import { urlCompra } from "@/modules/auth/proximo";
-import { obterSessao } from "@/modules/auth/sessao";
+import { emModoVerComo, obterSessao } from "@/modules/auth/sessao";
 import { obterIdioma } from "@/i18n/servidor";
 
 // Server actions são endpoints públicos (POST direto): sessão, papel e dono
@@ -23,6 +23,8 @@ import { obterIdioma } from "@/i18n/servidor";
 async function exigirCongressista(voltarPara = "/ingressos") {
   const sessao = await obterSessao();
   if (!sessao) redirect(`/congressistas?proximo=${encodeURIComponent(voltarPara)}`);
+  // Organização vendo o site como outra pessoa: só visualização.
+  if (emModoVerComo(sessao)) redirect(voltarPara);
   const { user } = sessao;
   if (!temPerfil(user, "congressista")) redirect(areaDoPapel(user.papel));
   if (!user.cadastroCompletoEm) redirect(`/congressistas/completar-cadastro?proximo=${encodeURIComponent(voltarPara)}`);

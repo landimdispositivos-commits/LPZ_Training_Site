@@ -110,6 +110,16 @@ Legenda: ✅ já testado pelo Claude · 🔑 precisa do login da organização.
 - [ ] 🔑 Canetinha do professor/DJ: enviar foto (JPG/PNG/WebP até 8 MB) e remover foto
 - [ ] Caixas de Professores e DJs mostram só foto, nome e "Bio"; a bio aparece ao clicar
 
+## 8.4 Galeria, cronograma e "ver como" (24/11)
+- [ ] 🔑 Galeria → Fotos / Vídeos: canetinha "Editar link do Google Drive", colar o link da pasta e salvar
+- [ ] Visitante vê o botão "Ver todas as fotos/vídeos no Google Drive" e abre a pasta
+- [ ] 🔑 Cronograma → "Editar cronograma" → "+ Adicionar aula" em cada dia (horário, aula, professor da galeria, local)
+- [ ] Aulas ficam em ordem automática pelo horário; editar e remover (com confirmação)
+- [ ] Nome do professor no cronograma leva para a bio
+- [ ] 🔑 Usuários → detalhe → "Ver o site como esta pessoa" → faixa verde no topo → "Voltar para o meu admin" sem novo login
+- [ ] 🔑 No modo "ver como", comprar/cancelar/editar cadastro ficam bloqueados
+- [ ] 🔑 Auditoria registra início e fim do "ver como"
+
 ## 9. Fale conosco
 - [ ] Contatos com ícones: lpztraining@gmail.com, +55 11 94502-6344 (abre o WhatsApp), @lpztrainingsp
 - [ ] Enviar mensagem pelo formulário → chega no e-mail da organização (Mailpit em teste)

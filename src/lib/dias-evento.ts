@@ -16,3 +16,7 @@ export function dataCurta(dia: string, en: boolean) {
   const [, m, d] = dia.split("-");
   return en ? `${m}/${d}` : `${d}/${m}`;
 }
+
+// Datas do LPZ Training 2027 (sexta, sábado e domingo). Usadas ao adicionar
+// uma aula pela página do cronograma, quando ainda não há aula no dia.
+export const DATA_PADRAO_DO_DIA: Record<number, string> = { 5: "2027-09-24", 6: "2027-09-25", 0: "2027-09-26" };
