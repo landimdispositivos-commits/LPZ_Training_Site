@@ -1,7 +1,7 @@
 ---
 projeto: LPZ Training — Site
 assunto: Lista de testes (roteiro para conferir o site antes de publicar)
-data: 2026-11-17
+data: 2026-11-24
 status: em andamento
 relacionado: "[[LPZ Training - Site]]"
 ---
@@ -47,6 +47,18 @@ Legenda: ✅ já testado pelo Claude · 🔑 precisa do login da organização.
 - [ ] Reserva vence em 30 minutos e a vaga volta ao lote
 - [ ] Pagamento recusado / desistir → pedidos cancelados
 
+### 4.1 Massagens (24/11)
+- [ ] Massagem — Pri Pastel e Massagem — Jéssica mostram 15 min R$ 29,99 · 30 min R$ 49,99 · 1 hora R$ 79,99
+- [ ] Escolher a duração, adicionar à sacola e pagar
+
+### 4.2 Cancelar compra (24/11)
+- [ ] Minha área: botão "Cancelar compra" aparece só em itens pagos, dentro de 7 dias e ainda não usados no evento
+- [ ] Tela de confirmação exige marcar "Entendi" antes de cancelar
+- [ ] Cancelar um item de dois (ex.: Baile avulso, mantendo o Full pass): e-mail diz o que foi cancelado e o que continua válido
+- [ ] O QR do item cancelado deixa de valer; a vaga volta ao lote
+- [ ] 🔑 Financeiro → "Estornos aguardando aprovação" → Estornar → e-mail de estorno ao cliente; status "Reembolsado"
+- [ ] 🔑 Auditoria: "Compra cancelada pelo cliente" e "Estorno aprovado"
+
 ## 5. Pagamento (modo de teste e Mercado Pago)
 - [ ] Tela de teste: Pix, crédito em até 12x, débito — forma de pagamento salva na compra
 - [ ] Credenciais de TESTE do Mercado Pago no .env → checkout real de sandbox
@@ -58,6 +70,7 @@ Legenda: ✅ já testado pelo Claude · 🔑 precisa do login da organização.
 - [ ] Conferir se cada QR do e-mail da sacola abre a página certa
 - [ ] 🔑 Financeiro → reenviar e-mails a todos (um por compra)
 - [ ] E-mail de verdade (Brevo + domínio) — só em produção
+- [ ] WhatsApp para o cliente (compra, cancelamento, cadastro) — CONGELADO por decisão do Wilson (24/11)
 
 ## 7. QR code, check-in e presença
 - [x] QR na visão do dono (só a compra dele) ✅
@@ -80,6 +93,22 @@ Legenda: ✅ já testado pelo Claude · 🔑 precisa do login da organização.
 - [ ] Financeiro: lotes, valores, relatório
 - [ ] Canetinha: editar bios de professores e DJs, contatos do Fale conosco
 - [ ] Menus DJ, MC e Jack and Jill em ordem alfabética
+
+## 8.1 Perfis e sessão (24/11)
+- [ ] 🔑 Permissões: marcar dois ou mais perfis para a mesma pessoa (ex.: Portaria + Mídias) e salvar
+- [ ] 🔑 Pessoa com Portaria + Mídias vê Check-in, Fotos e Áudio e vídeo (e não vê Financeiro)
+- [ ] 🔑 Perfil Mídias não vê dados pessoais na página do QR
+- [ ] Login único: entrar no celular e depois no computador → o celular sai da conta
+- [ ] E-mail "Seus dados foram alterados" ao editar o cadastro (pelo cliente e pela organização)
+
+## 8.2 Busca e reporte (24/11)
+- [ ] Lupa no topo: buscar "massagem", "reembolso", "cronograma", nome de professor/DJ → resultados com link
+- [ ] Botão de reportar problema (canto inferior direito) → e-mail para lpztraining@gmail.com (Mailpit) com print e log
+- [ ] Reporte no Safari/iPhone: chega sem print (limitação do navegador) mas com o log
+
+## 8.3 Profissionais (24/11)
+- [ ] 🔑 Canetinha do professor/DJ: enviar foto (JPG/PNG/WebP até 8 MB) e remover foto
+- [ ] Caixas de Professores e DJs mostram só foto, nome e "Bio"; a bio aparece ao clicar
 
 ## 9. Fale conosco
 - [ ] Contatos com ícones: lpztraining@gmail.com, +55 11 94502-6344 (abre o WhatsApp), @lpztrainingsp

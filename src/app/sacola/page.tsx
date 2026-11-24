@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { LOCALE, traducoes, tx } from "@/i18n";
 import { obterIdioma } from "@/i18n/servidor";
 import { formatarPreco } from "@/lib/formatar";
-import { areaDoPapel } from "@/modules/auth/papeis";
+import { areaDoPapel, temPerfil } from "@/modules/auth/papeis";
 import { obterSessao } from "@/modules/auth/sessao";
 import { MENSAGENS_ERRO_COMPRA, MINUTOS_RESERVA, nomeDoLote, nomeDoProduto, sacolaDoComprador } from "@/modules/ingressos";
 import { POLITICA_COMPRA } from "@/modules/ingressos/politica";
@@ -60,7 +60,7 @@ export default async function Page(props: PageProps<"/sacola">) {
   const sessao = await obterSessao();
   if (!sessao) redirect("/congressistas?proximo=%2Fsacola");
   const { user } = sessao;
-  if (user.papel !== "congressista") redirect(areaDoPapel(user.papel));
+  if (!temPerfil(user, "congressista")) redirect(areaDoPapel(user.papel));
 
   const idioma = await obterIdioma();
   const t = TEXTOS[idioma];

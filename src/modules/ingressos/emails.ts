@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import qrcode from "qrcode-generator";
 import { db } from "@/db";
 import { cronogramaItens, ingressos, lotes, pedidos, professores } from "@/db/schema";
@@ -444,4 +444,164 @@ export async function reenviarTodosOsIngressos() {
     }
   }
   return { total: porCompra.size, enviados };
+}
+
+// ---- Avisos: cancelamento, estorno e alteração de cadastro --------------------
+
+const AVISOS = {
+  pt: {
+    assuntoCancelamento: (p: string) => `Cancelamento confirmado — ${p} | LPZ Training`,
+    cancelado: (p: string) => `O cancelamento de ${p} foi confirmado.`,
+    continuam: "Estes itens continuam válidos:",
+    nenhumOutro: "Você não tem outros itens ativos.",
+    estornoAguarda: (v: string) =>
+      `O estorno de ${v} será feito pela mesma forma de pagamento. Você recebe outro e-mail quando ele for processado.`,
+    assuntoEstorno: (p: string) => `Estorno realizado — ${p} | LPZ Training`,
+    estornado: (p: string, v: string) => `O estorno de ${v} referente a ${p} foi processado.`,
+    prazoBanco: "Dependendo do banco ou do cartão, o valor pode levar alguns dias para aparecer.",
+    assuntoCadastro: "Seus dados foram alterados | LPZ Training",
+    cadastroAlterado: (quem: string) => `Seus dados de cadastro foram alterados ${quem}.`,
+    porVoce: "por você",
+    porOrganizacao: "pela organização do evento",
+    camposAlterados: "Campos alterados:",
+    naoFoiVoce: "Se você não reconhece esta alteração, responda este e-mail ou use o Fale conosco do site.",
+    verArea: "Ver minha área",
+  },
+  en: {
+    assuntoCancelamento: (p: string) => `Cancellation confirmed — ${p} | LPZ Training`,
+    cancelado: (p: string) => `The cancellation of ${p} is confirmed.`,
+    continuam: "These items are still valid:",
+    nenhumOutro: "You have no other active items.",
+    estornoAguarda: (v: string) =>
+      `The refund of ${v} will be made to the same payment method. You will get another email once it is processed.`,
+    assuntoEstorno: (p: string) => `Refund processed — ${p} | LPZ Training`,
+    estornado: (p: string, v: string) => `The refund of ${v} for ${p} has been processed.`,
+    prazoBanco: "Depending on your bank or card, it may take a few days to show up.",
+    assuntoCadastro: "Your details were changed | LPZ Training",
+    cadastroAlterado: (quem: string) => `Your profile details were changed ${quem}.`,
+    porVoce: "by you",
+    porOrganizacao: "by the event organizers",
+    camposAlterados: "Changed fields:",
+    naoFoiVoce: "If you do not recognize this change, reply to this email or use Contact us on the site.",
+    verArea: "Go to my area",
+  },
+  es: {
+    assuntoCancelamento: (p: string) => `Cancelación confirmada — ${p} | LPZ Training`,
+    cancelado: (p: string) => `La cancelación de ${p} está confirmada.`,
+    continuam: "Estos artículos siguen válidos:",
+    nenhumOutro: "No tienes otros artículos activos.",
+    estornoAguarda: (v: string) =>
+      `El reembolso de ${v} se hará por el mismo medio de pago. Recibirás otro correo cuando se procese.`,
+    assuntoEstorno: (p: string) => `Reembolso realizado — ${p} | LPZ Training`,
+    estornado: (p: string, v: string) => `El reembolso de ${v} por ${p} fue procesado.`,
+    prazoBanco: "Según tu banco o tarjeta, el valor puede tardar algunos días en aparecer.",
+    assuntoCadastro: "Tus datos fueron modificados | LPZ Training",
+    cadastroAlterado: (quem: string) => `Tus datos de registro fueron modificados ${quem}.`,
+    porVoce: "por ti",
+    porOrganizacao: "por la organización del evento",
+    camposAlterados: "Campos modificados:",
+    naoFoiVoce: "Si no reconoces este cambio, responde este correo o usa Contáctanos en el sitio.",
+    verArea: "Ver mi área",
+  },
+} as const;
+
+// Itens ainda válidos do comprador (pagos e com ingresso não cancelado).
+async function itensAtivos(email: string, idioma: Idioma) {
+  const lista = await db
+    .select({ tipo: lotes.tipo, loteNome: lotes.nome, ingressoStatus: ingressos.status })
+    .from(pedidos)
+    .innerJoin(lotes, eq(lotes.id, pedidos.loteId))
+    .leftJoin(ingressos, eq(ingressos.pedidoId, pedidos.id))
+    .where(and(eq(pedidos.email, email), eq(pedidos.status, "pago")));
+  return lista
+    .filter((i) => i.ingressoStatus !== "cancelado")
+    .map((i) => `${nomeDoProduto(i.tipo, idioma)} (${nomeDoLote(i.loteNome, idioma)})`);
+}
+
+function listaHtml(itens: string[]) {
+  return `<ul style="margin:8px 0 0;padding-left:20px;font-size:15px;line-height:1.7">${itens.map((i) => `<li>${e(i)}</li>`).join("")}</ul>`;
+}
+
+export async function enviarEmailCancelamento(pedidoId: string) {
+  const d = await carregarPedido(pedidoId);
+  if (!d) return;
+  const a = AVISOS[d.idioma];
+  const produto = `${nomeDoProduto(d.tipo, d.idioma)} (${nomeDoLote(d.loteNome, d.idioma)})`;
+  const valor = formatarPreco(d.valorCentavos, d.idioma);
+  const ativos = await itensAtivos(d.email, d.idioma);
+  const html = moldura(
+    `<p style="margin:0 0 8px;font-size:18px;font-weight:bold;color:${COR.ouroClaro}">${e(TEXTOS[d.idioma].ola(d.nome.split(" ")[0]))}</p>
+<p style="margin:0;font-size:15px;line-height:1.5">${e(a.cancelado(produto))}</p>
+<p style="margin:16px 0 0;font-size:15px;line-height:1.5">${e(a.estornoAguarda(valor))}</p>
+<p style="margin:20px 0 0;font-size:15px;font-weight:bold;color:${COR.agua}">${e(ativos.length ? a.continuam : a.nenhumOutro)}</p>
+${ativos.length ? listaHtml(ativos) : ""}
+${botao(a.verArea, urlSite("/congressistas/minha-area"))}`,
+    d.idioma,
+  );
+  const texto = [a.cancelado(produto), "", a.estornoAguarda(valor), "", ativos.length ? a.continuam : a.nenhumOutro, ...ativos.map((i) => `- ${i}`), "", urlSite("/congressistas/minha-area")].join("\n");
+  await enviarEmail({ para: d.email, assunto: a.assuntoCancelamento(nomeDoProduto(d.tipo, d.idioma)), texto, html });
+}
+
+export async function enviarEmailEstorno(pedidoId: string) {
+  const d = await carregarPedido(pedidoId);
+  if (!d) return;
+  const a = AVISOS[d.idioma];
+  const produto = nomeDoProduto(d.tipo, d.idioma);
+  const valor = formatarPreco(d.valorCentavos, d.idioma);
+  const html = moldura(
+    `<p style="margin:0 0 8px;font-size:18px;font-weight:bold;color:${COR.ouroClaro}">${e(TEXTOS[d.idioma].ola(d.nome.split(" ")[0]))}</p>
+<p style="margin:0;font-size:15px;line-height:1.5">${e(a.estornado(produto, valor))}</p>
+<p style="margin:12px 0 0;font-size:13px;color:${COR.suave}">${e(a.prazoBanco)}</p>`,
+    d.idioma,
+  );
+  await enviarEmail({ para: d.email, assunto: a.assuntoEstorno(produto), texto: `${a.estornado(produto, valor)}\n\n${a.prazoBanco}`, html });
+}
+
+// Nome dos campos do cadastro nos e-mails (mesmas chaves da auditoria).
+const CAMPOS_EMAIL: Record<string, [string, string, string]> = {
+  nome: ["Nome", "Name", "Nombre"],
+  dataNascimento: ["Data de nascimento", "Date of birth", "Fecha de nacimiento"],
+  celular: ["Celular", "Mobile", "Celular"],
+  pais: ["País", "Country", "País"],
+  uf: ["Estado", "State", "Estado"],
+  cidade: ["Cidade", "City", "Ciudad"],
+  cpf: ["CPF", "CPF (Brazilian tax ID)", "CPF"],
+  cep: ["CEP", "Postal code", "Código postal"],
+  logradouro: ["Endereço", "Address", "Dirección"],
+  numero: ["Número", "Number", "Número"],
+  complemento: ["Complemento", "Apartment, suite", "Complemento"],
+  bairro: ["Bairro", "Neighborhood", "Barrio"],
+  naturalidadeCidade: ["Cidade natal", "City of birth", "Ciudad natal"],
+  naturalidadeEstado: ["Estado/país natal", "State/country of birth", "Estado/país natal"],
+  comoConheceu: ["Como conheceu o LPZ", "How you heard about LPZ", "Cómo conociste LPZ"],
+  email: ["E-mail", "Email", "Correo"],
+  apelido: ["Como prefere ser chamado(a)", "Nickname", "Apodo"],
+};
+
+export function nomesDosCampos(campos: string[], idioma: Idioma) {
+  const i = idioma === "en" ? 1 : idioma === "es" ? 2 : 0;
+  return campos.map((c) => CAMPOS_EMAIL[c]?.[i] ?? c);
+}
+
+// Aviso de alteração de cadastro: só os NOMES dos campos (nunca os valores).
+export async function enviarEmailCadastroAlterado(dados: {
+  nome: string;
+  email: string;
+  campos: string[];
+  porOrganizacao: boolean;
+  idioma: Idioma;
+}) {
+  const a = AVISOS[dados.idioma];
+  const quem = dados.porOrganizacao ? a.porOrganizacao : a.porVoce;
+  const html = moldura(
+    `<p style="margin:0 0 8px;font-size:18px;font-weight:bold;color:${COR.ouroClaro}">${e(TEXTOS[dados.idioma].ola(dados.nome.split(" ")[0]))}</p>
+<p style="margin:0;font-size:15px;line-height:1.5">${e(a.cadastroAlterado(quem))}</p>
+<p style="margin:16px 0 0;font-size:15px;font-weight:bold;color:${COR.agua}">${e(a.camposAlterados)}</p>
+${listaHtml(dados.campos)}
+<p style="margin:16px 0 0;font-size:13px;color:${COR.suave}">${e(a.naoFoiVoce)}</p>
+${botao(a.verArea, urlSite("/congressistas/completar-cadastro"))}`,
+    dados.idioma,
+  );
+  const texto = [a.cadastroAlterado(quem), "", a.camposAlterados, ...dados.campos.map((c) => `- ${c}`), "", a.naoFoiVoce].join("\n");
+  await enviarEmail({ para: dados.email, assunto: a.assuntoCadastro, texto, html });
 }

@@ -1,7 +1,7 @@
 import { tx } from "@/i18n";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { areaDoPapel } from "@/modules/auth/papeis";
+import { areaDoPapel, temPerfil } from "@/modules/auth/papeis";
 import { proximoSeguro } from "@/modules/auth/proximo";
 import { obterSessao } from "@/modules/auth/sessao";
 import { BotaoSair } from "../../_components/botao-sair";
@@ -20,7 +20,7 @@ export default async function Page(props: PageProps<"/congressistas/completar-ca
   const sessao = await obterSessao();
   if (!sessao) redirect("/congressistas");
   const { user } = sessao;
-  if (user.papel !== "congressista") redirect(areaDoPapel(user.papel));
+  if (!temPerfil(user, "congressista")) redirect(areaDoPapel(user.papel));
 
   const primeiraVez = !user.cadastroCompletoEm;
   const idioma = await obterIdioma();

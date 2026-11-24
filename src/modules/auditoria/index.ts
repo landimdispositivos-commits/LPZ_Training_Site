@@ -15,6 +15,9 @@ export const ACOES = {
   ficha_atualizada: "Dados pessoais atualizados",
   cadastro_editado: "Cadastro editado pela organização",
   usuario_excluido: "Usuário excluído",
+  compra_cancelada: "Compra cancelada pelo cliente",
+  estorno_aprovado: "Estorno aprovado",
+  problema_reportado: "Problema reportado",
 } as const;
 export type Acao = keyof typeof ACOES;
 
@@ -153,7 +156,16 @@ export function descreverEvento(r: RegistroAuditoria, rotuloPapel: (p: string) =
   const d = (r.detalhes ?? {}) as Record<string, unknown>;
   switch (r.acao) {
     case "perfil_alterado":
+      if (Array.isArray(d.antes) || Array.isArray(d.depois)) {
+        const lista = (v: unknown) => (Array.isArray(v) ? v.map((p) => rotuloPapel(String(p))).join(" + ") : rotuloPapel(String(v)));
+        return `Perfis: ${lista(d.antes)} → ${lista(d.depois)}`;
+      }
       return `Perfil: ${rotuloPapel(String(d.antes))} → ${rotuloPapel(String(d.depois))}`;
+    case "compra_cancelada":
+    case "estorno_aprovado":
+      return [d.produto, d.valor].filter(Boolean).join(" · ") || `Pedido ${String(d.pedidoId ?? "").slice(0, 8).toUpperCase()}`;
+    case "problema_reportado":
+      return String(d.pagina ?? "");
     case "convite_enviado":
       return `Convite como ${rotuloPapel(String(d.papel))}${d.reenvio ? " (reenvio)" : ""}`;
     case "usuario_excluido":

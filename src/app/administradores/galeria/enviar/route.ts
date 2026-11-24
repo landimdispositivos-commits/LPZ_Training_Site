@@ -8,7 +8,7 @@ import { ErroImagem, salvarFotoDoFormulario } from "@/modules/midia/imagem";
 // server actions limitam o corpo a 1 MB e fotos de celular passam disso.
 export async function POST(request: Request) {
   if (!origemDoProprioSite(request)) return new Response("Origem inválida", { status: 403 });
-  await exigirAdmin(["organizador"]);
+  await exigirAdmin(["organizador", "midias"]);
 
   try {
     const form = await request.formData();

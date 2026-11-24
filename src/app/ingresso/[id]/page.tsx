@@ -8,7 +8,7 @@ import { ingressos, lotes, pedidos, usuarios } from "@/db/schema";
 import { traducoes } from "@/i18n";
 import { obterIdioma } from "@/i18n/servidor";
 import { formatarDataHora, formatarPreco } from "@/lib/formatar";
-import { ehAdmin } from "@/modules/auth/papeis";
+import { vePessoas } from "@/modules/auth/papeis";
 import { exigirAdmin, obterSessao } from "@/modules/auth/sessao";
 import { nomeDoLote, nomeDoProduto } from "@/modules/ingressos";
 import { descreverPagamento } from "@/modules/pagamentos/formas";
@@ -147,8 +147,8 @@ export default async function Page(props: PageProps<"/ingresso/[id]">) {
   const idioma = await obterIdioma();
   const t = TEXTOS[idioma];
   const sessao = await obterSessao().catch(() => null);
-  const papel = sessao?.user.papel;
-  const organizacao = ehAdmin(papel);
+  // Só Organizador, Portaria e Acesso total veem dados da pessoa (Mídias não).
+  const organizacao = !!sessao && vePessoas(sessao.user);
   // Organização: confere papel e duas etapas no banco (redireciona se faltar).
   if (organizacao) await exigirAdmin(["organizador", "portaria"]);
   const dono = !organizacao && sessao?.user.email === achado.pedido.email;

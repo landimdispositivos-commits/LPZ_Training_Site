@@ -5,7 +5,7 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { auth } from "@/modules/auth/auth";
-import { areaDoPapel } from "@/modules/auth/papeis";
+import { areaDoPapel, temPerfil } from "@/modules/auth/papeis";
 import { atualizarPendentesDoComprador } from "@/modules/ingressos";
 import { SiteHeader } from "../../_components/site-header";
 import { traducoes, tx } from "@/i18n";
@@ -22,6 +22,7 @@ const TEXTOS = traducoes(
     titulo: "Minha área",
     bemvindo: "Cadastro concluído. Bem-vindo(a) ao LPZ Training!",
     atualizado: "Seus dados foram atualizados.",
+    canceladoOk: "Cancelamento confirmado. Enviamos um e-mail com os detalhes; o estorno será conferido pela organização.",
     pago: "Pagamento confirmado! Seu ingresso está logo abaixo.",
     ola: "Olá",
     meusDados: "Meus dados",
@@ -40,6 +41,7 @@ const TEXTOS = traducoes(
     titulo: "My area",
     bemvindo: "Sign-up complete. Welcome to LPZ Training!",
     atualizado: "Your details have been updated.",
+    canceladoOk: "Cancellation confirmed. We emailed you the details; the organizers will review the refund.",
     pago: "Payment confirmed! Your ticket is right below.",
     ola: "Hi",
     meusDados: "My details",
@@ -58,6 +60,7 @@ const TEXTOS = traducoes(
     titulo: "Mi área",
     bemvindo: "Registro completo. ¡Bienvenido(a) a LPZ Training!",
     atualizado: "Tus datos fueron actualizados.",
+    canceladoOk: "Cancelación confirmada. Te enviamos un correo con los detalles; la organización revisará el reembolso.",
     pago: "¡Pago confirmado! Tu entrada está justo abajo.",
     ola: "Hola",
     meusDados: "Mis datos",
@@ -87,13 +90,13 @@ function formatarData(data: string, en: boolean) {
 
 export default async function Page(props: PageProps<"/congressistas/minha-area">) {
   const sessao = await auth.api.getSession({ headers: await headers() });
-  const { bemvindo, atualizado, pago, error } = await props.searchParams;
+  const { bemvindo, atualizado, pago, error, cancelado } = await props.searchParams;
 
   // Link de confirmação inválido/expirado chega aqui com ?error=...
   if (!sessao) redirect(error ? "/congressistas?erro=link" : "/congressistas");
 
   const { user } = sessao;
-  if (user.papel !== "congressista") redirect(areaDoPapel(user.papel));
+  if (!temPerfil(user, "congressista")) redirect(areaDoPapel(user.papel));
   // Ficha obrigatória antes da área logada (cadastro novo ou pelo Google).
   if (!user.cadastroCompletoEm) redirect("/congressistas/completar-cadastro");
   // Pix pago depois de fechar o checkout: confere no gateway antes de mostrar.
@@ -129,6 +132,11 @@ export default async function Page(props: PageProps<"/congressistas/minha-area">
           {bemvindo && (
             <p role="status" className="mt-4 rounded-lg border border-teal-400/50 bg-teal-400/10 px-4 py-3 text-sm">
               {t.bemvindo}
+            </p>
+          )}
+          {cancelado && (
+            <p role="status" className="mt-4 rounded-lg border border-teal-400/50 bg-teal-400/10 px-4 py-3 text-sm">
+              {t.canceladoOk}
             </p>
           )}
           {atualizado && !bemvindo && (

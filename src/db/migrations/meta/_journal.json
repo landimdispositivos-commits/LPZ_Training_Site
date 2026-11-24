@@ -148,6 +148,20 @@
       "when": 1795054000000,
       "tag": "0020_lote_camiseta",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1795600000000,
+      "tag": "0021_massagens",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1795600100000,
+      "tag": "0022_cancelamento_e_perfis",
+      "breakpoints": true
     }
   ]
 }

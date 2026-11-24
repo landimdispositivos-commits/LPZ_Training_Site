@@ -24,8 +24,8 @@ const ATALHOS = [
   { href: "/administradores/cronograma", titulo: "Cronograma", descricao: "Aulas e atividades por dia.", portaria: false },
   { href: "/administradores/professores", titulo: "Professores", descricao: "Professores e DJs, com foto.", portaria: false },
   { href: "/administradores/fornecedores", titulo: "Fornecedores", descricao: "Contatos, valores e situação.", portaria: false },
-  { href: "/administradores/galeria", titulo: "Fotos", descricao: "Fotos da galeria pública.", portaria: false },
-  { href: "/administradores/audio-video", titulo: "Áudio e vídeo", descricao: "Vídeos do YouTube e músicas/playlists.", portaria: false },
+  { href: "/administradores/galeria", titulo: "Fotos", descricao: "Fotos da galeria pública.", portaria: false, midias: true },
+  { href: "/administradores/audio-video", titulo: "Áudio e vídeo", descricao: "Vídeos do YouTube e músicas/playlists.", portaria: false, midias: true },
   { href: "/administradores/dj", titulo: "DJ", descricao: "Área dos DJs do evento.", portaria: false },
   { href: "/administradores/mc", titulo: "MC", descricao: "Área dos MCs do evento.", portaria: false },
   { href: "/administradores/jack-and-jill", titulo: "Jack and Jill", descricao: "Competição Jack and Jill.", portaria: false },
@@ -96,7 +96,12 @@ export default async function Page(props: PageProps<"/administradores/painel">) 
           )}
 
           <nav aria-label="Áreas do painel" className="grid gap-3 sm:grid-cols-2">
-            {ATALHOS.filter((a) => ehGestor(user.papel) || a.portaria).map((a) => (
+            {ATALHOS.filter(
+              (a) =>
+                ehGestor(user.papel) ||
+                (a.portaria && user.perfis.includes("portaria")) ||
+                ("midias" in a && a.midias && user.perfis.includes("midias")),
+            ).map((a) => (
               <Link
                 key={a.href}
                 href={a.href}

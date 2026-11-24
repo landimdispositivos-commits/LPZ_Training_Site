@@ -1,3 +1,4 @@
+import { perfisDo } from "@/modules/auth/papeis";
 import { formatarDataHora } from "@/lib/formatar";
 import { rotuloPresenca, type DiaPresenca } from "@/modules/presencas/regras";
 import { PRODUTOS, TIPOS_PRODUTO } from "@/modules/ingressos/produtos";
@@ -25,7 +26,7 @@ export const COLUNAS: Coluna[] = [
   { id: "apelido", titulo: "Apelido", basica: false, valor: (u) => u.apelido },
   { id: "email", titulo: "E-mail", basica: true, valor: (u) => u.email },
   { id: "celular", titulo: "Celular", basica: true, valor: (u) => u.celular },
-  { id: "perfil", titulo: "Perfil", basica: true, valor: (u) => ROTULO_PAPEL[u.papel] ?? u.papel },
+  { id: "perfil", titulo: "Perfil", basica: true, valor: (u) => perfisDo(u).map((p) => ROTULO_PAPEL[p] ?? p).join(" + ") },
   { id: "cadastro_via", titulo: "Cadastro via", basica: true, valor: (u) => u.formaCadastro },
   { id: "cidade", titulo: "Cidade", basica: true, valor: (u) => u.cidade },
   { id: "uf", titulo: "UF", basica: true, valor: (u) => u.uf },

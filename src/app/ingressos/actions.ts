@@ -12,7 +12,7 @@ import {
   type CodigoErroCompra,
   type TipoProduto,
 } from "@/modules/ingressos";
-import { areaDoPapel } from "@/modules/auth/papeis";
+import { areaDoPapel, temPerfil } from "@/modules/auth/papeis";
 import { urlCompra } from "@/modules/auth/proximo";
 import { obterSessao } from "@/modules/auth/sessao";
 import { obterIdioma } from "@/i18n/servidor";
@@ -24,7 +24,7 @@ async function exigirCongressista(voltarPara = "/ingressos") {
   const sessao = await obterSessao();
   if (!sessao) redirect(`/congressistas?proximo=${encodeURIComponent(voltarPara)}`);
   const { user } = sessao;
-  if (user.papel !== "congressista") redirect(areaDoPapel(user.papel));
+  if (!temPerfil(user, "congressista")) redirect(areaDoPapel(user.papel));
   if (!user.cadastroCompletoEm) redirect(`/congressistas/completar-cadastro?proximo=${encodeURIComponent(voltarPara)}`);
   return user;
 }
@@ -48,6 +48,7 @@ export async function comprarAction(form: FormData) {
       },
       tipo.data,
       idioma,
+      loteEscolhido(form),
     );
     destino = await iniciarPagamento(pedidoId, user.email);
   } catch (erro) {
@@ -89,6 +90,7 @@ export async function adicionarSacolaAction(form: FormData) {
       { nome: user.name, email: user.email, telefone: user.celular ?? null, cpf: user.cpf ?? null },
       tipo.data,
       idioma,
+      loteEscolhido(form),
     );
   } catch (erro) {
     destino = `/ingressos?erro=${codigoDoErro(erro)}`;
@@ -114,6 +116,12 @@ export async function pagarSacolaAction() {
     destino = `/sacola?erro=${codigoDoErro(erro)}`;
   }
   redirect(destino);
+}
+
+// Opção escolhida (ex: duração da massagem). O servidor confere se o lote é do produto.
+function loteEscolhido(form: FormData) {
+  const r = z.uuid().safeParse(form.get("loteId"));
+  return r.success ? r.data : undefined;
 }
 
 function codigoDoErro(erro: unknown): CodigoErroCompra {

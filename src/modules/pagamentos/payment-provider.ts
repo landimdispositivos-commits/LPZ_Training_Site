@@ -15,6 +15,16 @@ export interface SituacaoPagamento {
   status: StatusPagamento;
   forma?: FormaPagamento | null;
   parcelas?: number | null;
+  // Id do pagamento aprovado no gateway (necessário para estornar).
+  pagamentoId?: string | null;
+}
+
+export interface EstornoInput {
+  pagamentoId: string;
+  // Valor a devolver (estorno parcial: um item de uma compra com vários).
+  valorCentavos: number;
+  // Chave única do estorno (o id do pedido): clique repetido não estorna duas vezes.
+  chave: string;
 }
 
 export interface ItemPagamento {
@@ -51,4 +61,8 @@ export interface PaymentProvider {
   // Sempre consulta a API do gateway — nunca confia apenas no payload do
   // webhook, que pode chegar duplicado, fora de ordem ou ser forjado.
   consultarPagamento(ref: ReferenciaPagamento): Promise<SituacaoPagamento>;
+
+  // Devolve o valor ao comprador. Só é chamado depois da aprovação de uma
+  // pessoa da organização (nunca automático).
+  estornar(input: EstornoInput): Promise<void>;
 }

@@ -36,7 +36,12 @@ export class FakePaymentProvider implements PaymentProvider {
   // Auxiliar exclusivo de teste/dev: aprova o pagamento simulado com a forma
   // escolhida na tela de teste.
   aprovarManualmente(preferenceId: string, forma: FormaPagamento, parcelas: number) {
-    this.situacao.set(preferenceId, { status: "pago", forma, parcelas });
+    this.situacao.set(preferenceId, { status: "pago", forma, parcelas, pagamentoId: `fake-pay-${preferenceId.replace("fake-", "")}` });
+  }
+
+  // Modo de teste: o estorno só é registrado no log (nenhum dinheiro envolvido).
+  async estornar({ pagamentoId, valorCentavos }: { pagamentoId: string; valorCentavos: number; chave: string }) {
+    console.info("[pagamento de teste] Estorno simulado", { pagamentoId, valorCentavos });
   }
 
   // Auxiliar exclusivo de teste/dev: simula pagamento recusado/desistência.

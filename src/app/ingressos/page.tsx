@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import { temPerfil } from "@/modules/auth/papeis";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { urlLoginParaComprar } from "@/modules/auth/proximo";
@@ -36,6 +37,7 @@ const TEXTOS = traducoes(
     comprar: "Ir para o pagamento",
     comprarVisitante: "Comprar",
     novidade: "Novidade em breve",
+    escolhaOpcao: "Escolha a opção",
     naSacola: "✓ Na sacola",
     adicionar: "Adicionar à sacola",
     comprarAgora: "Comprar só este agora",
@@ -65,6 +67,7 @@ const TEXTOS = traducoes(
     comprar: "Go to payment",
     comprarVisitante: "Buy",
     novidade: "Coming soon",
+    escolhaOpcao: "Choose an option",
     naSacola: "✓ In your cart",
     adicionar: "Add to cart",
     comprarAgora: "Buy just this one now",
@@ -94,6 +97,7 @@ const TEXTOS = traducoes(
     comprar: "Ir al pago",
     comprarVisitante: "Comprar",
     novidade: "Próximamente",
+    escolhaOpcao: "Elige una opción",
     naSacola: "✓ En tu bolsa",
     adicionar: "Agregar a la bolsa",
     comprarAgora: "Comprar solo este ahora",
@@ -122,7 +126,7 @@ export default async function Page(props: PageProps<"/ingressos">) {
   const t = TEXTOS[idioma];
   const sessao = await obterSessao();
   const user = sessao?.user;
-  const congressista = user?.papel === "congressista";
+  const congressista = !!user && temPerfil(user, "congressista");
 
   const [itens, situacao, sacola] = await Promise.all([
     vitrine(),
@@ -187,7 +191,17 @@ export default async function Page(props: PageProps<"/ingressos">) {
                     } ${!user && item.lote ? "hover:border-gold-300 hover:shadow-[0_0_24px_rgb(230_181_74/0.25)]" : ""}`}
                   >
                     <p className="font-display text-sm uppercase tracking-[0.15em] text-gold-300">{nomeDoProduto(item.tipo, idioma)}</p>
-                    {item.lote ? (
+                    {item.opcoes.length > 0 ? (
+                      // Produto com opções (massagens): lista de durações e valores.
+                      <ul className="mt-3 space-y-1 text-sm">
+                        {item.opcoes.map((o) => (
+                          <li key={o.id} className="flex justify-between gap-3 border-b border-white/5 pb-1">
+                            <span className="text-teal-300">{nomeDoLote(o.nome, idioma)}</span>
+                            <span className="font-semibold text-gold-300">{formatarPreco(o.precoCentavos, idioma)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : item.lote ? (
                       <>
                         <p className="mt-1 text-sm text-teal-300">{nomeDoLote(item.lote.nome, idioma)}</p>
                         <p className="text-gold-metal mt-1 text-3xl font-extrabold">{formatarPreco(item.lote.precoCentavos, idioma)}</p>
@@ -216,19 +230,30 @@ export default async function Page(props: PageProps<"/ingressos">) {
                           </form>
                         </>
                       ) : congressista && item.lote ? (
-                        <>
-                          <form action={adicionarSacolaAction}>
-                            <input type="hidden" name="tipo" value={item.tipo} />
-                            <button type="submit" className={classeBotao}>{t.adicionar}</button>
-                          </form>
-                          <form id={`comprar-${item.tipo}`} action={comprarAction}>
-                            <input type="hidden" name="tipo" value={item.tipo} />
-                            {escolhido === item.tipo && user?.cadastroCompletoEm && (
-                              <AutoComprar formId={`comprar-${item.tipo}`} tipo={item.tipo} />
-                            )}
-                            <button type="submit" className={classeBotaoSecundario}>{t.comprarAgora}</button>
-                          </form>
-                        </>
+                        <form id={`comprar-${item.tipo}`} action={comprarAction} className="space-y-2">
+                          <input type="hidden" name="tipo" value={item.tipo} />
+                          {item.opcoes.length > 0 && (
+                            <>
+                              <label htmlFor={`opcao-${item.tipo}`} className="sr-only">{t.escolhaOpcao}</label>
+                              <select
+                                id={`opcao-${item.tipo}`}
+                                name="loteId"
+                                className="w-full rounded-lg border border-white/15 bg-petrol-950/80 px-3 py-2 text-sm text-white focus:border-teal-400 focus:outline-none"
+                              >
+                                {item.opcoes.map((o) => (
+                                  <option key={o.id} value={o.id}>
+                                    {nomeDoLote(o.nome, idioma)} — {formatarPreco(o.precoCentavos, idioma)}
+                                  </option>
+                                ))}
+                              </select>
+                            </>
+                          )}
+                          {escolhido === item.tipo && user?.cadastroCompletoEm && item.opcoes.length === 0 && (
+                            <AutoComprar formId={`comprar-${item.tipo}`} tipo={item.tipo} />
+                          )}
+                          <button type="submit" formAction={adicionarSacolaAction} className={classeBotao}>{t.adicionar}</button>
+                          <button type="submit" className={classeBotaoSecundario}>{t.comprarAgora}</button>
+                        </form>
                       ) : !user && item.lote ? (
                         // A caixinha inteira é clicável: leva ao login e volta para esta compra.
                         <Link

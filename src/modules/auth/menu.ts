@@ -11,6 +11,7 @@ export const ROTULO_PAPEL: Record<string, string> = {
   organizador: "Organizador(a)",
   portaria: "Portaria",
   acesso_total: "Acesso total",
+  midias: "Mídias",
 };
 
 const ROTULO_PAPEL_EN: Record<string, string> = {
@@ -19,6 +20,7 @@ const ROTULO_PAPEL_EN: Record<string, string> = {
   organizador: "Organizer",
   portaria: "Door staff",
   acesso_total: "Full access",
+  midias: "Media",
 };
 
 const ROTULO_PAPEL_ES: Record<string, string> = {
@@ -27,6 +29,7 @@ const ROTULO_PAPEL_ES: Record<string, string> = {
   organizador: "Organizador(a)",
   portaria: "Portería",
   acesso_total: "Acceso total",
+  midias: "Medios",
 };
 
 export function rotuloPapel(papel: string | null | undefined, idioma: Idioma = "pt") {
@@ -57,6 +60,12 @@ const MENU_PORTARIA: ItemBilingue[] = [
   { href: "/administradores/checkin", pt: "Check-in", en: "Check-in", es: "Check-in" },
 ];
 
+const MENU_MIDIAS: ItemBilingue[] = [
+  { href: "/administradores/painel", pt: "Painel", en: "Dashboard", es: "Panel" },
+  { href: "/administradores/galeria", pt: "Fotos", en: "Photos", es: "Fotos" },
+  { href: "/administradores/audio-video", pt: "Áudio e vídeo", en: "Audio and video", es: "Audio y video" },
+];
+
 const MENU_PROFISSIONAL: ItemBilingue[] = [{ href: "/profissionais/minha-area", pt: "Minha área", en: "My area", es: "Mi área" }];
 
 const MENU_CONGRESSISTA: ItemBilingue[] = [
@@ -71,16 +80,29 @@ function emOrdem(itens: ItemBilingue[], idioma: Idioma): ItemMenu[] {
     .sort((a, b) => a.label.localeCompare(b.label, LOCALE[idioma], { sensitivity: "base" }));
 }
 
-export function menuDoPapel(papel: string | null | undefined, idioma: Idioma = "pt"): ItemMenu[] {
+function itensDoPapel(papel: string | null | undefined): ItemBilingue[] {
   switch (papel) {
     case "acesso_total":
     case "organizador":
-      return emOrdem(MENU_GESTAO, idioma);
+      return MENU_GESTAO;
     case "portaria":
-      return emOrdem(MENU_PORTARIA, idioma);
+      return MENU_PORTARIA;
+    case "midias":
+      return MENU_MIDIAS;
     case "profissional":
-      return emOrdem(MENU_PROFISSIONAL, idioma);
+      return MENU_PROFISSIONAL;
     default:
-      return emOrdem(MENU_CONGRESSISTA, idioma);
+      return MENU_CONGRESSISTA;
   }
+}
+
+export function menuDoPapel(papel: string | null | undefined, idioma: Idioma = "pt"): ItemMenu[] {
+  return emOrdem(itensDoPapel(papel), idioma);
+}
+
+// Menu de quem tem vários perfis: junta os itens de todos (sem repetir).
+export function menuDosPerfis(perfis: readonly string[], idioma: Idioma = "pt"): ItemMenu[] {
+  const porHref = new Map<string, ItemBilingue>();
+  for (const p of perfis) for (const item of itensDoPapel(p)) porHref.set(item.href, item);
+  return emOrdem([...porHref.values()], idioma);
 }

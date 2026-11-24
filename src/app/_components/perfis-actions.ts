@@ -8,6 +8,8 @@ import { db } from "@/db";
 import { professores } from "@/db/schema";
 import { exigirAdmin } from "@/modules/auth/sessao";
 import { CATEGORIAS, ROTA_CATEGORIA } from "@/modules/perfis";
+import { storageAdapter } from "@/modules/midia";
+import { caminhoDaUrl, ErroImagem, salvarFotoDoFormulario } from "@/modules/midia/imagem";
 
 // Edição pela "canetinha" nas páginas públicas de Professores e DJs.
 // Só organização (Organizador/Acesso total, com duas etapas) — conferido aqui,
@@ -42,9 +44,31 @@ export async function salvarPerfilAction(form: FormData) {
   if (!dados.success) redirect(`${base}/${encodeURIComponent(texto("id"))}?editar=1&erro=1`);
 
   const { id, nome, bio, bioEn, instagram } = dados.data;
+  const atual = await db.query.professores.findFirst({
+    where: and(eq(professores.id, id), eq(professores.categoria, dados.data.categoria)),
+  });
+  if (!atual) redirect(`${base}?erro=1`);
+
+  // Foto nova (opcional): validada pelo conteúdo do arquivo, não pela extensão.
+  let fotoUrl = atual.fotoUrl;
+  const arquivo = form.get("foto");
+  if (arquivo instanceof File && arquivo.size > 0) {
+    try {
+      fotoUrl = storageAdapter.obterUrl(await salvarFotoDoFormulario(arquivo));
+    } catch (erro) {
+      if (erro instanceof ErroImagem) redirect(`${base}/${id}?editar=1&erro=foto`);
+      throw erro;
+    }
+  } else if (form.get("removerFoto") === "on") {
+    fotoUrl = null;
+  }
+  // Apaga o arquivo antigo quando a foto muda (não deixa lixo no disco).
+  const antiga = caminhoDaUrl(atual.fotoUrl);
+  if (antiga && fotoUrl !== atual.fotoUrl) await storageAdapter.remover(antiga).catch(() => undefined);
+
   await db
     .update(professores)
-    .set({ nome, bio, bioEn, instagram })
+    .set({ nome, bio, bioEn, instagram, fotoUrl })
     .where(and(eq(professores.id, id), eq(professores.categoria, dados.data.categoria)));
   revalidatePath(base);
   revalidatePath(`${base}/${id}`);

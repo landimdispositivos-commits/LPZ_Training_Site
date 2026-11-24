@@ -15,7 +15,7 @@ const FOTOS = "/administradores/galeria";
 const AUDIO_VIDEO = "/administradores/audio-video";
 
 export async function adicionarVideoAction(form: FormData) {
-  await exigirAdmin(["organizador"]);
+  await exigirAdmin(["organizador", "midias"]);
   const id = extrairIdYoutube(String(form.get("url") ?? ""));
   if (!id) redirect(`${AUDIO_VIDEO}?erro=video`);
   const titulo = String(form.get("titulo") ?? "").trim().slice(0, 120) || null;
@@ -25,7 +25,7 @@ export async function adicionarVideoAction(form: FormData) {
 }
 
 export async function adicionarAudioAction(form: FormData) {
-  await exigirAdmin(["organizador"]);
+  await exigirAdmin(["organizador", "midias"]);
   const embed = urlEmbedAudio(String(form.get("url") ?? ""));
   if (!embed) redirect(`${AUDIO_VIDEO}?erro=audio`);
   const titulo = String(form.get("titulo") ?? "").trim().slice(0, 120) || null;
@@ -35,7 +35,7 @@ export async function adicionarAudioAction(form: FormData) {
 }
 
 export async function removerMidiaAction(form: FormData) {
-  await exigirAdmin(["organizador"]);
+  await exigirAdmin(["organizador", "midias"]);
   const voltar = form.get("voltar") === AUDIO_VIDEO ? AUDIO_VIDEO : FOTOS;
   const id = z.uuid().safeParse(form.get("id"));
   if (!id.success) redirect(voltar);

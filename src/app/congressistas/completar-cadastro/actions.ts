@@ -5,10 +5,12 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { usuarios } from "@/db/schema";
 import { type CampoFicha, fichaCongressistaSchema, PAIS_BRASIL } from "@/modules/auth/cadastro";
-import { areaDoPapel } from "@/modules/auth/papeis";
+import { areaDoPapel, temPerfil } from "@/modules/auth/papeis";
 import { obterSessao } from "@/modules/auth/sessao";
 import { diferencas, registrarAuditoria } from "@/modules/auditoria";
 import { proximoSeguro } from "@/modules/auth/proximo";
+import { enviarEmailCadastroAlterado, nomesDosCampos } from "@/modules/ingressos/emails";
+import { obterIdioma } from "@/i18n/servidor";
 
 export type ResultadoFicha = { erros: Partial<Record<CampoFicha, string>>; erroGeral?: string };
 
@@ -26,7 +28,7 @@ export async function salvarFichaAction(form: FormData): Promise<ResultadoFicha>
   const sessao = await obterSessao();
   if (!sessao) redirect("/congressistas");
   const { user } = sessao;
-  if (user.papel !== "congressista") redirect(areaDoPapel(user.papel));
+  if (!temPerfil(user, "congressista")) redirect(areaDoPapel(user.papel));
 
   const brasil = texto(form, "origem") !== "outro";
   const resultado = fichaCongressistaSchema.safeParse({
@@ -100,6 +102,17 @@ export async function salvarFichaAction(form: FormData): Promise<ResultadoFicha>
       alvo: { id: user.id, name: ficha.name, email: user.email },
       detalhes: primeiraVez ? { campos } : { campos, mudancas },
     });
+  }
+  // Aviso por e-mail de toda alteração (só os nomes dos campos).
+  if (!primeiraVez && campos.length > 0) {
+    const idioma = await obterIdioma();
+    enviarEmailCadastroAlterado({
+      nome: ficha.name,
+      email: user.email,
+      campos: nomesDosCampos(campos, idioma),
+      porOrganizacao: false,
+      idioma,
+    }).catch((erro: unknown) => console.error("[email] Falha no aviso de cadastro", (erro as Error)?.message));
   }
 
   // Veio de uma compra (caixinha de ingresso)? Volta para ela.

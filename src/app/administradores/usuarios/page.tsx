@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { perfisDo } from "@/modules/auth/papeis";
 import { rotuloPresenca, type DiaPresenca } from "@/modules/presencas/regras";
 import Link from "next/link";
 import { exigirAdmin } from "@/modules/auth/sessao";
@@ -21,6 +22,7 @@ const COR_PAPEL: Record<string, string> = {
   acesso_total: "bg-gold-metal text-gold-ink",
   organizador: "bg-gold-400/20 text-gold-300",
   portaria: "bg-ember-500/15 text-ember-400",
+  midias: "bg-teal-400/25 text-teal-200",
   profissional: "bg-teal-400/15 text-teal-300",
   congressista: "bg-white/10 text-mist/80",
 };
@@ -265,10 +267,12 @@ function LinhaUsuario({
           </div>
           <p className="truncate text-sm text-mist/80">{u.celular ?? "—"}</p>
           <p className="truncate text-sm text-mist/80">{local || "—"}</p>
-          <div>
-            <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${COR_PAPEL[u.papel]}`}>
-              {ROTULO_PAPEL[u.papel]}
-            </span>
+          <div className="flex flex-wrap gap-1">
+            {perfisDo(u).map((p) => (
+              <span key={p} className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${COR_PAPEL[p] ?? COR_PAPEL.congressista}`}>
+                {ROTULO_PAPEL[p] ?? p}
+              </span>
+            ))}
           </div>
           <p className="truncate text-sm text-mist/80">{u.formaCadastro}</p>
           <div className="flex flex-wrap gap-1">

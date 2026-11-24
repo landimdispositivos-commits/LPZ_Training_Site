@@ -9,6 +9,7 @@ import { pedidos, usuarios } from "@/db/schema";
 import { cpfValido, normalizarCelular, PAIS_BRASIL, somenteDigitos } from "@/modules/auth/cadastro";
 import { exigirAdmin } from "@/modules/auth/sessao";
 import { diferencas, registrarAuditoria } from "@/modules/auditoria";
+import { enviarEmailCadastroAlterado, nomesDosCampos } from "@/modules/ingressos/emails";
 
 // Edição e exclusão de cadastro pela organização (só Organizador). Tudo vai
 // para a trilha de auditoria. Server actions aceitam POST direto, então a
@@ -112,6 +113,14 @@ export async function editarCadastroAction(form: FormData) {
     // Antes → depois de cada campo (sensíveis mascarados — LGPD).
     detalhes: { campos, mudancas },
   });
+  // O titular é avisado por e-mail (no endereço novo, se o e-mail mudou).
+  enviarEmailCadastroAlterado({
+    nome: novo.name,
+    email: novo.email,
+    campos: nomesDosCampos(campos, "pt"),
+    porOrganizacao: true,
+    idioma: "pt",
+  }).catch((erro: unknown) => console.error("[email] Falha no aviso de cadastro", (erro as Error)?.message));
   revalidatePath(BASE);
   redirect(voltarPara(form, `ok=editado&alvo=${alvo.id}`));
 }

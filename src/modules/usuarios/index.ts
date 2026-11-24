@@ -3,14 +3,16 @@ import { agruparPorPedido, presencasDosPedidos } from "@/modules/presencas";
 import { db } from "@/db";
 import { contas, ingressos, lotes, pedidos, professores, sessoes, usuarios } from "@/db/schema";
 import { TIPOS_PRODUTO, type TipoProduto } from "@/modules/ingressos/produtos";
+import { perfilPrincipal } from "@/modules/auth/papeis";
 
-export const PAPEIS = ["congressista", "profissional", "portaria", "organizador", "acesso_total"] as const;
+export const PAPEIS = ["congressista", "profissional", "portaria", "midias", "organizador", "acesso_total"] as const;
 export type Papel = (typeof PAPEIS)[number];
 
 export const DESCRICAO_PAPEL: Record<Papel, string> = {
   congressista: "Usuário comum: compra ingresso e vê a própria área.",
   profissional: "Professor(a)/DJ: vê a área do profissional e as próprias aulas.",
   portaria: "Faz check-in na entrada. Exige verificação em duas etapas.",
+  midias: "Cuida das fotos, vídeos e músicas da galeria. Exige duas etapas.",
   organizador: "Gestão do evento: painel, usuários, financeiro, check-in e conteúdo. Exige duas etapas.",
   acesso_total: "Acesso total a todas as áreas do site, inclusive as que forem criadas. Exige duas etapas.",
 };
@@ -25,7 +27,7 @@ export async function listarUsuarios({ busca, papel }: { busca?: string; papel?:
     const padrao = `%${escaparLike(busca.trim())}%`;
     filtros.push(or(ilike(usuarios.name, padrao), ilike(usuarios.email, padrao)));
   }
-  if (papel) filtros.push(eq(usuarios.papel, papel));
+  if (papel) filtros.push(or(eq(usuarios.papel, papel), sql`${papel} = any(${usuarios.perfisExtras})`));
 
   return db
     .select({
@@ -33,6 +35,7 @@ export async function listarUsuarios({ busca, papel }: { busca?: string; papel?:
       nome: usuarios.name,
       email: usuarios.email,
       papel: usuarios.papel,
+      perfisExtras: usuarios.perfisExtras,
       duasEtapas: usuarios.twoFactorEnabled,
       criadoEm: usuarios.createdAt,
       professorNome: professores.nome,
@@ -47,12 +50,26 @@ export async function listarUsuarios({ busca, papel }: { busca?: string; papel?:
     .limit(200);
 }
 
+// Pessoas por perfil (conta o principal e os extras: quem tem dois perfis
+// aparece nos dois).
 export async function contarPorPapel() {
-  const linhas = await db
-    .select({ papel: usuarios.papel, total: sql<number>`count(*)`.mapWith(Number) })
-    .from(usuarios)
-    .groupBy(usuarios.papel);
-  return Object.fromEntries(linhas.map((l) => [l.papel, l.total])) as Partial<Record<Papel, number>>;
+  const resultado = await db.execute<{ perfil: string; total: number }>(
+    sql`select p as perfil, count(*)::int as total
+        from ${usuarios}, unnest(array[${usuarios.papel}::text] || ${usuarios.perfisExtras}) as p
+        group by p`,
+  );
+  return Object.fromEntries(resultado.rows.map((l) => [l.perfil, Number(l.total)])) as Partial<Record<Papel, number>>;
+}
+
+// Define TODOS os perfis da pessoa: o de maior nível vira o principal e os
+// outros ficam como extras. Encerra as sessões para valer no próximo login.
+export async function alterarPerfis(usuarioId: string, perfis: Papel[]) {
+  const principal = perfilPrincipal(perfis) as Papel;
+  const extras = perfis.filter((p) => p !== principal);
+  await db.transaction(async (tx) => {
+    await tx.update(usuarios).set({ papel: principal, perfisExtras: extras, updatedAt: new Date() }).where(eq(usuarios.id, usuarioId));
+    await tx.delete(sessoes).where(eq(sessoes.userId, usuarioId));
+  });
 }
 
 // Troca o perfil e encerra as sessões abertas da pessoa, para o novo acesso
@@ -72,7 +89,7 @@ export async function listarCadastros({ busca, papel, limite = 500 }: { busca?: 
     const padrao = `%${escaparLike(busca.trim())}%`;
     filtros.push(or(ilike(usuarios.name, padrao), ilike(usuarios.email, padrao), ilike(usuarios.cidade, padrao)));
   }
-  if (papel) filtros.push(eq(usuarios.papel, papel));
+  if (papel) filtros.push(or(eq(usuarios.papel, papel), sql`${papel} = any(${usuarios.perfisExtras})`));
 
   const lista = await db
     .select({
@@ -82,6 +99,7 @@ export async function listarCadastros({ busca, papel, limite = 500 }: { busca?: 
       email: usuarios.email,
       emailVerificado: usuarios.emailVerified,
       papel: usuarios.papel,
+      perfisExtras: usuarios.perfisExtras,
       celular: usuarios.celular,
       cpf: usuarios.cpf,
       dataNascimento: usuarios.dataNascimento,

@@ -1,6 +1,7 @@
 import type {
   CriarPreferenciaInput,
   CriarPreferenciaResultado,
+  EstornoInput,
   PaymentProvider,
   ReferenciaPagamento,
   SituacaoPagamento,
@@ -103,9 +104,20 @@ export class MercadoPagoProvider implements PaymentProvider {
       `/v1/payments/search?external_reference=${encodeURIComponent(referencia)}&sort=date_created&criteria=desc`,
     );
     const aprovado = busca.results.find((p) => p.status === "approved");
-    if (aprovado) return { status: "pago", forma: formaDoMP(aprovado), parcelas: aprovado.installments ?? null };
+    if (aprovado)
+      return { status: "pago", forma: formaDoMP(aprovado), parcelas: aprovado.installments ?? null, pagamentoId: String(aprovado.id) };
     if (busca.results.some((p) => p.status === "refunded" || p.status === "charged_back")) return { status: "reembolsado" };
     return { status: "pendente" };
+  }
+
+  // Estorno total ou parcial (um item da sacola) de um pagamento aprovado.
+  async estornar({ pagamentoId, valorCentavos, chave }: EstornoInput): Promise<void> {
+    if (!/^\d+$/.test(pagamentoId)) throw new Error("Id de pagamento inválido para estorno");
+    await this.chamar(`/v1/payments/${pagamentoId}/refunds`, {
+      method: "POST",
+      headers: { "X-Idempotency-Key": `estorno-${chave}` },
+      body: JSON.stringify({ amount: valorCentavos / 100 }),
+    });
   }
 
   // Webhook: o aviso traz só o id do pagamento; descobrimos a referência

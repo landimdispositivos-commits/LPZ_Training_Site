@@ -1,12 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { ingressos, lotes, pedidos } from "@/db/schema";
+import { ingressos, lotes, pedidos, presencas } from "@/db/schema";
 import type { Idioma } from "@/i18n";
 import { paymentProvider } from "@/modules/pagamentos";
-import { enviarEmailsDaCompra } from "./emails";
-import { PRODUTOS, TIPOS_PRODUTO, type TipoProduto } from "./produtos";
-export { nomeDoLote, nomeDoProduto, PRODUTOS, TIPOS_PRODUTO, type TipoProduto } from "./produtos";
+import { enviarEmailCancelamento, enviarEmailEstorno, enviarEmailsDaCompra } from "./emails";
+import { PRODUTOS, temOpcoes, TIPOS_PRODUTO, type TipoProduto } from "./produtos";
+export { nomeDoLote, nomeDoProduto, PRODUTOS, temOpcoes, TIPOS_PRODUTO, type TipoProduto } from "./produtos";
 
 // ---------------------------------------------------------------------------
 // Regras de venda de ingressos.
@@ -67,8 +67,17 @@ export async function vitrine() {
     .orderBy(asc(lotes.precoCentavos), asc(lotes.criadoEm));
   return TIPOS_PRODUTO.map((tipo) => {
     const doTipo = ativos.filter((l) => l.tipo === tipo);
-    const comVaga = doTipo.find((l) => l.quantidadeVendida < l.quantidadeTotal) ?? null;
-    return { tipo, produto: PRODUTOS[tipo], lote: comVaga, esgotado: doTipo.length > 0 && !comVaga, emBreve: doTipo.length === 0 };
+    const opcoes = doTipo.filter((l) => l.quantidadeVendida < l.quantidadeTotal);
+    const comVaga = opcoes[0] ?? null;
+    return {
+      tipo,
+      produto: PRODUTOS[tipo],
+      lote: comVaga,
+      // Produtos com opções (massagens) mostram todos os lotes com vaga para escolher.
+      opcoes: temOpcoes(tipo) ? opcoes : [],
+      esgotado: doTipo.length > 0 && !comVaga,
+      emBreve: doTipo.length === 0,
+    };
   });
 }
 
@@ -127,12 +136,18 @@ export async function situacaoDoComprador(email: string) {
 // Cria o pedido de um produto reservando uma vaga do lote vigente dele.
 // Um de cada produto por pessoa: se já pagou aquele produto, recusa; se há um
 // pedido pendente dele, reaproveita.
-export async function criarPedido(comprador: Comprador, tipo: TipoProduto, idioma: Idioma = "pt") {
+export async function criarPedido(comprador: Comprador, tipo: TipoProduto, idioma: Idioma = "pt", loteEscolhido?: string) {
   const situacao = (await situacaoDoComprador(comprador.email))[tipo];
   if (situacao.pago) throw new ErroCompra("ja-tem-ingresso");
   if (situacao.pendente) return situacao.pendente;
 
-  const lote = await loteVigente(tipo);
+  // Produto com opções: o lote escolhido precisa ser deste produto e estar vigente.
+  const lote =
+    temOpcoes(tipo) && loteEscolhido
+      ? await db.query.lotes.findFirst({
+          where: and(...filtrosVigencia(new Date()), eq(lotes.tipo, tipo), eq(lotes.id, loteEscolhido), lt(lotes.quantidadeVendida, lotes.quantidadeTotal)),
+        })
+      : await loteVigente(tipo);
   if (!lote) {
     const item = (await vitrine()).find((v) => v.tipo === tipo);
     throw new ErroCompra(item?.esgotado ? "esgotado" : "sem-lote");
@@ -314,6 +329,8 @@ export async function confirmarCompra(referencia: string) {
           status: "pago",
           formaPagamento: situacao.forma ?? null,
           parcelas: situacao.parcelas ?? null,
+          pagoEm: new Date(),
+          gatewayPagamentoId: situacao.pagamentoId ?? null,
           atualizadoEm: new Date(),
         })
         .where(eq(pedidos.id, id));
@@ -367,11 +384,20 @@ export async function pedidosDoComprador(email: string) {
       ingressoId: ingressos.id,
       ingressoStatus: ingressos.status,
       checkinEm: ingressos.checkinEm,
+      pagoEm: pedidos.pagoEm,
+      atualizadoEm: pedidos.atualizadoEm,
+      canceladoPeloClienteEm: pedidos.canceladoPeloClienteEm,
+      estornadoEm: pedidos.estornadoEm,
     })
     .from(pedidos)
     .innerJoin(lotes, eq(lotes.id, pedidos.loteId))
     .leftJoin(ingressos, eq(ingressos.pedidoId, pedidos.id))
-    .where(and(eq(pedidos.email, email), inArray(pedidos.status, ["pago", "pendente"])))
+    .where(
+      and(
+        eq(pedidos.email, email),
+        or(inArray(pedidos.status, ["pago", "pendente"]), isNotNull(pedidos.canceladoPeloClienteEm)),
+      ),
+    )
     .orderBy(desc(pedidos.criadoEm));
 }
 
@@ -379,4 +405,104 @@ export async function pedidosDoComprador(email: string) {
 // falhar. É só um atalho de busca: a validação usa sempre o ingresso no banco.
 export function codigoCurto(ingressoId: string) {
   return ingressoId.slice(0, 8).toUpperCase();
+}
+
+// ---------------------------------------------------------------------------
+// Cancelamento pelo cliente (direito de arrependimento — CDC, art. 49) e
+// estorno aprovado pela organização.
+// ---------------------------------------------------------------------------
+
+export const PRAZO_ARREPENDIMENTO_DIAS = 7;
+
+// Até quando o cliente pode cancelar sozinho (7 dias depois do pagamento).
+export function prazoParaCancelar(p: { pagoEm: Date | null; atualizadoEm: Date }) {
+  const base = p.pagoEm ?? p.atualizadoEm;
+  return new Date(base.getTime() + PRAZO_ARREPENDIMENTO_DIAS * 24 * 60 * 60 * 1000);
+}
+
+export class ErroCancelamento extends Error {
+  constructor(public codigo: "nao-encontrado" | "nao-pago" | "prazo" | "usado" | "ja-cancelado") {
+    super(codigo);
+  }
+}
+
+// O cliente cancela um item pago (os outros itens continuam valendo). O
+// ingresso deixa de valer na hora, a vaga volta ao lote e o estorno fica
+// aguardando a aprovação da organização no Financeiro.
+export async function cancelarCompraDoCliente(pedidoId: string, email: string) {
+  await db.transaction(async (tx) => {
+    const [p] = await tx
+      .select()
+      .from(pedidos)
+      .where(and(eq(pedidos.id, pedidoId), eq(pedidos.email, email)))
+      .for("update");
+    if (!p) throw new ErroCancelamento("nao-encontrado");
+    if (p.canceladoPeloClienteEm) throw new ErroCancelamento("ja-cancelado");
+    if (p.status !== "pago") throw new ErroCancelamento("nao-pago");
+    if (Date.now() > prazoParaCancelar(p).getTime()) throw new ErroCancelamento("prazo");
+    const usado = await tx.query.presencas.findFirst({ where: eq(presencas.pedidoId, pedidoId) });
+    if (usado) throw new ErroCancelamento("usado");
+
+    const agora = new Date();
+    await tx
+      .update(pedidos)
+      .set({ status: "cancelado", canceladoPeloClienteEm: agora, atualizadoEm: agora })
+      .where(eq(pedidos.id, pedidoId));
+    await tx.update(ingressos).set({ status: "cancelado" }).where(eq(ingressos.pedidoId, pedidoId));
+    await devolverVagas(tx, [p.loteId]);
+  });
+  enviarEmailEmSegundoPlanoCancelamento(pedidoId);
+}
+
+function enviarEmailEmSegundoPlanoCancelamento(pedidoId: string) {
+  enviarEmailCancelamento(pedidoId).catch((erro: unknown) =>
+    console.error("[email] Falha no e-mail de cancelamento", { pedidoId, erro: (erro as Error)?.message }),
+  );
+}
+
+// Estornos aguardando aprovação (Financeiro).
+export async function estornosPendentes() {
+  return db
+    .select({
+      pedidoId: pedidos.id,
+      nome: pedidos.nome,
+      email: pedidos.email,
+      valorCentavos: pedidos.valorCentavos,
+      canceladoEm: pedidos.canceladoPeloClienteEm,
+      formaPagamento: pedidos.formaPagamento,
+      tipo: lotes.tipo,
+      loteNome: lotes.nome,
+    })
+    .from(pedidos)
+    .innerJoin(lotes, eq(lotes.id, pedidos.loteId))
+    .where(and(isNotNull(pedidos.canceladoPeloClienteEm), isNull(pedidos.estornadoEm), eq(pedidos.status, "cancelado")))
+    .orderBy(asc(pedidos.canceladoPeloClienteEm));
+}
+
+// A organização aprova: devolve o valor pelo gateway e registra quem aprovou.
+export async function estornarPedido(pedidoId: string, autor: { id: string }) {
+  const p = await db.query.pedidos.findFirst({ where: eq(pedidos.id, pedidoId) });
+  if (!p || !p.canceladoPeloClienteEm || p.estornadoEm || p.status !== "cancelado") throw new ErroCancelamento("nao-encontrado");
+
+  let pagamentoId = p.gatewayPagamentoId;
+  if (!pagamentoId && p.gatewayPreferenceId) {
+    const situacao = await paymentProvider.consultarPagamento({
+      preferenceId: p.gatewayPreferenceId,
+      referencia: referenciaDo(p),
+    });
+    pagamentoId = situacao.pagamentoId ?? null;
+  }
+  // Modo de teste: compras antigas simuladas não têm id de pagamento.
+  if (!pagamentoId && process.env.MERCADOPAGO_ACCESS_TOKEN) throw new Error("Pagamento não encontrado no gateway para estornar");
+  await paymentProvider.estornar({ pagamentoId: pagamentoId ?? "teste-sem-id", valorCentavos: p.valorCentavos, chave: p.id });
+
+  const agora = new Date();
+  await db
+    .update(pedidos)
+    .set({ status: "reembolsado", estornadoEm: agora, estornadoPor: autor.id, atualizadoEm: agora })
+    .where(and(eq(pedidos.id, pedidoId), isNull(pedidos.estornadoEm)));
+  enviarEmailEstorno(pedidoId).catch((erro: unknown) =>
+    console.error("[email] Falha no e-mail de estorno", { pedidoId, erro: (erro as Error)?.message }),
+  );
+  return p;
 }

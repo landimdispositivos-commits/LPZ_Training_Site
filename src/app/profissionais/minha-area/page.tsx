@@ -1,4 +1,5 @@
 import { comoChamar } from "@/modules/perfil/apelido";
+import { temPerfil } from "@/modules/auth/papeis";
 import { CampoApelido } from "@/app/_components/campo-apelido";
 import { tx } from "@/i18n";
 import { asc, eq } from "drizzle-orm";
@@ -21,7 +22,7 @@ export default async function Page() {
   const sessao = await auth.api.getSession({ headers: await headers() });
   if (!sessao) redirect("/profissionais");
   // Checagem de papel no servidor — é ela que protege a área.
-  if (sessao.user.papel !== "profissional") redirect("/profissionais?erro=restrito");
+  if (!temPerfil(sessao.user, "profissional")) redirect("/profissionais?erro=restrito");
 
   const { user } = sessao;
   const idioma = await obterIdioma();

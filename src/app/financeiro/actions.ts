@@ -5,8 +5,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { db } from "@/db";
-import { lotes } from "@/db/schema";
-import { dataHoraLocalParaDate, reaisParaCentavos } from "@/lib/formatar";
+import { lotes, usuarios } from "@/db/schema";
+import { dataHoraLocalParaDate, formatarPreco, reaisParaCentavos } from "@/lib/formatar";
+import { registrarAuditoria } from "@/modules/auditoria";
+import { estornarPedido } from "@/modules/ingressos";
 import { exigirAdmin } from "@/modules/auth/sessao";
 import { TIPOS_PRODUTO, type TipoProduto } from "@/modules/ingressos/produtos";
 import { reenviarTodosOsIngressos } from "@/modules/ingressos/emails";
@@ -70,4 +72,32 @@ export async function reenviarIngressosAction(form: FormData) {
   if (String(form.get("confirmacao") ?? "").trim().toUpperCase() !== "ENVIAR") redirect("/financeiro?erro=confirmar-envio");
   const { enviados } = await reenviarTodosOsIngressos();
   redirect(`/financeiro?ok=ingressos-enviados&qtd=${enviados}`);
+}
+
+// Estorno de compra cancelada pelo cliente: só com o clique de uma pessoa da
+// organização (nunca automático). O gateway recebe uma chave única por pedido,
+// então um clique repetido não estorna duas vezes.
+export async function estornarAction(form: FormData) {
+  const { user } = await exigirAdmin(["organizador"]);
+  const pedidoId = z.uuid().safeParse(form.get("pedidoId"));
+  if (!pedidoId.success) redirect("/financeiro?erro=estorno");
+  let pedido;
+  try {
+    pedido = await estornarPedido(pedidoId.data, user);
+  } catch (erro) {
+    console.error("[financeiro] Falha no estorno", { pedidoId: pedidoId.data, erro: (erro as Error).message });
+    redirect("/financeiro?erro=estorno");
+  }
+  await registrarAuditoria({
+    acao: "estorno_aprovado",
+    autor: user,
+    alvo: {
+      id: (await db.query.usuarios.findFirst({ where: eq(usuarios.email, pedido.email) }))?.id ?? pedido.id,
+      name: pedido.nome,
+      email: pedido.email,
+    },
+    detalhes: { pedidoId: pedido.id, valor: formatarPreco(pedido.valorCentavos) },
+  });
+  revalidatePath("/financeiro");
+  redirect("/financeiro?ok=estornado");
 }

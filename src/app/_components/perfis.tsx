@@ -26,7 +26,9 @@ export const TEXTOS_PERFIS = traducoes(
     bioEn: "Bio em inglês (opcional — sem ela, aparece a bio em português)",
     instagram: "Instagram",
     salvar: "Salvar",
-    fotoDica: "A foto é trocada em Painel → Professores.",
+    foto: "Foto",
+    fotoDica: "JPG, PNG ou WebP, até 8 MB. Deixe em branco para manter a foto atual.",
+    removerFoto: "Remover a foto atual",
     fotoDe: (n: string) => `Foto de ${n}`,
   },
   {
@@ -44,7 +46,9 @@ export const TEXTOS_PERFIS = traducoes(
     bioEn: "Bio in English (optional — without it, the Portuguese bio is shown)",
     instagram: "Instagram",
     salvar: "Save",
-    fotoDica: "The photo is changed in Dashboard → Teachers.",
+    foto: "Photo",
+    fotoDica: "JPG, PNG or WebP, up to 8 MB. Leave blank to keep the current photo.",
+    removerFoto: "Remove current photo",
     fotoDe: (n: string) => `Photo of ${n}`,
   },
   {
@@ -62,7 +66,9 @@ export const TEXTOS_PERFIS = traducoes(
     bioEn: "Bio en inglés (opcional — sin ella, se muestra la bio en portugués)",
     instagram: "Instagram",
     salvar: "Guardar",
-    fotoDica: "La foto se cambia en Panel → Profesores.",
+    foto: "Foto",
+    fotoDica: "JPG, PNG o WebP, hasta 8 MB. Déjalo en blanco para mantener la foto actual.",
+    removerFoto: "Quitar la foto actual",
     fotoDe: (n: string) => `Foto de ${n}`,
   },
 );
@@ -190,7 +196,6 @@ export function GradePerfis({
           >
             {p.nome}
           </Link>
-          <p className="mt-2 line-clamp-2 flex-1 text-sm text-mist/70">{bioDoIdioma(p, idioma) ?? t.bioEmBreve}</p>
           {/* Rodapé da caixinha: canetinha (só organização) à esquerda, "Bio" à direita. */}
           {editavel && (
             <Link
@@ -267,7 +272,20 @@ export function DetalhePerfil({
           <Campo id="perfil-insta" label={t.instagram}>
             <input id="perfil-insta" name="instagram" maxLength={31} defaultValue={perfil.instagram ?? ""} placeholder="@perfil" className={classeInput} />
           </Campo>
-          <p className="text-xs text-mist/60">{t.fotoDica}</p>
+          <Campo id="perfil-foto" label={t.foto} dica={t.fotoDica}>
+            <input
+              id="perfil-foto"
+              name="foto"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="block w-full text-sm text-mist/80 file:mr-3 file:rounded-full file:border-0 file:bg-gold-400/20 file:px-4 file:py-2 file:font-semibold file:text-gold-300 hover:file:bg-gold-400/30"
+            />
+          </Campo>
+          {perfil.fotoUrl && (
+            <label className="flex items-center gap-2 text-sm text-mist/80">
+              <input type="checkbox" name="removerFoto" className="h-4 w-4 accent-teal-400" /> {t.removerFoto}
+            </label>
+          )}
           <button type="submit" className={classeBotao}>{t.salvar}</button>
         </form>
       )}

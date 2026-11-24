@@ -4,6 +4,12 @@ import type { NextConfig } from "next";
 const MAILPIT_URL = process.env.MAILPIT_URL ?? "http://localhost:8025";
 
 const nextConfig: NextConfig = {
+  // Fotos de perfil (até 8 MB) e o print do "Reportar problema" vão por
+  // Server Action; o padrão de 1 MB não comportaria.
+  experimental: {
+    serverActions: { bodySizeLimit: "10mb" },
+  },
+
   // Nginx faz buffering por padrão, o que quebra streaming/Suspense do App
   // Router quando self-hosted atrás de um reverse proxy.
   async headers() {

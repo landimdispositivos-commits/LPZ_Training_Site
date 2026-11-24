@@ -4,6 +4,7 @@ import "./globals.css";
 import { LOCALE, tx } from "@/i18n";
 import { ProvedorIdioma } from "@/i18n/cliente";
 import { obterIdioma } from "@/i18n/servidor";
+import { BotaoReportar } from "./_components/reportar/botao-reportar";
 
 // Fontes Google (licença OFL), servidas pelo próprio site via next/font.
 const poppins = Poppins({
@@ -45,7 +46,10 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       className={`${poppins.variable} ${michroma.variable} ${scriptAccent.variable}`}
     >
       <body className="min-h-screen antialiased">
-        <ProvedorIdioma idioma={idioma}>{children}</ProvedorIdioma>
+        <ProvedorIdioma idioma={idioma}>
+          {children}
+          <BotaoReportar />
+        </ProvedorIdioma>
       </body>
     </html>
   );

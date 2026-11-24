@@ -1,8 +1,9 @@
 import { comoChamar } from "@/modules/perfil/apelido";
+import { perfisDo, temPerfil } from "@/modules/auth/papeis";
 import Link from "next/link";
 import { traducoes, type Idioma } from "@/i18n";
 import { obterIdioma } from "@/i18n/servidor";
-import { menuDoPapel, rotuloPapel } from "@/modules/auth/menu";
+import { menuDosPerfis, rotuloPapel } from "@/modules/auth/menu";
 import { obterSessao } from "@/modules/auth/sessao";
 import { contarSacola } from "@/modules/ingressos";
 import { ItemSair } from "./item-sair";
@@ -19,6 +20,8 @@ const TEXTOS = traducoes(
     abrirMenu: "Abrir menu",
     fecharMenu: "Fechar menu",
     faleConosco: "Fale conosco",
+    buscar: "Buscar",
+    buscarDica: "Buscar no site…",
     sacola: (n: number) => `Sacola com ${n} ${n === 1 ? "item" : "itens"}`,
     links: [
       { href: "/cronograma", label: "Cronograma" },
@@ -37,6 +40,8 @@ const TEXTOS = traducoes(
     abrirMenu: "Open menu",
     fecharMenu: "Close menu",
     faleConosco: "Contact us",
+    buscar: "Search",
+    buscarDica: "Search the site…",
     sacola: (n: number) => `Cart with ${n} ${n === 1 ? "item" : "items"}`,
     links: [
       { href: "/cronograma", label: "Schedule" },
@@ -55,6 +60,8 @@ const TEXTOS = traducoes(
     abrirMenu: "Abrir menú",
     fecharMenu: "Cerrar menú",
     faleConosco: "Contáctanos",
+    buscar: "Buscar",
+    buscarDica: "Buscar en el sitio…",
     sacola: (n: number) => `Bolsa con ${n} ${n === 1 ? "artículo" : "artículos"}`,
     links: [
       { href: "/cronograma", label: "Cronograma" },
@@ -82,7 +89,7 @@ function IconePessoa({ className }: { className?: string }) {
 // Sacola (só aparece para congressista com itens reservados).
 async function BotaoSacola({ idioma }: { idioma: Idioma }) {
   const sessao = await obterSessao().catch(() => null);
-  if (!sessao || sessao.user.papel !== "congressista") return null;
+  if (!sessao || !temPerfil(sessao.user, "congressista")) return null;
   const n = await contarSacola(sessao.user.email).catch(() => 0);
   if (n === 0) return null;
   return (
@@ -122,7 +129,7 @@ async function MenuConta({ idioma }: { idioma: Idioma }) {
   }
 
   const { user } = sessao;
-  const itens = menuDoPapel(user.papel, idioma);
+  const itens = menuDosPerfis(perfisDo(user), idioma);
 
   return (
     <MenuSuspenso
@@ -182,6 +189,38 @@ export async function SiteHeader() {
         </ul>
 
         <div className="flex shrink-0 items-center gap-2">
+          <MenuSuspenso
+            resumoClassName="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-full text-gold-300 hover:bg-gold-500/10 [&::-webkit-details-marker]:hidden"
+            resumo={
+              <>
+                <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m20 20-3.5-3.5" />
+                </svg>
+                <span className="sr-only">{TEXTOS[idioma].buscar}</span>
+              </>
+            }
+          >
+            <form
+              action="/busca"
+              method="get"
+              role="search"
+              className="absolute right-0 top-12 z-50 flex w-[min(86vw,22rem)] gap-2 rounded-2xl border border-gold-500/40 bg-petrol-900/95 p-3 shadow-xl backdrop-blur"
+            >
+              <label htmlFor="busca-topo" className="sr-only">{TEXTOS[idioma].buscar}</label>
+              <input
+                id="busca-topo"
+                name="q"
+                type="search"
+                autoFocus
+                placeholder={TEXTOS[idioma].buscarDica}
+                className="min-w-0 flex-1 rounded-lg border border-white/15 bg-petrol-950/80 px-3 py-2 text-sm text-white placeholder:text-mist/50 focus:border-teal-400 focus:outline-none"
+              />
+              <button type="submit" className="rounded-lg bg-teal-400 px-3 text-sm font-semibold text-petrol-950 hover:brightness-110">
+                {TEXTOS[idioma].buscar}
+              </button>
+            </form>
+          </MenuSuspenso>
           <SeletorIdioma />
           <BotaoSacola idioma={idioma} />
           <MenuConta idioma={idioma} />

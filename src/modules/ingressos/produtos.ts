@@ -11,10 +11,16 @@ export const PRODUTOS = {
   paparazzi_video: { nome: "Paparazzi — vídeo", nomeEn: "Paparazzi — video", nomeEs: "Paparazzi — video", entrada: false },
   paparazzi_foto: { nome: "Paparazzi — fotos", nomeEn: "Paparazzi — photos", nomeEs: "Paparazzi — fotos", entrada: false },
   camiseta: { nome: "Camiseta", nomeEn: "T-shirt", nomeEs: "Camiseta", entrada: false },
-  massagem_pri: { nome: "Massagem — Pri", nomeEn: "Massage — Pri", nomeEs: "Masaje — Pri", entrada: false },
-  massagem_jessica: { nome: "Massagem — Jéssica", nomeEn: "Massage — Jéssica", nomeEs: "Masaje — Jéssica", entrada: false },
+  // Massagens: cada lote ativo é uma opção de duração (15 min, 30 min, 1 hora).
+  massagem_pri: { nome: "Massagem — Pri Pastel", nomeEn: "Massage — Pri Pastel", nomeEs: "Masaje — Pri Pastel", entrada: false, opcoes: true },
+  massagem_jessica: { nome: "Massagem — Jéssica", nomeEn: "Massage — Jéssica", nomeEs: "Masaje — Jéssica", entrada: false, opcoes: true },
 } as const;
 export type TipoProduto = keyof typeof PRODUTOS;
+
+// Produto vendido em opções (o cliente escolhe o lote: ex. duração da massagem).
+export function temOpcoes(tipo: TipoProduto) {
+  return "opcoes" in PRODUTOS[tipo] && PRODUTOS[tipo].opcoes === true;
+}
 export const TIPOS_PRODUTO = Object.keys(PRODUTOS) as TipoProduto[];
 
 // Nome do produto no idioma do visitante (telas públicas).
@@ -35,6 +41,10 @@ export function nomeDoLote(nome: string, idioma: Idioma): string {
     return `${n}${suf} batch`;
   }
   if (/^inscri[cç][aã]o$/i.test(nome.trim())) return idioma === "en" ? "Registration" : "Inscripción";
+  const min = /^(\d+) minutos$/i.exec(nome.trim());
+  if (min) return idioma === "en" ? `${min[1]} minutes` : `${min[1]} minutos`;
+  const h = /^(\d+) horas?$/i.exec(nome.trim());
+  if (h) return idioma === "en" ? `${h[1]} ${h[1] === "1" ? "hour" : "hours"}` : `${h[1]} ${h[1] === "1" ? "hora" : "horas"}`;
   if (/^lote [uú]nico$/i.test(nome.trim())) return idioma === "en" ? "Single batch" : "Lote único";
   return nome;
 }

@@ -7,6 +7,8 @@ import { usuarios } from "@/db/schema";
 import { obterSessao } from "@/modules/auth/sessao";
 import { normalizarApelido } from "@/modules/perfil/apelido";
 import { diferencas, registrarAuditoria } from "@/modules/auditoria";
+import { enviarEmailCadastroAlterado, nomesDosCampos } from "@/modules/ingressos/emails";
+import { obterIdioma } from "@/i18n/servidor";
 
 export type ResultadoApelido = { ok?: boolean; erro?: "tamanho" | "sessao" };
 
@@ -21,6 +23,10 @@ export async function salvarApelidoAction(_: ResultadoApelido, form: FormData): 
   if (campos.length === 0) return { ok: true };
   await db.update(usuarios).set({ apelido: r.apelido, updatedAt: new Date() }).where(eq(usuarios.id, user.id));
   await registrarAuditoria({ acao: "ficha_atualizada", autor: user, alvo: user, detalhes: { campos, mudancas } });
+  const idioma = await obterIdioma();
+  enviarEmailCadastroAlterado({ nome: user.name, email: user.email, campos: nomesDosCampos(campos, idioma), porOrganizacao: false, idioma }).catch(
+    (erro: unknown) => console.error("[email] Falha no aviso de cadastro", (erro as Error)?.message),
+  );
   revalidatePath("/", "layout");
   return { ok: true };
 }

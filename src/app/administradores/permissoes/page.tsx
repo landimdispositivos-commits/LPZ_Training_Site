@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ehAdmin } from "@/modules/auth/papeis";
+import { ehAdmin, perfisDo } from "@/modules/auth/papeis";
 import { exigirAdmin } from "@/modules/auth/sessao";
 import { ROTULO_PAPEL } from "@/modules/auth/menu";
 import { contarPorPapel, DESCRICAO_PAPEL, listarUsuarios, PAPEIS, type Papel } from "@/modules/usuarios";
@@ -22,6 +22,7 @@ const COR_PAPEL: Record<string, string> = {
   acesso_total: "bg-gold-metal text-gold-ink",
   organizador: "bg-gold-400/20 text-gold-300",
   portaria: "bg-ember-500/15 text-ember-400",
+  midias: "bg-teal-400/25 text-teal-200",
   profissional: "bg-teal-400/15 text-teal-300",
   congressista: "bg-white/10 text-mist/80",
 };
@@ -125,8 +126,12 @@ export default async function Page(props: PageProps<"/administradores/permissoes
                             {u.professorNome ? ` · perfil de professor: ${u.professorNome}` : ""}
                           </p>
                         </div>
-                        <span className={`rounded-full px-3 py-1 text-xs font-semibold ${COR_PAPEL[u.papel]}`}>
-                          {ROTULO_PAPEL[u.papel]}
+                        <span className="flex flex-wrap justify-end gap-1">
+                          {perfisDo(u).map((p) => (
+                            <span key={p} className={`rounded-full px-3 py-1 text-xs font-semibold ${COR_PAPEL[p] ?? COR_PAPEL.congressista}`}>
+                              {ROTULO_PAPEL[p] ?? p}
+                            </span>
+                          ))}
                         </span>
                       </div>
 
@@ -138,15 +143,16 @@ export default async function Page(props: PageProps<"/administradores/permissoes
 
                       {!euMesmo && (
                         <details className="mt-3">
-                          <summary className="cursor-pointer text-sm font-medium text-teal-300">Mudar perfil</summary>
+                          <summary className="cursor-pointer text-sm font-medium text-teal-300">Mudar perfis</summary>
+                          <p className="mt-2 text-xs text-mist/60">Marque um ou mais perfis. A pessoa terá acesso a tudo o que cada perfil permite.</p>
                           <form action={alterarPapelAction} className="mt-3 space-y-3">
                             <input type="hidden" name="usuarioId" value={u.id} />
                             <input type="hidden" name="voltar" value={voltar} />
                             <fieldset className="grid gap-2 sm:grid-cols-2">
-                              <legend className="sr-only">Novo perfil</legend>
+                              <legend className="sr-only">Perfis</legend>
                               {PAPEIS.map((p: Papel) => (
                                 <label key={p} className="flex items-start gap-2 rounded-lg border border-white/10 p-2 text-sm text-mist has-[:checked]:border-gold-400">
-                                  <input type="radio" name="papel" value={p} defaultChecked={u.papel === p} className="mt-1 accent-gold-400" />
+                                  <input type="checkbox" name="perfis" value={p} defaultChecked={perfisDo(u).includes(p)} className="mt-1 h-4 w-4 accent-gold-400" />
                                   <span>
                                     <span className="font-medium text-white">{ROTULO_PAPEL[p]}</span>
                                     <span className="block text-xs text-mist/60">{DESCRICAO_PAPEL[p]}</span>
@@ -162,9 +168,9 @@ export default async function Page(props: PageProps<"/administradores/permissoes
                             )}
                             <label className="flex items-center gap-2 text-xs text-mist/80">
                               <input type="checkbox" name="confirmo" className="h-4 w-4 accent-gold-400" />
-                              Confirmo (obrigatório para Portaria, Organizador ou Acesso total)
+                              Confirmo (obrigatório ao dar Portaria, Mídias, Organizador ou Acesso total)
                             </label>
-                            <BotaoSalvar>Salvar perfil</BotaoSalvar>
+                            <BotaoSalvar>Salvar perfis</BotaoSalvar>
                           </form>
                         </details>
                       )}

@@ -3,11 +3,11 @@ import Link from "next/link";
 import { exigirAdmin } from "@/modules/auth/sessao";
 import { listarPedidos, lotesComVendas, resumoFinanceiro, STATUS_PEDIDO, type StatusPedido } from "@/modules/financeiro";
 import { dateParaDataHoraLocal, formatarDataHora, formatarPreco } from "@/lib/formatar";
-import { PRODUTOS, TIPOS_PRODUTO, type TipoProduto } from "@/modules/ingressos";
+import { estornosPendentes, PRODUTOS, TIPOS_PRODUTO, type TipoProduto } from "@/modules/ingressos";
 import { Aviso, Campo, classeBotao, classeInput } from "../_components/form-ui";
 import { BotaoSalvar } from "../_components/botao-salvar";
 import { SiteHeader } from "../_components/site-header";
-import { reenviarIngressosAction, criarLoteAction, editarLoteAction } from "./actions";
+import { reenviarIngressosAction, criarLoteAction, editarLoteAction, estornarAction } from "./actions";
 
 export const metadata: Metadata = { title: "Financeiro — LPZ Training" };
 
@@ -25,6 +25,8 @@ const MENSAGENS: Record<string, { tipo: "ok" | "erro"; texto: string }> = {
   quantidade: { tipo: "erro", texto: "A quantidade total não pode ficar abaixo do que já foi vendido ou reservado." },
   "ingressos-enviados": { tipo: "ok", texto: "E-mails com o QR code enviados." },
   "confirmar-envio": { tipo: "erro", texto: "Para enviar, digite ENVIAR no campo de confirmação." },
+  estornado: { tipo: "ok", texto: "Estorno feito. O cliente recebeu um e-mail de confirmação." },
+  estorno: { tipo: "erro", texto: "Não foi possível fazer o estorno agora. Confira no painel do Mercado Pago e tente de novo." },
 };
 
 export default async function Page(props: PageProps<"/financeiro">) {
@@ -33,10 +35,11 @@ export default async function Page(props: PageProps<"/financeiro">) {
   const filtro = STATUS_PEDIDO.find((s) => s === status);
   const mensagem = MENSAGENS[String(ok ?? erro ?? "")];
 
-  const [resumo, listaLotes, listaPedidos] = await Promise.all([
+  const [resumo, listaLotes, listaPedidos, estornos] = await Promise.all([
     resumoFinanceiro(),
     lotesComVendas(),
     listarPedidos({ status: filtro, limite: 200 }),
+    estornosPendentes(),
   ]);
 
   return (
@@ -76,6 +79,37 @@ export default async function Page(props: PageProps<"/financeiro">) {
             Valores brutos (antes da taxa do Mercado Pago). Pedidos pendentes há mais de 30 minutos são cancelados
             automaticamente e a vaga volta para o lote.
           </p>
+
+          {estornos.length > 0 && (
+            <section className="rounded-2xl border border-ember-500/50 bg-petrol-900/80 p-6">
+              <h2 className="text-sm font-semibold uppercase tracking-wider text-ember-400">
+                Estornos aguardando aprovação ({estornos.length})
+              </h2>
+              <p className="mt-2 text-xs text-mist/70">
+                Compras canceladas pelo próprio cliente dentro dos 7 dias (direito de arrependimento). O ingresso já foi
+                cancelado e a vaga voltou ao lote. Ao clicar em Estornar, o valor é devolvido pelo Mercado Pago e o
+                cliente recebe um e-mail.
+              </p>
+              <ul className="mt-4 divide-y divide-white/10">
+                {estornos.map((e) => (
+                  <li key={e.pedidoId} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                    <div className="text-sm">
+                      <p className="font-semibold text-white">{e.nome} <span className="font-normal text-mist/60">· {e.email}</span></p>
+                      <p className="text-mist/70">
+                        {PRODUTOS[e.tipo].nome} ({e.loteNome}) · cancelado em {e.canceladoEm ? formatarDataHora(e.canceladoEm) : "—"}
+                      </p>
+                    </div>
+                    <form action={estornarAction}>
+                      <input type="hidden" name="pedidoId" value={e.pedidoId} />
+                      <button type="submit" className="rounded-full bg-ember-500 px-4 py-2 text-sm font-semibold text-white hover:brightness-110">
+                        Estornar {formatarPreco(e.valorCentavos)}
+                      </button>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
 
           <section className="rounded-2xl border border-white/10 bg-petrol-900/80 p-6">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-teal-300">Lotes</h2>

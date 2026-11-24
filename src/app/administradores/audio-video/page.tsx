@@ -16,7 +16,7 @@ const ERROS: Record<string, string> = {
 };
 
 export default async function Page(props: PageProps<"/administradores/audio-video">) {
-  await exigirAdmin(["organizador"]);
+  await exigirAdmin(["organizador", "midias"]);
   const { ok, erro } = await props.searchParams;
   const itens = (await itensDaGaleria()).filter((i) => i.tipo !== "foto");
   const videos = itens.filter((i) => i.tipo === "video");

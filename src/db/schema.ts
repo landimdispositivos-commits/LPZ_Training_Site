@@ -11,6 +11,7 @@ import {
   index,
   jsonb,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 // ---------------------------------------------------------------------------
 // Login (Better Auth) — congressistas, profissionais e administradores
@@ -33,6 +34,7 @@ export const papelUsuarioEnum = pgEnum("papel_usuario", [
   "organizador",
   "portaria",
   "acesso_total",
+  "midias",
 ]);
 
 export const usuarios = pgTable("usuarios", {
@@ -44,6 +46,9 @@ export const usuarios = pgTable("usuarios", {
   emailVerified: boolean("email_verificado").notNull().default(false),
   image: text("imagem"),
   papel: papelUsuarioEnum("papel").notNull().default("congressista"),
+  // Perfis adicionais (além do principal): uma pessoa pode ter vários
+  // (ex: Portaria + Mídias). O acesso vale se QUALQUER perfil permitir.
+  perfisExtras: text("perfis_extras").array().notNull().default(sql`'{}'::text[]`),
   // Perfil público do profissional (foto, bio, aulas no cronograma).
   professorId: uuid("professor_id").unique().references(() => professores.id, { onDelete: "set null" }),
   // Dados do cadastro de congressista — obrigatórios para congressistas
@@ -213,6 +218,14 @@ export const pedidos = pgTable("pedidos", {
   // gateway como referência externa). Nulo = compra de um item só (a
   // referência é o próprio id do pedido).
   compraId: uuid("compra_id"),
+  // Quando o pagamento foi aprovado e o id do pagamento no gateway (estorno).
+  pagoEm: timestamp("pago_em", { withTimezone: true }),
+  gatewayPagamentoId: text("gateway_pagamento_id"),
+  // Cancelamento pelo próprio cliente (direito de arrependimento, 7 dias).
+  // Cancelado e sem estornadoEm = estorno aguardando aprovação da organização.
+  canceladoPeloClienteEm: timestamp("cancelado_pelo_cliente_em", { withTimezone: true }),
+  estornadoEm: timestamp("estornado_em", { withTimezone: true }),
+  estornadoPor: text("estornado_por").references(() => usuarios.id, { onDelete: "set null" }),
   // Idioma em que o comprador estava no site ("pt"/"en"): usado nos e-mails
   // de confirmação e do ingresso, que podem sair depois (webhook do Pix).
   idioma: text("idioma").notNull().default("pt"),
