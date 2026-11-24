@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { professores } from "@/db/schema";
 import { exigirAdmin } from "@/modules/auth/sessao";
 import { CATEGORIAS, ROTA_CATEGORIA } from "@/modules/perfis";
+import { moverNaLista } from "@/lib/ordem";
 import { storageAdapter } from "@/modules/midia";
 import { caminhoDaUrl, ErroImagem, salvarFotoDoFormulario } from "@/modules/midia/imagem";
 
@@ -73,4 +74,33 @@ export async function salvarPerfilAction(form: FormData) {
   revalidatePath(base);
   revalidatePath(`${base}/${id}`);
   redirect(`${base}/${id}?ok=1`);
+}
+
+// Setinhas ▲ ▼ nas caixas (só organização): troca a posição com a vizinha e
+// renumera a ordem de toda a categoria.
+export async function moverPerfilAction(form: FormData) {
+  await exigirAdmin(["organizador"]);
+  const id = z.uuid().safeParse(form.get("id"));
+  const categoria = CATEGORIAS.find((c) => c === form.get("categoria")) ?? "professor";
+  const direcao = form.get("direcao") === "cima" ? "cima" : "baixo";
+  const base = ROTA_CATEGORIA[categoria];
+  if (!id.success) redirect(base);
+
+  const atuais = await db
+    .select({ id: professores.id })
+    .from(professores)
+    .where(eq(professores.categoria, categoria))
+    .orderBy(asc(professores.ordem), asc(professores.nome));
+  const nova = moverNaLista(
+    atuais.map((p) => p.id),
+    id.data,
+    direcao,
+  );
+  await db.transaction(async (tx) => {
+    for (const [posicao, pid] of nova.entries()) {
+      await tx.update(professores).set({ ordem: posicao + 1 }).where(eq(professores.id, pid));
+    }
+  });
+  revalidatePath(base);
+  redirect(`${base}?ordenar=1#perfil-${id.data}`);
 }

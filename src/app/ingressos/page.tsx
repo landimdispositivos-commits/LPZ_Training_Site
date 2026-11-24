@@ -1,5 +1,5 @@
 import { Fragment } from "react";
-import { temPerfil } from "@/modules/auth/papeis";
+import { ehGestor, temPerfil } from "@/modules/auth/papeis";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { urlLoginParaComprar } from "@/modules/auth/proximo";
@@ -15,7 +15,7 @@ import { POLITICA_COMPRA } from "@/modules/ingressos/politica";
 import { mensagemErroCompra } from "./erros";
 import { AutoComprar } from "./auto-comprar";
 import { SiteHeader } from "../_components/site-header";
-import { adicionarSacolaAction, comprarAction, removerDaSacolaAction, retomarPagamentoAction } from "./actions";
+import { adicionarSacolaAction, comprarAction, moverProdutoAction, removerDaSacolaAction, retomarPagamentoAction } from "./actions";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: tx(await obterIdioma(), "Ingressos — LPZ Training", "Tickets — LPZ Training", "Entradas — LPZ Training") };
@@ -38,6 +38,8 @@ const TEXTOS = traducoes(
     comprarVisitante: "Comprar",
     novidade: "Novidade em breve",
     escolhaOpcao: "Escolha a opção",
+    moverAntes: "Mover para antes",
+    moverDepois: "Mover para depois",
     naSacola: "✓ Na sacola",
     adicionar: "Adicionar à sacola",
     comprarAgora: "Comprar só este agora",
@@ -68,6 +70,8 @@ const TEXTOS = traducoes(
     comprarVisitante: "Buy",
     novidade: "Coming soon",
     escolhaOpcao: "Choose an option",
+    moverAntes: "Move earlier",
+    moverDepois: "Move later",
     naSacola: "✓ In your cart",
     adicionar: "Add to cart",
     comprarAgora: "Buy just this one now",
@@ -98,6 +102,8 @@ const TEXTOS = traducoes(
     comprarVisitante: "Comprar",
     novidade: "Próximamente",
     escolhaOpcao: "Elige una opción",
+    moverAntes: "Mover antes",
+    moverDepois: "Mover después",
     naSacola: "✓ En tu bolsa",
     adicionar: "Agregar a la bolsa",
     comprarAgora: "Comprar solo este ahora",
@@ -127,6 +133,7 @@ export default async function Page(props: PageProps<"/ingressos">) {
   const sessao = await obterSessao();
   const user = sessao?.user;
   const congressista = !!user && temPerfil(user, "congressista");
+  const organizacao = !!user && ehGestor(user.papel);
 
   const [itens, situacao, sacola] = await Promise.all([
     vitrine(),
@@ -179,17 +186,38 @@ export default async function Page(props: PageProps<"/ingressos">) {
             <p className="text-center text-mist/80">{t.naoAbertas}</p>
           ) : (
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {itens.map((item) => {
+              {itens.map((item, indice) => {
                 const minha = situacao?.[item.tipo];
                 return (
                   <Fragment key={item.tipo}>
                   <li
-                    className={`relative flex flex-col rounded-2xl border bg-petrol-950/70 p-6 text-center transition ${
+                    id={`produto-${item.tipo}`}
+                    className={`relative flex scroll-mt-24 flex-col rounded-2xl border bg-petrol-950/70 p-6 text-center transition ${
                       escolhido === item.tipo
                         ? "border-gold-300 shadow-[0_0_30px_rgb(230_181_74/0.35)] ring-2 ring-gold-400"
                         : "border-gold-500/40"
                     } ${!user && item.lote ? "hover:border-gold-300 hover:shadow-[0_0_24px_rgb(230_181_74/0.25)]" : ""}`}
                   >
+                    {organizacao && (
+                      // Setinhas para ordenar as caixas (só organização).
+                      <div className="absolute right-3 top-3 z-10 flex gap-1">
+                        {(["cima", "baixo"] as const).map((direcao) => (
+                          <form key={direcao} action={moverProdutoAction}>
+                            <input type="hidden" name="tipo" value={item.tipo} />
+                            <input type="hidden" name="direcao" value={direcao} />
+                            <button
+                              type="submit"
+                              disabled={direcao === "cima" ? indice === 0 : indice === itens.length - 1}
+                              aria-label={`${direcao === "cima" ? t.moverAntes : t.moverDepois}: ${nomeDoProduto(item.tipo, idioma)}`}
+                              title={direcao === "cima" ? t.moverAntes : t.moverDepois}
+                              className="flex h-8 w-8 items-center justify-center rounded-full bg-gold-400/15 text-gold-300 hover:bg-gold-400/30 disabled:opacity-30"
+                            >
+                              {direcao === "cima" ? "◀" : "▶"}
+                            </button>
+                          </form>
+                        ))}
+                      </div>
+                    )}
                     <p className="font-display text-sm uppercase tracking-[0.15em] text-gold-300">{nomeDoProduto(item.tipo, idioma)}</p>
                     {item.opcoes.length > 0 ? (
                       // Produto com opções (massagens): lista de durações e valores.

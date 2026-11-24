@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { and, asc, desc, eq, gte, inArray, isNotNull, isNull, lt, lte, or, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { ingressos, lotes, pedidos, presencas } from "@/db/schema";
+import { configuracoes, ingressos, lotes, pedidos, presencas } from "@/db/schema";
 import type { Idioma } from "@/i18n";
 import { paymentProvider } from "@/modules/pagamentos";
 import { enviarEmailCancelamento, enviarEmailEstorno, enviarEmailsDaCompra } from "./emails";
@@ -58,6 +58,31 @@ export async function loteVigente(tipo: TipoProduto) {
 
 // Vitrine: todos os produtos, cada um com o lote vigente, a indicação de
 // esgotado ou, se ainda não tem lote aberto, "valor em breve" (emBreve).
+// Ordem das caixas na página de Ingressos, definida pela organização com as
+// setinhas (guardada em configuracoes como lista JSON de tipos).
+const CHAVE_ORDEM = "ordem_produtos";
+
+export async function ordemDosProdutos(): Promise<TipoProduto[]> {
+  const linha = await db.query.configuracoes.findFirst({ where: eq(configuracoes.chave, CHAVE_ORDEM) });
+  let salva: string[] = [];
+  try {
+    const lista = JSON.parse(linha?.valor ?? "[]");
+    if (Array.isArray(lista)) salva = lista.map(String);
+  } catch {}
+  const conhecidos = salva.filter((t): t is TipoProduto => (TIPOS_PRODUTO as string[]).includes(t));
+  // Produto novo que ainda não está na lista salva entra no fim.
+  return [...conhecidos, ...TIPOS_PRODUTO.filter((t) => !conhecidos.includes(t))];
+}
+
+export async function salvarOrdemDosProdutos(ordem: TipoProduto[]) {
+  const valor = JSON.stringify(ordem);
+  const agora = new Date();
+  await db
+    .insert(configuracoes)
+    .values({ chave: CHAVE_ORDEM, valor, atualizadoEm: agora })
+    .onConflictDoUpdate({ target: configuracoes.chave, set: { valor, atualizadoEm: agora } });
+}
+
 export async function vitrine() {
   const agora = new Date();
   const ativos = await db
@@ -65,7 +90,8 @@ export async function vitrine() {
     .from(lotes)
     .where(and(...filtrosVigencia(agora)))
     .orderBy(asc(lotes.precoCentavos), asc(lotes.criadoEm));
-  return TIPOS_PRODUTO.map((tipo) => {
+  const ordem = await ordemDosProdutos();
+  return ordem.map((tipo) => {
     const doTipo = ativos.filter((l) => l.tipo === tipo);
     const opcoes = doTipo.filter((l) => l.quantidadeVendida < l.quantidadeTotal);
     const comVaga = opcoes[0] ?? null;

@@ -7,14 +7,18 @@ import {
   criarPedido,
   ErroCompra,
   iniciarPagamento,
+  ordemDosProdutos,
   pagarSacola,
+  salvarOrdemDosProdutos,
   TIPOS_PRODUTO,
   type CodigoErroCompra,
   type TipoProduto,
 } from "@/modules/ingressos";
 import { areaDoPapel, temPerfil } from "@/modules/auth/papeis";
 import { urlCompra } from "@/modules/auth/proximo";
-import { emModoVerComo, obterSessao } from "@/modules/auth/sessao";
+import { emModoVerComo, exigirAdmin, obterSessao } from "@/modules/auth/sessao";
+import { moverNaLista } from "@/lib/ordem";
+import { revalidatePath } from "next/cache";
 import { obterIdioma } from "@/i18n/servidor";
 
 // Server actions são endpoints públicos (POST direto): sessão, papel e dono
@@ -130,4 +134,15 @@ function codigoDoErro(erro: unknown): CodigoErroCompra {
   if (erro instanceof ErroCompra) return erro.codigo;
   console.error("Erro inesperado na compra", (erro as Error)?.message);
   return "pagamento";
+}
+
+// Setinhas ▲ ▼ nas caixas de Ingressos (só organização).
+export async function moverProdutoAction(form: FormData) {
+  await exigirAdmin(["organizador"]);
+  const tipo = z.enum(TIPOS_PRODUTO as [TipoProduto, ...TipoProduto[]]).safeParse(form.get("tipo"));
+  if (!tipo.success) redirect("/ingressos?ordenar=1");
+  const direcao = form.get("direcao") === "cima" ? "cima" : "baixo";
+  await salvarOrdemDosProdutos(moverNaLista(await ordemDosProdutos(), tipo.data, direcao));
+  revalidatePath("/ingressos");
+  redirect(`/ingressos?ordenar=1#produto-${tipo.data}`);
 }

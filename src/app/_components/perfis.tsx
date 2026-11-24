@@ -5,7 +5,7 @@ import { obterSessao } from "@/modules/auth/sessao";
 import { linkInstagram, ROTA_CATEGORIA, type Categoria } from "@/modules/perfis";
 import type { professores } from "@/db/schema";
 import { Aviso, Campo, classeBotao, classeInput } from "./form-ui";
-import { salvarPerfilAction } from "./perfis-actions";
+import { moverPerfilAction, salvarPerfilAction } from "./perfis-actions";
 
 // Caixinhas e página de bio dos casais de professores e dos DJs.
 type Perfil = typeof professores.$inferSelect;
@@ -13,6 +13,8 @@ type Perfil = typeof professores.$inferSelect;
 export const TEXTOS_PERFIS = traducoes(
   {
     verBio: "Bio",
+    moverAntes: "Mover para antes",
+    moverDepois: "Mover para depois",
     instagramEmBreve: "Instagram em breve",
     bioEmBreve: "Bio em breve.",
     editar: "Editar",
@@ -33,6 +35,8 @@ export const TEXTOS_PERFIS = traducoes(
   },
   {
     verBio: "Bio",
+    moverAntes: "Move earlier",
+    moverDepois: "Move later",
     instagramEmBreve: "Instagram coming soon",
     bioEmBreve: "Bio coming soon.",
     editar: "Edit",
@@ -53,6 +57,8 @@ export const TEXTOS_PERFIS = traducoes(
   },
   {
     verBio: "Bio",
+    moverAntes: "Mover antes",
+    moverDepois: "Mover después",
     instagramEmBreve: "Instagram próximamente",
     bioEmBreve: "Bio próximamente.",
     editar: "Editar",
@@ -184,11 +190,36 @@ export function GradePerfis({
   const base = ROTA_CATEGORIA[categoria];
   return (
     <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-      {perfis.map((p) => (
+      {perfis.map((p, indice) => (
         <li
           key={p.id}
-          className="relative flex flex-col items-center rounded-2xl border border-gold-500/40 bg-petrol-950/70 p-6 pb-16 text-center transition hover:border-gold-300 hover:shadow-[0_0_24px_rgb(230_181_74/0.25)]"
+          id={`perfil-${p.id}`}
+          className="relative flex scroll-mt-24 flex-col items-center rounded-2xl border border-gold-500/40 bg-petrol-950/70 p-6 pb-16 text-center transition hover:border-gold-300 hover:shadow-[0_0_24px_rgb(230_181_74/0.25)]"
         >
+          {editavel && (
+            // Setinhas para ordenar (só organização), por cima do link da caixa.
+            <div className="absolute right-3 top-3 z-10 flex flex-col gap-1">
+              {(["cima", "baixo"] as const).map((direcao) => {
+                const desabilitado = direcao === "cima" ? indice === 0 : indice === perfis.length - 1;
+                return (
+                  <form key={direcao} action={moverPerfilAction}>
+                    <input type="hidden" name="id" value={p.id} />
+                    <input type="hidden" name="categoria" value={categoria} />
+                    <input type="hidden" name="direcao" value={direcao} />
+                    <button
+                      type="submit"
+                      disabled={desabilitado}
+                      aria-label={`${direcao === "cima" ? t.moverAntes : t.moverDepois}: ${p.nome}`}
+                      title={direcao === "cima" ? t.moverAntes : t.moverDepois}
+                      className="flex h-8 w-8 items-center justify-center rounded-full bg-gold-400/15 text-gold-300 hover:bg-gold-400/30 disabled:opacity-30"
+                    >
+                      {direcao === "cima" ? "▲" : "▼"}
+                    </button>
+                  </form>
+                );
+              })}
+            </div>
+          )}
           <Foto perfil={p} idioma={idioma} />
           <Link
             href={`${base}/${p.id}`}
