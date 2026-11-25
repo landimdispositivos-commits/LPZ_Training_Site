@@ -1,0 +1,1 @@
+ALTER TYPE "public"."papel_usuario" ADD VALUE 'acesso_total';

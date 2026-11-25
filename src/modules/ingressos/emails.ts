@@ -1,0 +1,611 @@
+import { and, asc, eq } from "drizzle-orm";
+import qrcode from "qrcode-generator";
+import { db } from "@/db";
+import { cronogramaItens, ingressos, lotes, pedidos, professores } from "@/db/schema";
+import { ehIdioma, LOCALE, type Idioma } from "@/i18n";
+import { dataCurta, DIAS_EVENTO, diaDaSemana } from "@/lib/dias-evento";
+import { formatarDataHora, formatarPreco } from "@/lib/formatar";
+import { enviarEmail, escaparHtml } from "@/modules/email";
+import { descreverPagamento } from "@/modules/pagamentos/formas";
+import { linkInstagram, listarPerfis } from "@/modules/perfis";
+import { infoProduto, nomeDoLote, nomeDoProduto, type TipoProduto } from "./produtos";
+import { POLITICA_COMPRA } from "./politica";
+import { carregarCatalogo } from "./catalogo";
+
+// E-mail completo da compra, enviado assim que o pagamento é aprovado, no
+// idioma em que a pessoa estava no site. Traz: dados da compra e forma de
+// pagamento, QR code, cronograma, professores e DJs (com o aviso de que tudo
+// pode mudar até o dia do evento). A organização pode reenviar a todos pelo
+// Financeiro (ex.: dias antes do evento) — sai com a programação atualizada.
+//
+// O QR leva ao endereço do site /ingresso/<id>: a organização logada vê ali
+// todos os dados da pessoa; quem não é da organização não vê dados pessoais.
+// Na portaria, o leitor de check-in entende esse endereço.
+
+const COR = {
+  fundo: "#04161b",
+  cartao: "#072a31",
+  borda: "#11525c",
+  ouro: "#e6b54a",
+  ouroClaro: "#f5d27a",
+  agua: "#7fe0d8",
+  texto: "#e8f4f3",
+  suave: "#9fb9b7",
+  tinta: "#1a1204",
+  alerta: "#f26b1d",
+};
+
+function urlSite(caminho: string) {
+  return `${(process.env.APP_URL ?? "http://localhost:3005").replace(/\/$/, "")}${caminho}`;
+}
+
+export function urlDoQr(id: string) {
+  return urlSite(`/ingresso/${id}`);
+}
+
+// QR em GIF (gerado no servidor, sem serviço externo).
+function imagemQr(conteudo: string): Buffer {
+  const qr = qrcode(0, "M");
+  qr.addData(conteudo);
+  qr.make();
+  return Buffer.from(qr.createDataURL(6, 4).split(",")[1], "base64");
+}
+
+const TEXTOS = {
+  pt: {
+    assunto: (produto: string) => `Compra confirmada — ${produto} | LPZ Training`,
+    ola: (nome: string) => `Olá, ${nome}!`,
+    intro: "Seu pagamento foi aprovado. Obrigado por fazer parte do LPZ Training! Aqui está tudo o que você precisa saber.",
+    suaCompra: "Sua compra",
+    produto: "Produto",
+    lote: "Lote",
+    valor: "Valor",
+    pagamento: "Forma de pagamento",
+    data: "Data da compra",
+    pedido: "Pedido",
+    total: "Total pago",
+    seusQrs: "Seus QR codes (um por produto)",
+    seuQr: "Seu QR code",
+    qrEntrada: "Mostre este QR code na entrada do evento — pode ser no celular, não precisa imprimir.",
+    qrServico: "Este QR code identifica a sua compra para a equipe do LPZ.",
+    jj: "Sua inscrição no Jack and Jill está confirmada. A organização passa os detalhes da competição.",
+    codigo: "Código",
+    titular: "Titular",
+    pessoal: "O QR code é pessoal: não compartilhe.",
+    cronograma: "Cronograma",
+    horariosEmBreve: "Horários em breve.",
+    professores: "Professores",
+    djs: "DJs",
+    emBreve: "Em breve.",
+    alteracoes:
+      "Atenção: cronograma, professores e DJs podem sofrer alterações até o dia do evento. A versão mais atualizada está sempre no site.",
+    verArea: "Ver minha área no site",
+    rodape: "LPZ Training — congresso de zouk",
+    duvidas: "Dúvidas? Responda este e-mail ou use o Fale conosco do site.",
+  },
+  en: {
+    assunto: (produto: string) => `Purchase confirmed — ${produto} | LPZ Training`,
+    ola: (nome: string) => `Hi, ${nome}!`,
+    intro: "Your payment has been approved. Thank you for being part of LPZ Training! Here is everything you need to know.",
+    suaCompra: "Your purchase",
+    produto: "Product",
+    lote: "Batch",
+    valor: "Amount",
+    pagamento: "Payment method",
+    data: "Purchase date",
+    pedido: "Order",
+    total: "Total paid",
+    seusQrs: "Your QR codes (one per product)",
+    seuQr: "Your QR code",
+    qrEntrada: "Show this QR code at the event entrance — it can be on your phone, no need to print.",
+    qrServico: "This QR code identifies your purchase for the LPZ team.",
+    jj: "Your Jack and Jill registration is confirmed. The organizers will share the competition details.",
+    codigo: "Code",
+    titular: "Holder",
+    pessoal: "This QR code is personal: do not share it.",
+    cronograma: "Schedule",
+    horariosEmBreve: "Times coming soon.",
+    professores: "Teachers",
+    djs: "DJs",
+    emBreve: "Coming soon.",
+    alteracoes:
+      "Please note: the schedule, teachers and DJs may change until the day of the event. The latest version is always on the website.",
+    verArea: "Go to my area on the site",
+    rodape: "LPZ Training — zouk congress",
+    duvidas: "Questions? Reply to this email or use Contact us on the site.",
+  },
+  es: {
+    assunto: (produto: string) => `Compra confirmada — ${produto} | LPZ Training`,
+    ola: (nome: string) => `¡Hola, ${nome}!`,
+    intro: "Tu pago fue aprobado. ¡Gracias por ser parte de LPZ Training! Aquí tienes todo lo que necesitas saber.",
+    suaCompra: "Tu compra",
+    produto: "Producto",
+    lote: "Lote",
+    valor: "Valor",
+    pagamento: "Forma de pago",
+    data: "Fecha de compra",
+    pedido: "Pedido",
+    total: "Total pagado",
+    seusQrs: "Tus códigos QR (uno por producto)",
+    seuQr: "Tu código QR",
+    qrEntrada: "Muestra este código QR en la entrada del evento — puede ser en el celular, no hace falta imprimirlo.",
+    qrServico: "Este código QR identifica tu compra para el equipo de LPZ.",
+    jj: "Tu inscripción en el Jack and Jill está confirmada. La organización compartirá los detalles de la competencia.",
+    codigo: "Código",
+    titular: "Titular",
+    pessoal: "El código QR es personal: no lo compartas.",
+    cronograma: "Cronograma",
+    horariosEmBreve: "Horarios próximamente.",
+    professores: "Profesores",
+    djs: "DJs",
+    emBreve: "Próximamente.",
+    alteracoes:
+      "Atención: el cronograma, los profesores y los DJs pueden cambiar hasta el día del evento. La versión más actualizada está siempre en el sitio.",
+    verArea: "Ver mi área en el sitio",
+    rodape: "LPZ Training — congreso de zouk",
+    duvidas: "¿Dudas? Responde este correo o usa Contáctanos en el sitio.",
+  },
+} satisfies Record<Idioma, unknown>;
+
+// ---- Peças de HTML (tabelas e estilos inline: é o que funciona em e-mail) --
+
+const e = escaparHtml;
+
+function titulo(texto: string) {
+  return `<p style="margin:28px 0 10px;font-size:13px;letter-spacing:3px;font-weight:bold;color:${COR.ouro}">${e(texto.toUpperCase())}</p>`;
+}
+
+function linha(rotulo: string, valor: string) {
+  return `<tr><td style="padding:6px 0;color:${COR.suave};font-size:14px;vertical-align:top">${e(rotulo)}</td><td style="padding:6px 0 6px 12px;text-align:right;font-size:14px;color:${COR.texto};font-weight:bold">${e(valor)}</td></tr>`;
+}
+
+function botao(texto: string, url: string) {
+  return `<p style="margin:28px 0 4px;text-align:center"><a href="${e(url)}" style="background:${COR.ouro};color:${COR.tinta};padding:12px 28px;border-radius:999px;text-decoration:none;font-weight:bold;display:inline-block">${e(texto)}</a></p>`;
+}
+
+function moldura(conteudo: string, idioma: Idioma) {
+  const t = TEXTOS[idioma];
+  return `<!DOCTYPE html>
+<html lang="${LOCALE[idioma]}"><body style="margin:0;padding:0;background:${COR.fundo}">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:${COR.fundo};padding:24px 12px">
+<tr><td align="center">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;font-family:Arial,Helvetica,sans-serif;color:${COR.texto}">
+<tr><td align="center" style="padding:8px 0 20px">
+<div style="font-size:22px;letter-spacing:8px;font-weight:bold;color:${COR.ouro}">LPZ</div>
+<div style="font-size:12px;letter-spacing:10px;color:${COR.texto};margin-top:4px">TRAINING</div>
+</td></tr>
+<tr><td style="background:${COR.cartao};border:1px solid ${COR.borda};border-top:3px solid ${COR.ouro};border-radius:16px;padding:28px 24px">
+${conteudo}
+</td></tr>
+<tr><td align="center" style="padding:20px 8px;font-size:12px;color:${COR.suave}">
+${e(t.rodape)}<br>${e(t.duvidas)}
+</td></tr>
+</table></td></tr></table></body></html>`;
+}
+
+// ---- Dados ------------------------------------------------------------------
+
+type DadosPedido = {
+  pedidoId: string;
+  nome: string;
+  email: string;
+  status: string;
+  valorCentavos: number;
+  atualizadoEm: Date;
+  idioma: Idioma;
+  formaPagamento: string | null;
+  parcelas: number | null;
+  tipo: TipoProduto;
+  loteNome: string;
+  compraId: string | null;
+};
+
+async function carregarPedido(pedidoId: string): Promise<DadosPedido | null> {
+  await carregarCatalogo();
+  const p = await db
+    .select({
+      pedidoId: pedidos.id,
+      nome: pedidos.nome,
+      email: pedidos.email,
+      status: pedidos.status,
+      valorCentavos: pedidos.valorCentavos,
+      atualizadoEm: pedidos.atualizadoEm,
+      idioma: pedidos.idioma,
+      formaPagamento: pedidos.formaPagamento,
+      parcelas: pedidos.parcelas,
+      tipo: lotes.tipo,
+      loteNome: lotes.nome,
+      compraId: pedidos.compraId,
+    })
+    .from(pedidos)
+    .innerJoin(lotes, eq(lotes.id, pedidos.loteId))
+    .where(eq(pedidos.id, pedidoId))
+    .then((r) => r[0]);
+  if (!p) return null;
+  return { ...p, idioma: ehIdioma(p.idioma) ? p.idioma : "pt" };
+}
+
+async function programacao() {
+  const [cronograma, listaProfessores, listaDjs] = await Promise.all([
+    db
+      .select({
+        dia: cronogramaItens.dia,
+        horarioInicio: cronogramaItens.horarioInicio,
+        horarioFim: cronogramaItens.horarioFim,
+        titulo: cronogramaItens.titulo,
+        local: cronogramaItens.local,
+        professorNome: professores.nome,
+      })
+      .from(cronogramaItens)
+      .leftJoin(professores, eq(cronogramaItens.professorId, professores.id))
+      .orderBy(asc(cronogramaItens.dia), asc(cronogramaItens.horarioInicio), asc(cronogramaItens.ordem)),
+    listarPerfis("professor"),
+    listarPerfis("dj"),
+  ]);
+  return { cronograma, listaProfessores, listaDjs };
+}
+
+function blocoCronograma(itens: Awaited<ReturnType<typeof programacao>>["cronograma"], idioma: Idioma) {
+  const t = TEXTOS[idioma];
+  const en = idioma === "en";
+  return DIAS_EVENTO.map((d) => {
+    const doDia = itens.filter((i) => diaDaSemana(i.dia) === d.semana);
+    const datas = [...new Set(doDia.map((i) => dataCurta(i.dia, en)))].join(" · ");
+    const linhas = doDia.length
+      ? doDia
+          .map(
+            (i) =>
+              `<tr><td style="padding:6px 10px 6px 0;color:${COR.agua};font-size:13px;white-space:nowrap;vertical-align:top">${e(i.horarioInicio)}${i.horarioFim ? `–${e(i.horarioFim)}` : ""}</td><td style="padding:6px 0;font-size:14px"><strong>${e(i.titulo)}</strong>${
+                i.professorNome || i.local
+                  ? `<br><span style="color:${COR.suave};font-size:12px">${e([i.professorNome, i.local].filter(Boolean).join(" · "))}</span>`
+                  : ""
+              }</td></tr>`,
+          )
+          .join("")
+      : `<tr><td style="padding:6px 0;color:${COR.suave};font-size:13px">${e(t.horariosEmBreve)}</td></tr>`;
+    return `<div style="margin:0 0 12px;border:1px solid ${COR.borda};border-radius:12px;padding:12px 14px">
+<p style="margin:0 0 6px;font-size:13px;font-weight:bold;color:${COR.ouroClaro}">${e(d[idioma])}${datas ? ` <span style="color:${COR.agua};font-weight:normal">${e(datas)}</span>` : ""}</p>
+<table role="presentation" cellpadding="0" cellspacing="0" width="100%">${linhas}</table></div>`;
+  }).join("");
+}
+
+function blocoPerfis(lista: Awaited<ReturnType<typeof listarPerfis>>, idioma: Idioma) {
+  const t = TEXTOS[idioma];
+  if (lista.length === 0) return `<p style="color:${COR.suave};font-size:13px">${e(t.emBreve)}</p>`;
+  // Duas colunas: funciona bem no celular e no computador.
+  const celulas = lista.map((p) => {
+    const insta = linkInstagram(p.instagram);
+    return `<td width="50%" style="padding:4px;vertical-align:top"><div style="border:1px solid ${COR.borda};border-radius:10px;padding:10px 12px">
+<div style="font-size:13px;font-weight:bold;color:${COR.texto}">${e(p.nome)}</div>
+${insta ? `<a href="${e(insta)}" style="font-size:12px;color:${COR.agua};text-decoration:none">${e(p.instagram ?? "")}</a>` : ""}
+</div></td>`;
+  });
+  const linhas: string[] = [];
+  for (let i = 0; i < celulas.length; i += 2) linhas.push(`<tr>${celulas[i]}${celulas[i + 1] ?? '<td width="50%"></td>'}</tr>`);
+  return `<table role="presentation" cellpadding="0" cellspacing="0" width="100%">${linhas.join("")}</table>`;
+}
+
+// ---- Envio ------------------------------------------------------------------
+
+// Um e-mail por compra: todos os produtos pagos juntos (sacola), cada um com
+// o seu QR code. Recebe os ids dos pedidos da mesma compra.
+export async function enviarEmailCompra(pedidoIds: string[]) {
+  await carregarCatalogo();
+  const todos = (await Promise.all(pedidoIds.map(carregarPedido))).filter(
+    (p): p is DadosPedido => !!p && p.status === "pago",
+  );
+  const itens: (DadosPedido & { idQr: string; codigo: string; entrada: boolean })[] = [];
+  for (const p of todos) {
+    const ingresso = await db.query.ingressos.findFirst({ where: eq(ingressos.pedidoId, p.pedidoId) });
+    if (ingresso?.status === "cancelado") continue;
+    const idQr = ingresso?.id ?? p.pedidoId;
+    itens.push({ ...p, idQr, codigo: idQr.slice(0, 8).toUpperCase(), entrada: infoProduto(p.tipo).entrada });
+  }
+  if (itens.length === 0) return false;
+
+  const d = itens[0];
+  const t = TEXTOS[d.idioma];
+  const nomes = itens.map((i) => nomeDoProduto(i.tipo, d.idioma));
+  const primeiroNome = d.nome.split(" ")[0];
+  const totalCentavos = itens.reduce((s, i) => s + i.valorCentavos, 0);
+  const forma = descreverPagamento(d.formaPagamento, d.parcelas, totalCentavos, d.idioma);
+  const data = formatarDataHora(d.atualizadoEm, d.idioma);
+  const varios = itens.length > 1;
+  const { cronograma, listaProfessores, listaDjs } = await programacao();
+
+  const linhasItens = itens
+    .map((i) =>
+      varios
+        ? linha(`${nomeDoProduto(i.tipo, d.idioma)} · ${nomeDoLote(i.loteNome, d.idioma)}`, formatarPreco(i.valorCentavos, d.idioma))
+        : `${linha(t.produto, nomeDoProduto(i.tipo, d.idioma))}${linha(t.lote, nomeDoLote(i.loteNome, d.idioma))}${linha(t.valor, formatarPreco(i.valorCentavos, d.idioma))}`,
+    )
+    .join("");
+
+  const blocosQr = itens
+    .map(
+      (i, n) => `<div style="margin:${n === 0 ? "0" : "26px"} 0 0;text-align:center">
+${varios ? `<p style="margin:0 0 10px;font-size:15px;font-weight:bold;color:${COR.ouroClaro}">${e(nomeDoProduto(i.tipo, d.idioma))}</p>` : ""}
+<table role="presentation" align="center" cellpadding="0" cellspacing="0" style="margin:0 auto"><tr><td style="background:#ffffff;border-radius:16px;padding:12px;border:3px solid ${COR.ouro}">
+<img src="cid:qr-${n}" width="200" height="200" alt="QR code" style="display:block;width:200px;height:200px">
+</td></tr></table>
+<p style="margin:12px 0 0;font-family:'Courier New',monospace;font-size:22px;letter-spacing:6px;font-weight:bold">${i.codigo}</p>
+<p style="margin:8px 0 0;font-size:14px;line-height:1.5">${e(i.entrada ? t.qrEntrada : t.qrServico)}</p>
+${i.tipo === "jack_and_jill" ? `<p style="margin:8px 0 0;font-size:14px;color:${COR.agua}">${e(t.jj)}</p>` : ""}
+</div>`,
+    )
+    .join("");
+
+  const html = moldura(
+    `<p style="margin:0 0 8px;font-size:18px;font-weight:bold;color:${COR.ouroClaro}">${e(t.ola(primeiroNome))}</p>
+<p style="margin:0;font-size:15px;line-height:1.5">${e(t.intro)}</p>
+
+${titulo(t.suaCompra)}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid ${COR.borda};border-bottom:1px solid ${COR.borda}">
+${linhasItens}${varios ? linha(t.total, formatarPreco(totalCentavos, d.idioma)) : ""}${linha(t.pagamento, forma)}${linha(t.data, data)}${linha(t.pedido, (d.compraId ?? d.pedidoId).slice(0, 8).toUpperCase())}
+</table>
+
+${titulo(varios ? t.seusQrs : t.seuQr)}
+${blocosQr}
+<p style="margin:14px 0 0;text-align:center;font-size:13px;color:${COR.suave}">${e(t.titular)}: ${e(d.nome)}</p>
+<p style="margin:6px 0 0;text-align:center;font-size:12px;color:${COR.suave}">${e(t.pessoal)}</p>
+
+<div style="margin:28px 0 0;border:1px solid ${COR.alerta};border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.5;color:${COR.texto};background:rgba(242,107,29,0.08)">⚠ ${e(t.alteracoes)}</div>
+<div style="margin:12px 0 0;border:1px solid rgba(230,181,74,0.45);border-radius:12px;padding:12px 14px;font-size:13px;line-height:1.5;color:${COR.texto}">ℹ ${e(POLITICA_COMPRA[d.idioma])}</div>
+
+${titulo(t.cronograma)}
+${blocoCronograma(cronograma, d.idioma)}
+
+${titulo(t.professores)}
+${blocoPerfis(listaProfessores, d.idioma)}
+
+${titulo(t.djs)}
+${blocoPerfis(listaDjs, d.idioma)}
+
+${botao(t.verArea, urlSite("/congressistas/minha-area"))}`,
+    d.idioma,
+  );
+
+  const textoCronograma = DIAS_EVENTO.map((dia) => {
+    const doDia = cronograma.filter((i) => diaDaSemana(i.dia) === dia.semana);
+    const linhas = doDia.length
+      ? doDia.map((i) => `  ${i.horarioInicio}${i.horarioFim ? `-${i.horarioFim}` : ""} ${i.titulo}${i.professorNome ? ` (${i.professorNome})` : ""}`).join("\n")
+      : `  ${t.horariosEmBreve}`;
+    return `${dia[d.idioma]}\n${linhas}`;
+  }).join("\n");
+
+  const texto = [
+    t.ola(primeiroNome),
+    "",
+    t.intro,
+    "",
+    `${t.suaCompra.toUpperCase()}`,
+    ...itens.map(
+      (i) =>
+        `- ${nomeDoProduto(i.tipo, d.idioma)} (${nomeDoLote(i.loteNome, d.idioma)}): ${formatarPreco(i.valorCentavos, d.idioma)} · ${t.codigo}: ${i.codigo}`,
+    ),
+    ...(varios ? [`${t.total}: ${formatarPreco(totalCentavos, d.idioma)}`] : []),
+    `${t.pagamento}: ${forma}`,
+    `${t.data}: ${data}`,
+    "",
+    t.qrEntrada,
+    "",
+    t.alteracoes,
+    "",
+    POLITICA_COMPRA[d.idioma],
+    "",
+    t.cronograma.toUpperCase(),
+    textoCronograma,
+    "",
+    `${t.professores.toUpperCase()}: ${listaProfessores.map((p) => p.nome).join(", ") || t.emBreve}`,
+    `${t.djs.toUpperCase()}: ${listaDjs.map((p) => p.nome).join(", ") || t.emBreve}`,
+    "",
+    urlSite("/congressistas/minha-area"),
+  ].join("\n");
+
+  await enviarEmail({
+    para: d.email,
+    assunto: t.assunto(nomes.join(" + ")),
+    texto,
+    html,
+    anexos: itens.map((i, n) => ({
+      nomeArquivo: `lpz-${i.codigo}.gif`,
+      conteudo: imagemQr(urlDoQr(i.idQr)),
+      tipo: "image/gif",
+      cid: `qr-${n}`,
+    })),
+  });
+  return true;
+}
+
+// Chamado quando o pagamento é confirmado. Não trava a confirmação: se o
+// e-mail falhar, só registra (a compra continua na Minha área).
+export function enviarEmailsDaCompra(pedidoIds: string[]) {
+  enviarEmailCompra(pedidoIds).catch((erro: unknown) => {
+    console.error("[email] Falha ao enviar e-mail da compra", { pedidoIds, erro: (erro as Error)?.message });
+  });
+}
+
+// Reenvio em massa (organização, ex.: dias antes do evento): o e-mail
+// completo, com a programação atualizada, para todas as compras pagas.
+export async function reenviarTodosOsIngressos() {
+  const pagos = await db
+    .select({ id: pedidos.id, compraId: pedidos.compraId })
+    .from(pedidos)
+    .where(eq(pedidos.status, "pago"));
+  // Um e-mail por compra (os itens da mesma sacola vão juntos).
+  const porCompra = new Map<string, string[]>();
+  for (const p of pagos) {
+    const chave = p.compraId ?? p.id;
+    porCompra.set(chave, [...(porCompra.get(chave) ?? []), p.id]);
+  }
+  let enviados = 0;
+  for (const ids of porCompra.values()) {
+    try {
+      if (await enviarEmailCompra(ids)) enviados++;
+    } catch (erro) {
+      console.error("[email] Falha ao reenviar", { pedidoIds: ids, erro: (erro as Error).message });
+    }
+  }
+  return { total: porCompra.size, enviados };
+}
+
+// ---- Avisos: cancelamento, estorno e alteração de cadastro --------------------
+
+const AVISOS = {
+  pt: {
+    assuntoCancelamento: (p: string) => `Cancelamento confirmado — ${p} | LPZ Training`,
+    cancelado: (p: string) => `O cancelamento de ${p} foi confirmado.`,
+    continuam: "Estes itens continuam válidos:",
+    nenhumOutro: "Você não tem outros itens ativos.",
+    estornoAguarda: (v: string) =>
+      `O estorno de ${v} será feito pela mesma forma de pagamento. Você recebe outro e-mail quando ele for processado.`,
+    assuntoEstorno: (p: string) => `Estorno realizado — ${p} | LPZ Training`,
+    estornado: (p: string, v: string) => `O estorno de ${v} referente a ${p} foi processado.`,
+    prazoBanco: "Dependendo do banco ou do cartão, o valor pode levar alguns dias para aparecer.",
+    assuntoCadastro: "Seus dados foram alterados | LPZ Training",
+    cadastroAlterado: (quem: string) => `Seus dados de cadastro foram alterados ${quem}.`,
+    porVoce: "por você",
+    porOrganizacao: "pela organização do evento",
+    camposAlterados: "Campos alterados:",
+    naoFoiVoce: "Se você não reconhece esta alteração, responda este e-mail ou use o Fale conosco do site.",
+    verArea: "Ver minha área",
+  },
+  en: {
+    assuntoCancelamento: (p: string) => `Cancellation confirmed — ${p} | LPZ Training`,
+    cancelado: (p: string) => `The cancellation of ${p} is confirmed.`,
+    continuam: "These items are still valid:",
+    nenhumOutro: "You have no other active items.",
+    estornoAguarda: (v: string) =>
+      `The refund of ${v} will be made to the same payment method. You will get another email once it is processed.`,
+    assuntoEstorno: (p: string) => `Refund processed — ${p} | LPZ Training`,
+    estornado: (p: string, v: string) => `The refund of ${v} for ${p} has been processed.`,
+    prazoBanco: "Depending on your bank or card, it may take a few days to show up.",
+    assuntoCadastro: "Your details were changed | LPZ Training",
+    cadastroAlterado: (quem: string) => `Your profile details were changed ${quem}.`,
+    porVoce: "by you",
+    porOrganizacao: "by the event organizers",
+    camposAlterados: "Changed fields:",
+    naoFoiVoce: "If you do not recognize this change, reply to this email or use Contact us on the site.",
+    verArea: "Go to my area",
+  },
+  es: {
+    assuntoCancelamento: (p: string) => `Cancelación confirmada — ${p} | LPZ Training`,
+    cancelado: (p: string) => `La cancelación de ${p} está confirmada.`,
+    continuam: "Estos artículos siguen válidos:",
+    nenhumOutro: "No tienes otros artículos activos.",
+    estornoAguarda: (v: string) =>
+      `El reembolso de ${v} se hará por el mismo medio de pago. Recibirás otro correo cuando se procese.`,
+    assuntoEstorno: (p: string) => `Reembolso realizado — ${p} | LPZ Training`,
+    estornado: (p: string, v: string) => `El reembolso de ${v} por ${p} fue procesado.`,
+    prazoBanco: "Según tu banco o tarjeta, el valor puede tardar algunos días en aparecer.",
+    assuntoCadastro: "Tus datos fueron modificados | LPZ Training",
+    cadastroAlterado: (quem: string) => `Tus datos de registro fueron modificados ${quem}.`,
+    porVoce: "por ti",
+    porOrganizacao: "por la organización del evento",
+    camposAlterados: "Campos modificados:",
+    naoFoiVoce: "Si no reconoces este cambio, responde este correo o usa Contáctanos en el sitio.",
+    verArea: "Ver mi área",
+  },
+} as const;
+
+// Itens ainda válidos do comprador (pagos e com ingresso não cancelado).
+async function itensAtivos(email: string, idioma: Idioma) {
+  await carregarCatalogo();
+  const lista = await db
+    .select({ tipo: lotes.tipo, loteNome: lotes.nome, ingressoStatus: ingressos.status })
+    .from(pedidos)
+    .innerJoin(lotes, eq(lotes.id, pedidos.loteId))
+    .leftJoin(ingressos, eq(ingressos.pedidoId, pedidos.id))
+    .where(and(eq(pedidos.email, email), eq(pedidos.status, "pago")));
+  return lista
+    .filter((i) => i.ingressoStatus !== "cancelado")
+    .map((i) => `${nomeDoProduto(i.tipo, idioma)} (${nomeDoLote(i.loteNome, idioma)})`);
+}
+
+function listaHtml(itens: string[]) {
+  return `<ul style="margin:8px 0 0;padding-left:20px;font-size:15px;line-height:1.7">${itens.map((i) => `<li>${e(i)}</li>`).join("")}</ul>`;
+}
+
+export async function enviarEmailCancelamento(pedidoId: string) {
+  const d = await carregarPedido(pedidoId);
+  if (!d) return;
+  const a = AVISOS[d.idioma];
+  const produto = `${nomeDoProduto(d.tipo, d.idioma)} (${nomeDoLote(d.loteNome, d.idioma)})`;
+  const valor = formatarPreco(d.valorCentavos, d.idioma);
+  const ativos = await itensAtivos(d.email, d.idioma);
+  const html = moldura(
+    `<p style="margin:0 0 8px;font-size:18px;font-weight:bold;color:${COR.ouroClaro}">${e(TEXTOS[d.idioma].ola(d.nome.split(" ")[0]))}</p>
+<p style="margin:0;font-size:15px;line-height:1.5">${e(a.cancelado(produto))}</p>
+<p style="margin:16px 0 0;font-size:15px;line-height:1.5">${e(a.estornoAguarda(valor))}</p>
+<p style="margin:20px 0 0;font-size:15px;font-weight:bold;color:${COR.agua}">${e(ativos.length ? a.continuam : a.nenhumOutro)}</p>
+${ativos.length ? listaHtml(ativos) : ""}
+${botao(a.verArea, urlSite("/congressistas/minha-area"))}`,
+    d.idioma,
+  );
+  const texto = [a.cancelado(produto), "", a.estornoAguarda(valor), "", ativos.length ? a.continuam : a.nenhumOutro, ...ativos.map((i) => `- ${i}`), "", urlSite("/congressistas/minha-area")].join("\n");
+  await enviarEmail({ para: d.email, assunto: a.assuntoCancelamento(nomeDoProduto(d.tipo, d.idioma)), texto, html });
+}
+
+export async function enviarEmailEstorno(pedidoId: string) {
+  const d = await carregarPedido(pedidoId);
+  if (!d) return;
+  const a = AVISOS[d.idioma];
+  const produto = nomeDoProduto(d.tipo, d.idioma);
+  const valor = formatarPreco(d.valorCentavos, d.idioma);
+  const html = moldura(
+    `<p style="margin:0 0 8px;font-size:18px;font-weight:bold;color:${COR.ouroClaro}">${e(TEXTOS[d.idioma].ola(d.nome.split(" ")[0]))}</p>
+<p style="margin:0;font-size:15px;line-height:1.5">${e(a.estornado(produto, valor))}</p>
+<p style="margin:12px 0 0;font-size:13px;color:${COR.suave}">${e(a.prazoBanco)}</p>`,
+    d.idioma,
+  );
+  await enviarEmail({ para: d.email, assunto: a.assuntoEstorno(produto), texto: `${a.estornado(produto, valor)}\n\n${a.prazoBanco}`, html });
+}
+
+// Nome dos campos do cadastro nos e-mails (mesmas chaves da auditoria).
+const CAMPOS_EMAIL: Record<string, [string, string, string]> = {
+  nome: ["Nome", "Name", "Nombre"],
+  dataNascimento: ["Data de nascimento", "Date of birth", "Fecha de nacimiento"],
+  celular: ["Celular", "Mobile", "Celular"],
+  pais: ["País", "Country", "País"],
+  uf: ["Estado", "State", "Estado"],
+  cidade: ["Cidade", "City", "Ciudad"],
+  cpf: ["CPF", "CPF (Brazilian tax ID)", "CPF"],
+  cep: ["CEP", "Postal code", "Código postal"],
+  logradouro: ["Endereço", "Address", "Dirección"],
+  numero: ["Número", "Number", "Número"],
+  complemento: ["Complemento", "Apartment, suite", "Complemento"],
+  bairro: ["Bairro", "Neighborhood", "Barrio"],
+  naturalidadeCidade: ["Cidade natal", "City of birth", "Ciudad natal"],
+  naturalidadeEstado: ["Estado/país natal", "State/country of birth", "Estado/país natal"],
+  comoConheceu: ["Como conheceu o LPZ", "How you heard about LPZ", "Cómo conociste LPZ"],
+  email: ["E-mail", "Email", "Correo"],
+  apelido: ["Como prefere ser chamado(a)", "Nickname", "Apodo"],
+};
+
+export function nomesDosCampos(campos: string[], idioma: Idioma) {
+  const i = idioma === "en" ? 1 : idioma === "es" ? 2 : 0;
+  return campos.map((c) => CAMPOS_EMAIL[c]?.[i] ?? c);
+}
+
+// Aviso de alteração de cadastro: só os NOMES dos campos (nunca os valores).
+export async function enviarEmailCadastroAlterado(dados: {
+  nome: string;
+  email: string;
+  campos: string[];
+  porOrganizacao: boolean;
+  idioma: Idioma;
+}) {
+  const a = AVISOS[dados.idioma];
+  const quem = dados.porOrganizacao ? a.porOrganizacao : a.porVoce;
+  const html = moldura(
+    `<p style="margin:0 0 8px;font-size:18px;font-weight:bold;color:${COR.ouroClaro}">${e(TEXTOS[dados.idioma].ola(dados.nome.split(" ")[0]))}</p>
+<p style="margin:0;font-size:15px;line-height:1.5">${e(a.cadastroAlterado(quem))}</p>
+<p style="margin:16px 0 0;font-size:15px;font-weight:bold;color:${COR.agua}">${e(a.camposAlterados)}</p>
+${listaHtml(dados.campos)}
+<p style="margin:16px 0 0;font-size:13px;color:${COR.suave}">${e(a.naoFoiVoce)}</p>
+${botao(a.verArea, urlSite("/congressistas/completar-cadastro"))}`,
+    dados.idioma,
+  );
+  const texto = [a.cadastroAlterado(quem), "", a.camposAlterados, ...dados.campos.map((c) => `- ${c}`), "", a.naoFoiVoce].join("\n");
+  await enviarEmail({ para: dados.email, assunto: a.assuntoCadastro, texto, html });
+}

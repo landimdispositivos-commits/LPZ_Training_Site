@@ -3,7 +3,7 @@ import { APIError } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { twoFactor } from "better-auth/plugins";
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { db } from "@/db";
 import { contas, duasEtapas, sessoes, usuarios, verificacoes } from "@/db/schema";
 import { emailComLink, enviarEmailEmSegundoPlano } from "@/modules/email";
@@ -60,6 +60,7 @@ export const auth = betterAuth({
     // Todos com input: false — só o servidor grava (a ficha é salva pela ação
     // de /congressistas/completar-cadastro, que valida tudo antes).
     additionalFields: {
+      apelido: { type: "string", required: false, input: false },
       celular: { type: "string", required: false, input: false },
       cpf: { type: "string", required: false, input: false },
       pais: { type: "string", required: false, input: false },
@@ -213,6 +214,11 @@ export const auth = betterAuth({
           if (ctx?.path === ROTA_CALLBACK_OAUTH && (await ehContaAdmin(session.userId))) {
             throw erroValidacao({ message: MSG_ADMIN_SEM_GOOGLE });
           }
+        },
+        // Sem login simultâneo: ao entrar num aparelho, as sessões abertas em
+        // outros aparelhos/navegadores são encerradas (a pessoa fica só no novo).
+        after: async (session) => {
+          await db.delete(sessoes).where(and(eq(sessoes.userId, session.userId), ne(sessoes.id, session.id)));
         },
       },
     },

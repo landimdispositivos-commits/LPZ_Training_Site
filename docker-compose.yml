@@ -7,7 +7,9 @@ services:
       POSTGRES_PASSWORD: lpz_dev_local
       POSTGRES_DB: lpz_training
     ports:
-      - "5432:5432"
+      # DB_PORT (no .env) muda a porta no PC quando a 5432 já está ocupada
+      # por outro PostgreSQL. Dentro do Docker continua 5432.
+      - "${DB_PORT:-5432}:5432"
     volumes:
       - lpz_db_data:/var/lib/postgresql/data
     healthcheck:
@@ -24,8 +26,9 @@ services:
       # http://localhost:3001/emails para cá (ver next.config.ts).
       MP_WEBROOT: emails
     ports:
-      - "8025:8025" # UI web para ver e-mails capturados
-      - "1025:1025" # SMTP
+      # MAILPIT_UI_PORT / SMTP_PORT mudam as portas no PC se já estiverem em uso.
+      - "${MAILPIT_UI_PORT:-8025}:8025" # UI web para ver e-mails capturados
+      - "${SMTP_PORT:-1025}:1025" # SMTP
 
   # Serviço opcional: reproduz a topologia completa (app + db) em container,
   # útil antes de subir para a VPS. No dia a dia, rodar `npm run dev` no host

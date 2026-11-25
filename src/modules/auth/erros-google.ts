@@ -1,7 +1,45 @@
 // Mensagens para quando o login com Google volta com ?error=<código>.
 // Códigos vêm do Better Auth (callback OAuth) ou do próprio Google.
-export function mensagemErroGoogle(codigo: string | undefined, area: "congressistas" | "profissionais") {
+export function mensagemErroGoogle(
+  codigo: string | undefined,
+  area: "congressistas" | "profissionais",
+  idioma: "pt" | "en" | "es" = "pt",
+) {
   if (!codigo) return undefined;
+  if (idioma === "es") {
+    switch (codigo) {
+      case "access_denied":
+        return "Inicio de sesión con Google cancelado.";
+      case "signup_disabled":
+        return area === "profissionais"
+          ? "No encontramos una cuenta de profesional con este correo de Google. Usa el mismo correo de la invitación o entra con correo y contraseña."
+          : "No fue posible crear la cuenta con Google. Inténtalo de nuevo.";
+      case "account_not_linked":
+        return "Ya existe una cuenta con este correo, pero aún no fue confirmado. Entra con correo y contraseña (confirmando el correo) y después podrás usar Google.";
+      case "unable_to_link_account":
+      case "unable_to_create_session":
+        return "No fue posible entrar con Google en esta cuenta. Las cuentas de administrador entran solo con correo, contraseña y verificación en dos pasos.";
+      default:
+        return "No fue posible entrar con Google. Inténtalo de nuevo o usa correo y contraseña.";
+    }
+  }
+  if (idioma === "en") {
+    switch (codigo) {
+      case "access_denied":
+        return "Google sign-in cancelled.";
+      case "signup_disabled":
+        return area === "profissionais"
+          ? "We could not find a professional account with this Google email. Use the same email as the invitation or sign in with email and password."
+          : "We could not create the account with Google. Please try again.";
+      case "account_not_linked":
+        return "There is already an account with this email, but it has not been confirmed. Sign in with email and password (confirming the email) and then you can use Google.";
+      case "unable_to_link_account":
+      case "unable_to_create_session":
+        return "We could not sign in to this account with Google. Administrator accounts sign in only with email, password and two-step verification.";
+      default:
+        return "We could not sign in with Google. Try again or use email and password.";
+    }
+  }
   switch (codigo) {
     case "access_denied":
       return "Login com Google cancelado.";

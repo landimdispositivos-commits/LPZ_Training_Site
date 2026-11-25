@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 import { Michroma, Mrs_Saint_Delafield, Poppins } from "next/font/google";
 import "./globals.css";
+import { LOCALE, tx } from "@/i18n";
+import { ProvedorIdioma } from "@/i18n/cliente";
+import { obterIdioma } from "@/i18n/servidor";
+import { BotaoReportar } from "./_components/reportar/botao-reportar";
 
 // Fontes Google (licença OFL), servidas pelo próprio site via next/font.
 const poppins = Poppins({
@@ -21,19 +25,32 @@ const scriptAccent = Mrs_Saint_Delafield({
   variable: "--font-script-accent",
 });
 
-export const metadata: Metadata = {
-  title: "LPZ Training",
-  description:
-    "LPZ Training — congresso e treinamento de zouk. Cronograma, professores, ingressos e fotos do evento.",
-};
+export async function generateMetadata(): Promise<Metadata> {
+  const idioma = await obterIdioma();
+  return {
+    title: "LPZ Training",
+    description: tx(
+      idioma,
+      "LPZ Training — congresso e treinamento de zouk. Cronograma, professores, ingressos e fotos do evento.",
+      "LPZ Training — zouk congress and training. Schedule, teachers, tickets and event photos.",
+      "LPZ Training — congreso y entrenamiento de zouk. Cronograma, profesores, entradas y fotos del evento.",
+    ),
+  };
+}
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default async function RootLayout({ children }: LayoutProps<"/">) {
+  const idioma = await obterIdioma();
   return (
     <html
-      lang="pt-BR"
+      lang={LOCALE[idioma]}
       className={`${poppins.variable} ${michroma.variable} ${scriptAccent.variable}`}
     >
-      <body className="min-h-screen antialiased">{children}</body>
+      <body className="min-h-screen antialiased">
+        <ProvedorIdioma idioma={idioma}>
+          {children}
+          <BotaoReportar />
+        </ProvedorIdioma>
+      </body>
     </html>
   );
 }

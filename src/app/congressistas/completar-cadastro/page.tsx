@@ -1,22 +1,30 @@
+import { tx } from "@/i18n";
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { areaDoPapel } from "@/modules/auth/papeis";
+import { areaDoPapel, temPerfil } from "@/modules/auth/papeis";
+import { proximoSeguro } from "@/modules/auth/proximo";
 import { obterSessao } from "@/modules/auth/sessao";
 import { BotaoSair } from "../../_components/botao-sair";
+import { obterIdioma } from "@/i18n/servidor";
 import { SiteHeader } from "../../_components/site-header";
 import { FormFicha } from "./form-ficha";
 
-export const metadata: Metadata = { title: "Meus dados — LPZ Training" };
+export async function generateMetadata(): Promise<Metadata> {
+  return { title: tx(await obterIdioma(), "Meu cadastro — LPZ Training", "My profile — LPZ Training", "Mi registro — LPZ Training") };
+}
 
 // Ficha do congressista: obrigatória no primeiro acesso (e-mail/senha ou
 // Google) e usada depois para corrigir os dados (direito do titular — LGPD).
-export default async function Page() {
+export default async function Page(props: PageProps<"/congressistas/completar-cadastro">) {
+  const proximo = proximoSeguro((await props.searchParams).proximo);
   const sessao = await obterSessao();
   if (!sessao) redirect("/congressistas");
   const { user } = sessao;
-  if (user.papel !== "congressista") redirect(areaDoPapel(user.papel));
+  if (!temPerfil(user, "congressista")) redirect(areaDoPapel(user.papel));
 
   const primeiraVez = !user.cadastroCompletoEm;
+  const idioma = await obterIdioma();
+  const primeiroNome = user.name.split(" ")[0];
 
   return (
     <>
@@ -24,17 +32,28 @@ export default async function Page() {
       <main className="bg-city-glow min-h-[80vh] px-4 py-16">
         <div className="mx-auto max-w-xl">
           <h1 className="font-display text-2xl uppercase tracking-[0.2em] text-gold-metal">
-            {primeiraVez ? "Complete seu cadastro" : "Meus dados"}
+            {primeiraVez ? tx(idioma, "Complete seu cadastro", "Complete your sign-up", "Completa tu registro") : tx(idioma, "Meu cadastro", "My profile", "Mi registro")}
           </h1>
           <p className="mt-4 text-mist/90">
             {primeiraVez
-              ? `Olá, ${user.name.split(" ")[0]}! Falta pouco: precisamos de alguns dados para emitir seu ingresso e organizar o evento.`
-              : "Confira e corrija seus dados sempre que precisar."}
+              ? tx(
+                  idioma,
+                  `Olá, ${primeiroNome}! Falta pouco: precisamos de alguns dados para emitir seu ingresso e organizar o evento.`,
+                  `Hi, ${primeiroNome}! Almost done: we need a few details to issue your ticket and organize the event.`,
+                  `¡Hola, ${primeiroNome}! Falta poco: necesitamos algunos datos para emitir tu entrada y organizar el evento.`,
+                )
+              : tx(
+                  idioma,
+                  "Confira e corrija seus dados sempre que precisar.",
+                  "Check and correct your details whenever you need.",
+                  "Revisa y corrige tus datos cuando lo necesites.",
+                )}
           </p>
 
           <div className="mt-8">
             <FormFicha
               precisaAceite={!user.privacidadeAceitaEm}
+              proximo={proximo}
               valores={{
                 nome: user.name,
                 email: user.email,

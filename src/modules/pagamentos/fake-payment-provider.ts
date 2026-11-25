@@ -2,30 +2,50 @@ import type {
   CriarPreferenciaInput,
   CriarPreferenciaResultado,
   PaymentProvider,
-  StatusPagamento,
+  ReferenciaPagamento,
+  SituacaoPagamento,
 } from "./payment-provider";
+import type { FormaPagamento } from "./formas";
 
-// Implementação usada quando TEST_MODE=true. Simula o fluxo do gateway sem
-// nenhuma chamada de rede, para desenvolvimento e testes automatizados.
-// Nunca usar em produção — ver seleção do provider em `./index.ts`.
+// Implementação usada quando TEST_MODE=true sem credencial do Mercado Pago.
+// Simula o fluxo do gateway sem nenhuma chamada de rede (tela
+// /pagamento/simulado). Nunca usar em produção — ver `./index.ts`.
+//
+// O mapa fica em globalThis para sobreviver ao hot reload do `next dev`.
+// Reiniciar o servidor zera tudo — pedidos simulados voltam a "pendente".
+const globalComStatus = globalThis as typeof globalThis & {
+  __lpzPagamentosSimulados?: Map<string, SituacaoPagamento>;
+};
+
 export class FakePaymentProvider implements PaymentProvider {
-  private readonly status = new Map<string, StatusPagamento>();
+  private readonly situacao = (globalComStatus.__lpzPagamentosSimulados ??= new Map<string, SituacaoPagamento>());
 
   async criarPreferencia(input: CriarPreferenciaInput): Promise<CriarPreferenciaResultado> {
-    const preferenceId = `fake-${input.pedidoId}`;
-    this.status.set(preferenceId, "pendente");
+    const preferenceId = `fake-${input.referencia}`;
+    if (!this.situacao.has(preferenceId)) this.situacao.set(preferenceId, { status: "pendente" });
     return {
       preferenceId,
       checkoutUrl: `/pagamento/simulado?preference=${preferenceId}`,
     };
   }
 
-  async consultarStatus(preferenceId: string): Promise<StatusPagamento> {
-    return this.status.get(preferenceId) ?? "pendente";
+  async consultarPagamento({ preferenceId }: ReferenciaPagamento): Promise<SituacaoPagamento> {
+    return this.situacao.get(preferenceId) ?? { status: "pendente" };
   }
 
-  // Auxiliar exclusivo de teste/dev: aprova manualmente um pagamento simulado.
-  aprovarManualmente(preferenceId: string) {
-    this.status.set(preferenceId, "pago");
+  // Auxiliar exclusivo de teste/dev: aprova o pagamento simulado com a forma
+  // escolhida na tela de teste.
+  aprovarManualmente(preferenceId: string, forma: FormaPagamento, parcelas: number) {
+    this.situacao.set(preferenceId, { status: "pago", forma, parcelas, pagamentoId: `fake-pay-${preferenceId.replace("fake-", "")}` });
+  }
+
+  // Modo de teste: o estorno só é registrado no log (nenhum dinheiro envolvido).
+  async estornar({ pagamentoId, valorCentavos }: { pagamentoId: string; valorCentavos: number; chave: string }) {
+    console.info("[pagamento de teste] Estorno simulado", { pagamentoId, valorCentavos });
+  }
+
+  // Auxiliar exclusivo de teste/dev: simula pagamento recusado/desistência.
+  recusarManualmente(preferenceId: string) {
+    this.situacao.set(preferenceId, { status: "cancelado" });
   }
 }

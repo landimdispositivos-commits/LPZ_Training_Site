@@ -1,0 +1,1 @@
+ALTER TABLE "pedidos" ADD COLUMN "idioma" text DEFAULT 'pt' NOT NULL;

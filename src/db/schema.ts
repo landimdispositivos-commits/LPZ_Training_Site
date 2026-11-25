@@ -8,7 +8,10 @@ import {
   date,
   pgEnum,
   uniqueIndex,
+  index,
+  jsonb,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 // ---------------------------------------------------------------------------
 // Login (Better Auth) — congressistas, profissionais e administradores
@@ -23,20 +26,29 @@ import {
 // - profissional: professor/DJ
 // - organizador: administrador com acesso total (duas etapas obrigatória)
 // - portaria: administrador restrito ao check-in (duas etapas obrigatória)
+// - acesso_total: tudo o que o organizador faz, em qualquer área nova
+//   (duas etapas obrigatória)
 export const papelUsuarioEnum = pgEnum("papel_usuario", [
   "congressista",
   "profissional",
   "organizador",
   "portaria",
+  "acesso_total",
+  "midias",
 ]);
 
 export const usuarios = pgTable("usuarios", {
   id: text("id").primaryKey(),
   name: text("nome").notNull(),
+  // Como a pessoa prefere ser chamada no site (opcional; ex: "Landim").
+  apelido: text("apelido"),
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verificado").notNull().default(false),
   image: text("imagem"),
   papel: papelUsuarioEnum("papel").notNull().default("congressista"),
+  // Perfis adicionais (além do principal): uma pessoa pode ter vários
+  // (ex: Portaria + Mídias). O acesso vale se QUALQUER perfil permitir.
+  perfisExtras: text("perfis_extras").array().notNull().default(sql`'{}'::text[]`),
   // Perfil público do profissional (foto, bio, aulas no cronograma).
   professorId: uuid("professor_id").unique().references(() => professores.id, { onDelete: "set null" }),
   // Dados do cadastro de congressista — obrigatórios para congressistas
@@ -129,8 +141,12 @@ export const professores = pgTable("professores", {
   id: uuid("id").primaryKey().defaultRandom(),
   nome: text("nome").notNull(),
   bio: text("bio"),
+  // Bio em inglês (opcional): sem ela, a versão em inglês mostra a bio em português.
+  bioEn: text("bio_en"),
   fotoUrl: text("foto_url"),
   instagram: text("instagram"),
+  // "professor" (casal de professores) ou "dj": cada um tem sua página no site.
+  categoria: text("categoria").notNull().default("professor"),
   ordem: integer("ordem").notNull().default(0),
   criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -153,8 +169,28 @@ export const cronogramaItens = pgTable("cronograma_itens", {
 // Ingressos: lotes, pedidos, ingressos emitidos, eventos de pagamento
 // ---------------------------------------------------------------------------
 
+// Tipo de produto vendido em cada lote. Os de entrada (full pass e bailes)
+// geram ingresso com QR; Jack and Jill (inscrição na competição) e paparazzi
+// (serviços de foto/vídeo) não geram QR.
+// Tipo de produto vendido em cada lote: um dos fixos (src/modules/ingressos/produtos.ts)
+// ou a chave de um pacote criado pela organização (produtos_personalizados).
+// Era um enum do Postgres até a migração 0023; virou texto para aceitar pacotes novos.
+export const produtosPersonalizados = pgTable("produtos_personalizados", {
+  chave: text("chave").primaryKey(), // ex: "extra_workshop_de_giro"
+  nome: text("nome").notNull(),
+  nomeEn: text("nome_en"),
+  nomeEs: text("nome_es"),
+  // "entrada" (gera QR para a portaria) ou "servico" (marcado como utilizado).
+  presenca: text("presenca").notNull().default("servico"),
+  // Cliente escolhe entre os lotes ativos (ex.: durações), como nas massagens.
+  opcoes: boolean("opcoes").notNull().default(false),
+  ativo: boolean("ativo").notNull().default(true),
+  criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export const lotes = pgTable("lotes", {
   id: uuid("id").primaryKey().defaultRandom(),
+  tipo: text("tipo").notNull().default("full_pass"),
   nome: text("nome").notNull(), // ex: "1º lote"
   precoCentavos: integer("preco_centavos").notNull(),
   quantidadeTotal: integer("quantidade_total").notNull(),
@@ -182,9 +218,30 @@ export const pedidos = pgTable("pedidos", {
   valorCentavos: integer("valor_centavos").notNull(),
   status: statusPedidoEnum("status").notNull().default("pendente"),
   gatewayPreferenceId: text("gateway_preference_id"),
+  // Sacola: pedidos pagos juntos compartilham o mesmo compra_id (enviado ao
+  // gateway como referência externa). Nulo = compra de um item só (a
+  // referência é o próprio id do pedido).
+  compraId: uuid("compra_id"),
+  // Quando o pagamento foi aprovado e o id do pagamento no gateway (estorno).
+  pagoEm: timestamp("pago_em", { withTimezone: true }),
+  gatewayPagamentoId: text("gateway_pagamento_id"),
+  // Cancelamento pelo próprio cliente (direito de arrependimento, 7 dias).
+  // Cancelado e sem estornadoEm = estorno aguardando aprovação da organização.
+  canceladoPeloClienteEm: timestamp("cancelado_pelo_cliente_em", { withTimezone: true }),
+  estornadoEm: timestamp("estornado_em", { withTimezone: true }),
+  estornadoPor: text("estornado_por").references(() => usuarios.id, { onDelete: "set null" }),
+  // Idioma em que o comprador estava no site ("pt"/"en"): usado nos e-mails
+  // de confirmação e do ingresso, que podem sair depois (webhook do Pix).
+  idioma: text("idioma").notNull().default("pt"),
+  // Forma de pagamento informada pelo gateway na aprovação (pix, credito,
+  // debito, saldo, boleto) e nº de parcelas no crédito.
+  formaPagamento: text("forma_pagamento"),
+  parcelas: integer("parcelas"),
   criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
   atualizadoEm: timestamp("atualizado_em", { withTimezone: true }).notNull().defaultNow(),
-});
+}, (t) => ({
+  compraIdx: index("pedidos_compra_id_idx").on(t.compraId),
+}));
 
 export const statusIngressoEnum = pgEnum("status_ingresso", [
   "valido",
@@ -200,6 +257,22 @@ export const ingressos = pgTable("ingressos", {
   checkinPor: text("checkin_por").references(() => usuarios.id, { onDelete: "set null" }),
   criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// Registro de presença (check-in). Uma linha por uso: entrada num dia do
+// evento ou serviço realizado (paparazzi, Jack and Jill). A unicidade por
+// pedido+dia impede registrar duas vezes o mesmo dia (dois porteiros lendo o
+// mesmo QR). dia: "sexta" | "sabado" | "domingo" | "unico".
+export const presencas = pgTable("presencas", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  pedidoId: uuid("pedido_id").notNull().references(() => pedidos.id, { onDelete: "restrict" }),
+  tipo: text("tipo").notNull(), // "entrada" | "servico"
+  dia: text("dia").notNull(),
+  registradoEm: timestamp("registrado_em", { withTimezone: true }).notNull().defaultNow(),
+  registradoPor: text("registrado_por").references(() => usuarios.id, { onDelete: "set null" }),
+  registradoPorNome: text("registrado_por_nome"),
+}, (t) => ({
+  pedidoDiaUnico: uniqueIndex("presencas_pedido_dia_unico").on(t.pedidoId, t.dia),
+}));
 
 // Log de eventos recebidos do gateway de pagamento — fonte de idempotência.
 // O webhook nunca é tratado como verdade absoluta: o adapter sempre confirma
@@ -219,14 +292,69 @@ export const eventosPagamento = pgTable("eventos_pagamento", {
 // Mídia: fotos (armazenamento próprio) e vídeos (embed externo)
 // ---------------------------------------------------------------------------
 
-export const tipoMidiaEnum = pgEnum("tipo_midia", ["foto", "video"]);
+export const tipoMidiaEnum = pgEnum("tipo_midia", ["foto", "video", "audio"]);
 
 export const midia = pgTable("midia", {
   id: uuid("id").primaryKey().defaultRandom(),
   tipo: tipoMidiaEnum("tipo").notNull(),
   // foto: caminho relativo no StorageAdapter. video: ID do vídeo no YouTube.
+  // audio: URL de incorporação (Spotify ou SoundCloud), já validada.
   referencia: text("referencia").notNull(),
   titulo: text("titulo"),
   ordem: integer("ordem").notNull().default(0),
   criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
+// Fornecedores do evento (som, luz, local, buffet...). Uso interno da
+// organização — dados de empresas/contatos comerciais, não de participantes.
+// ---------------------------------------------------------------------------
+
+export const fornecedores = pgTable("fornecedores", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  nome: text("nome").notNull(),
+  categoria: text("categoria").notNull(), // lista fixa em src/modules/fornecedores
+  status: text("status").notNull().default("cotacao"), // cotacao | contratado | pago | descartado
+  contato: text("contato"),
+  telefone: text("telefone"),
+  email: text("email"),
+  site: text("site"),
+  valorCentavos: integer("valor_centavos"),
+  observacoes: text("observacoes"),
+  criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
+  atualizadoEm: timestamp("atualizado_em", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// ---------------------------------------------------------------------------
+// Trilha de auditoria (usuários e permissões). Só recebe INSERT — o código
+// não tem função de editar nem apagar registro. Guarda quem fez (autor), em
+// quem (alvo), o quê (ação) e os detalhes (antes/depois), com IP e navegador.
+// Nomes e e-mails ficam copiados aqui para o histórico não se perder se a
+// conta for excluída depois.
+// ---------------------------------------------------------------------------
+
+export const auditoria = pgTable("auditoria", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
+  acao: text("acao").notNull(), // ver src/modules/auditoria
+  autorId: text("autor_id"), // null = sistema / linha de comando
+  autorNome: text("autor_nome"),
+  autorEmail: text("autor_email"),
+  alvoId: text("alvo_id"),
+  alvoNome: text("alvo_nome"),
+  alvoEmail: text("alvo_email"),
+  detalhes: jsonb("detalhes").$type<Record<string, unknown>>(),
+  ip: text("ip"),
+  navegador: text("navegador"),
+}, (t) => ({
+  alvoIdx: index("auditoria_alvo_idx").on(t.alvoId, t.criadoEm),
+  criadoIdx: index("auditoria_criado_idx").on(t.criadoEm),
+}));
+
+// Configurações simples do site editadas pela organização no próprio site
+// (ex.: contatos do Fale conosco). Chave → valor em texto.
+export const configuracoes = pgTable("configuracoes", {
+  chave: text("chave").primaryKey(),
+  valor: text("valor").notNull(),
+  atualizadoEm: timestamp("atualizado_em", { withTimezone: true }).notNull().defaultNow(),
 });

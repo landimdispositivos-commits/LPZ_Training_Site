@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { convidar } from "@/modules/auth/convite";
 import { exigirAdmin } from "@/modules/auth/sessao";
+import { registrarAuditoria } from "@/modules/auditoria";
 
 // envio: marca única por resposta, usada pelo formulário para se limpar.
 export type EstadoConvite = { ok: boolean; mensagem: string; envio: number } | null;
@@ -11,7 +12,7 @@ export type EstadoConvite = { ok: boolean; mensagem: string; envio: number } | n
 // Server actions são endpoints públicos (POST direto): a autorização é
 // refeita aqui, independente de quem renderizou o formulário.
 export async function convidarProfissionalAction(_anterior: EstadoConvite, form: FormData): Promise<EstadoConvite> {
-  await exigirAdmin(["organizador"]);
+  const { user } = await exigirAdmin(["organizador"]);
 
   const professorId = String(form.get("professorId") ?? "");
   try {
@@ -22,6 +23,12 @@ export async function convidarProfissionalAction(_anterior: EstadoConvite, form:
       professorId: professorId || undefined,
     });
     revalidatePath("/administradores/painel");
+    await registrarAuditoria({
+      acao: "convite_enviado",
+      autor: user,
+      alvo: { id: resultado.usuarioId, name: String(form.get("nome") ?? ""), email: String(form.get("email") ?? "").toLowerCase() },
+      detalhes: { papel: "profissional", reenvio: resultado.reenvio },
+    });
 
     if (resultado.emailFalhou) {
       return {

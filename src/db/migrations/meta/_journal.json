@@ -43,6 +43,132 @@
       "when": 1794871454155,
       "tag": "0005_ficha_congressista_e_google",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794879453273,
+      "tag": "0006_fornecedores_e_audio",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1794880343953,
+      "tag": "0007_atualizacao",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1794880990537,
+      "tag": "0008_atualizacao",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1794881838286,
+      "tag": "0009_atualizacao",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1794882995364,
+      "tag": "0010_atualizacao",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794883574108,
+      "tag": "0011_atualizacao",
+      "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1794884100000,
+      "tag": "0012_lotes_iniciais",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1794884700000,
+      "tag": "0013_professores_e_djs",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1794885300000,
+      "tag": "0014_configuracoes",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1794965000000,
+      "tag": "0015_forma_pagamento",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1795050000000,
+      "tag": "0016_apelido",
+      "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1795051000000,
+      "tag": "0017_presencas",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1795052000000,
+      "tag": "0018_sacola",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1795053000000,
+      "tag": "0019_novos_produtos",
+      "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1795054000000,
+      "tag": "0020_lote_camiseta",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1795600000000,
+      "tag": "0021_massagens",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1795600100000,
+      "tag": "0022_cancelamento_e_perfis",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1795700100000,
+      "tag": "0023_produtos_personalizados",
+      "breakpoints": true
     }
   ]
 }

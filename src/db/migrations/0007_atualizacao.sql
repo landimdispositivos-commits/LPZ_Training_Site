@@ -1,0 +1,2 @@
+CREATE TYPE "public"."tipo_produto" AS ENUM('full_pass', 'pacote_baile', 'baile_avulso', 'paparazzi_video', 'paparazzi_foto');--> statement-breakpoint
+ALTER TABLE "lotes" ADD COLUMN "tipo" "tipo_produto" DEFAULT 'full_pass' NOT NULL;

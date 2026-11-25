@@ -14,4 +14,7 @@ export interface StorageAdapter {
   salvar(arquivo: ArquivoParaSalvar): Promise<{ caminho: string }>;
   obterUrl(caminho: string): string;
   remover(caminho: string): Promise<void>;
+  // Conteúdo e content-type de um arquivo salvo; null se não existir ou se o
+  // caminho não for um gerado por `salvar`.
+  ler(caminho: string): Promise<{ conteudo: Buffer; contentType: string } | null>;
 }
