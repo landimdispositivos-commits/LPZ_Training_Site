@@ -172,21 +172,25 @@ export const cronogramaItens = pgTable("cronograma_itens", {
 // Tipo de produto vendido em cada lote. Os de entrada (full pass e bailes)
 // geram ingresso com QR; Jack and Jill (inscrição na competição) e paparazzi
 // (serviços de foto/vídeo) não geram QR.
-export const tipoProdutoEnum = pgEnum("tipo_produto", [
-  "full_pass",
-  "pacote_baile",
-  "baile_avulso",
-  "jack_and_jill",
-  "paparazzi_video",
-  "paparazzi_foto",
-  "camiseta",
-  "massagem_pri",
-  "massagem_jessica",
-]);
+// Tipo de produto vendido em cada lote: um dos fixos (src/modules/ingressos/produtos.ts)
+// ou a chave de um pacote criado pela organização (produtos_personalizados).
+// Era um enum do Postgres até a migração 0023; virou texto para aceitar pacotes novos.
+export const produtosPersonalizados = pgTable("produtos_personalizados", {
+  chave: text("chave").primaryKey(), // ex: "extra_workshop_de_giro"
+  nome: text("nome").notNull(),
+  nomeEn: text("nome_en"),
+  nomeEs: text("nome_es"),
+  // "entrada" (gera QR para a portaria) ou "servico" (marcado como utilizado).
+  presenca: text("presenca").notNull().default("servico"),
+  // Cliente escolhe entre os lotes ativos (ex.: durações), como nas massagens.
+  opcoes: boolean("opcoes").notNull().default(false),
+  ativo: boolean("ativo").notNull().default(true),
+  criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
+});
 
 export const lotes = pgTable("lotes", {
   id: uuid("id").primaryKey().defaultRandom(),
-  tipo: tipoProdutoEnum("tipo").notNull().default("full_pass"),
+  tipo: text("tipo").notNull().default("full_pass"),
   nome: text("nome").notNull(), // ex: "1º lote"
   precoCentavos: integer("preco_centavos").notNull(),
   quantidadeTotal: integer("quantidade_total").notNull(),

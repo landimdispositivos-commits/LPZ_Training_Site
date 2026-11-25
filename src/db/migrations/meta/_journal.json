@@ -162,6 +162,13 @@
       "when": 1795600100000,
       "tag": "0022_cancelamento_e_perfis",
       "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1795700100000,
+      "tag": "0023_produtos_personalizados",
+      "breakpoints": true
     }
   ]
 }

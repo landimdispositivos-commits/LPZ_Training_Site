@@ -1,7 +1,7 @@
 import { perfisDo } from "@/modules/auth/papeis";
 import { formatarDataHora } from "@/lib/formatar";
 import { rotuloPresenca, type DiaPresenca } from "@/modules/presencas/regras";
-import { PRODUTOS, TIPOS_PRODUTO } from "@/modules/ingressos/produtos";
+import { nomeDoProduto, tiposDoCatalogo } from "@/modules/ingressos/produtos";
 import { ROTULO_PAPEL } from "@/modules/auth/menu";
 import type { Cadastro } from "./index";
 
@@ -21,7 +21,11 @@ function dataBr(data: string | null) {
 type Valor = string | number | null;
 export type Coluna = { id: string; titulo: string; basica: boolean; valor: (u: Cadastro) => Valor };
 
-export const COLUNAS: Coluna[] = [
+// Função (e não constante): os pacotes criados pela organização entram como colunas.
+// Chame depois de carregarCatalogo().
+export function colunasDeUsuarios(): Coluna[] {
+  return [
+
   { id: "nome", titulo: "Nome", basica: true, valor: (u) => u.nome },
   { id: "apelido", titulo: "Apelido", basica: false, valor: (u) => u.apelido },
   { id: "email", titulo: "E-mail", basica: true, valor: (u) => u.email },
@@ -42,9 +46,9 @@ export const COLUNAS: Coluna[] = [
   },
   { id: "cep", titulo: "CEP", basica: false, valor: (u) => u.cep },
   { id: "como_conheceu", titulo: "Como conheceu", basica: false, valor: (u) => u.comoConheceu },
-  ...TIPOS_PRODUTO.map((t) => ({
+  ...tiposDoCatalogo().map((t) => ({
     id: t,
-    titulo: PRODUTOS[t].nome,
+    titulo: nomeDoProduto(t),
     basica: true,
     valor: (u: Cadastro) => (u.comprou[t] ? "Sim" : "Não"),
   })),
@@ -57,7 +61,7 @@ export const COLUNAS: Coluna[] = [
       u.compras
         .flatMap((c) =>
           c.presencas.map(
-            (p) => `${PRODUTOS[c.tipo].nome}: ${rotuloPresenca(c.tipo, p.dia as DiaPresenca)} (${formatarDataHora(p.registradoEm)})`,
+            (p) => `${nomeDoProduto(c.tipo)}: ${rotuloPresenca(c.tipo, p.dia as DiaPresenca)} (${formatarDataHora(p.registradoEm)})`,
           ),
         )
         .join("; ") || "Não",
@@ -65,4 +69,5 @@ export const COLUNAS: Coluna[] = [
   { id: "ficha_completa", titulo: "Ficha completa", basica: false, valor: (u) => (u.cadastroCompletoEm ? "Sim" : "Não") },
   { id: "email_confirmado", titulo: "E-mail confirmado", basica: false, valor: (u) => (u.emailVerificado ? "Sim" : "Não") },
   { id: "cadastrado_em", titulo: "Cadastrado em", basica: true, valor: (u) => formatarDataHora(u.criadoEm) },
-];
+  ];
+}

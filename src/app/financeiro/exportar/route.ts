@@ -1,11 +1,13 @@
 import { exigirAdmin } from "@/modules/auth/sessao";
 import { listarPedidos } from "@/modules/financeiro";
 import { formatarDataHora } from "@/lib/formatar";
-import { PRODUTOS } from "@/modules/ingressos";
+import { nomeDoProduto } from "@/modules/ingressos";
+import { carregarCatalogo } from "@/modules/ingressos/catalogo";
 
 // CSV de pedidos para o Excel (separador ";" e BOM UTF-8 para acentos).
 // Só organizadores. CPF fica de fora de propósito (LGPD: só o necessário).
 export async function GET() {
+  await carregarCatalogo();
   await exigirAdmin(["organizador"]);
   const lista = await listarPedidos({});
 
@@ -15,7 +17,7 @@ export async function GET() {
     p.nome,
     p.email,
     p.telefone ?? "",
-    PRODUTOS[p.tipo].nome,
+    nomeDoProduto(p.tipo),
     p.loteNome,
     (p.valorCentavos / 100).toFixed(2).replace(".", ","),
     p.status,

@@ -4,9 +4,9 @@ import { rotuloPresenca, type DiaPresenca } from "@/modules/presencas/regras";
 import Link from "next/link";
 import { exigirAdmin } from "@/modules/auth/sessao";
 import { ROTULO_PAPEL } from "@/modules/auth/menu";
-import { PRODUTOS, TIPOS_PRODUTO } from "@/modules/ingressos/produtos";
+import { nomeDoProduto, tiposDoCatalogo } from "@/modules/ingressos/produtos";
 import { contarPorPapel, DESCRICAO_PAPEL, listarCadastros, PAPEIS, type Cadastro } from "@/modules/usuarios";
-import { COLUNAS } from "@/modules/usuarios/colunas";
+import { colunasDeUsuarios } from "@/modules/usuarios/colunas";
 import { formatarDataHora, formatarPreco } from "@/lib/formatar";
 import { Aviso, classeInput } from "../../_components/form-ui";
 import { SiteHeader } from "../../_components/site-header";
@@ -16,6 +16,7 @@ import { editarCadastroAction, excluirUsuarioAction } from "./actions";
 import { iniciarVerComoAction } from "@/app/_components/ver-como-actions";
 import { BotaoSalvar } from "../../_components/botao-salvar";
 import { ACOES, descreverEvento, historicoDos, type RegistroAuditoria } from "@/modules/auditoria";
+import { carregarCatalogo } from "@/modules/ingressos/catalogo";
 
 export const metadata: Metadata = { title: "Usuários — LPZ Training" };
 
@@ -59,6 +60,7 @@ function dataBr(data: string) {
 }
 
 export default async function Page(props: PageProps<"/administradores/usuarios">) {
+  await carregarCatalogo();
   const { user } = await exigirAdmin(["organizador"]);
   const { q, papel, ok, erro, alvo } = await props.searchParams;
   const busca = typeof q === "string" ? q.slice(0, 100) : "";
@@ -156,7 +158,7 @@ export default async function Page(props: PageProps<"/administradores/usuarios">
                 <fieldset>
                   <legend className="mb-2 text-xs text-mist/60">Colunas da planilha</legend>
                   <div className="grid gap-2 sm:grid-cols-3 lg:grid-cols-4">
-                    {COLUNAS.map((c) => (
+                    {colunasDeUsuarios().map((c) => (
                       <label key={c.id} className="flex items-center gap-2 text-sm text-mist">
                         <input
                           type="checkbox"
@@ -238,7 +240,7 @@ function LinhaUsuario({
   historico: RegistroAuditoria[];
 }) {
   const local = [u.cidade, u.uf ?? (u.pais && u.pais !== "Brasil" ? u.pais : null)].filter(Boolean).join(" — ");
-  const produtos = TIPOS_PRODUTO.filter((t) => u.comprou[t]);
+  const produtos = tiposDoCatalogo().filter((t) => u.comprou[t]);
   const pendente = u.compras.some((c) => c.status === "pendente");
   const endereco = u.logradouro
     ? [`${u.logradouro}, ${u.numero ?? "s/n"}`, u.complemento, u.bairro, u.cep].filter(Boolean).join(" · ")
@@ -279,7 +281,7 @@ function LinhaUsuario({
           <div className="flex flex-wrap gap-1">
             {produtos.length === 0 && !pendente && <span className="text-xs text-mist/50">Nada ainda</span>}
             {produtos.map((t) => (
-              <span key={t} className="rounded-full bg-teal-400/15 px-2 py-0.5 text-xs text-teal-300">{SIGLA_PRODUTO[t]}</span>
+              <span key={t} className="rounded-full bg-teal-400/15 px-2 py-0.5 text-xs text-teal-300">{SIGLA_PRODUTO[t] ?? nomeDoProduto(t)}</span>
             ))}
             {pendente && <span className="rounded-full bg-ember-500/15 px-2 py-0.5 text-xs text-ember-400">Pendente</span>}
           </div>
@@ -381,7 +383,7 @@ function LinhaUsuario({
           <section>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-teal-300">Compras</h3>
             <ul className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
-              {TIPOS_PRODUTO.map((t) => (
+              {tiposDoCatalogo().map((t) => (
                 <li
                   key={t}
                   className={
@@ -391,7 +393,7 @@ function LinhaUsuario({
                   }
                 >
                   {u.comprou[t] ? "✓ " : "— "}
-                  {PRODUTOS[t].nome}
+                  {nomeDoProduto(t)}
                 </li>
               ))}
             </ul>
@@ -402,7 +404,7 @@ function LinhaUsuario({
                 {u.compras.map((c, i) => (
                   <li key={i} className="flex flex-wrap justify-between gap-2 border-b border-white/5 pb-1.5 text-sm">
                     <span className="text-white">
-                      {PRODUTOS[c.tipo].nome} <span className="text-mist/60">· {c.loteNome}</span>
+                      {nomeDoProduto(c.tipo)} <span className="text-mist/60">· {c.loteNome}</span>
                     </span>
                     <span className="text-mist/80">
                       {formatarPreco(c.valorCentavos)} · {STATUS_PEDIDO[c.status] ?? c.status} · {formatarDataHora(c.criadoEm)}

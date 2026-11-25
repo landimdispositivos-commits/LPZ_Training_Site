@@ -1,6 +1,7 @@
 import { eq, ilike, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { ingressos, lotes, pedidos } from "@/db/schema";
+import { carregarCatalogo } from "@/modules/ingressos/catalogo";
 
 // ---------------------------------------------------------------------------
 // Check-in na portaria. O QR/código só serve para ACHAR a compra: a presença
@@ -19,6 +20,7 @@ function escaparLike(texto: string) {
 // Aceita: endereço do QR (…/ingresso/<id>), id completo do ingresso ou do
 // pedido, código curto de 8 caracteres, ou parte do nome/e-mail (mín. 3).
 export async function buscarCompras(termoBruto: string) {
+  await carregarCatalogo();
   const doEndereco = /\/ingresso\/([0-9a-f-]{36})/i.exec(termoBruto);
   const termo = (doEndereco?.[1] ?? termoBruto).trim();
   let filtro;

@@ -10,14 +10,15 @@ import { dataHoraLocalParaDate, formatarPreco, reaisParaCentavos } from "@/lib/f
 import { registrarAuditoria } from "@/modules/auditoria";
 import { estornarPedido } from "@/modules/ingressos";
 import { exigirAdmin } from "@/modules/auth/sessao";
-import { TIPOS_PRODUTO, type TipoProduto } from "@/modules/ingressos/produtos";
+import { ehTipoProduto } from "@/modules/ingressos/produtos";
+import { carregarCatalogo } from "@/modules/ingressos/catalogo";
 import { reenviarTodosOsIngressos } from "@/modules/ingressos/emails";
 
 // Só organizadores mexem em lotes. Autorização refeita em cada action.
 
 const loteSchema = z
   .object({
-    tipo: z.enum(TIPOS_PRODUTO as [TipoProduto, ...TipoProduto[]]),
+    tipo: z.string().refine(ehTipoProduto, "Produto inválido."),
     nome: z.string().trim().min(1, "Informe o nome do lote.").max(60),
     precoCentavos: z.number({ error: "Preço inválido." }).int().min(0).max(10_000_000),
     quantidadeTotal: z.number({ error: "Quantidade inválida." }).int().min(1).max(10_000),
@@ -42,6 +43,7 @@ function lerLote(form: FormData) {
 
 export async function criarLoteAction(form: FormData) {
   await exigirAdmin(["organizador"]);
+  await carregarCatalogo();
   const lote = lerLote(form);
   if (!lote.success) redirect("/financeiro?erro=lote");
   await db.insert(lotes).values(lote.data);
@@ -52,6 +54,7 @@ export async function criarLoteAction(form: FormData) {
 export async function editarLoteAction(form: FormData) {
   await exigirAdmin(["organizador"]);
   const id = z.uuid().safeParse(form.get("id"));
+  await carregarCatalogo();
   const lote = lerLote(form);
   if (!id.success || !lote.success) redirect("/financeiro?erro=lote");
 

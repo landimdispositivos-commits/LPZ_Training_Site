@@ -17,6 +17,7 @@ import { BotoesPresenca } from "../../_components/botoes-presenca";
 import { PaginaPublica } from "../../_components/pagina-publica";
 import { RodapeSite } from "../../_components/rodape-site";
 import { SiteHeader } from "../../_components/site-header";
+import { carregarCatalogo } from "@/modules/ingressos/catalogo";
 
 // Destino do QR code do e-mail/Minha área (/ingresso/<id do ingresso ou do pedido>).
 // - Organização logada (Organizador, Portaria, Acesso total, com 2 etapas):
@@ -139,6 +140,7 @@ async function localizar(id: string) {
 }
 
 export default async function Page(props: PageProps<"/ingresso/[id]">) {
+  await carregarCatalogo();
   const id = z.uuid().safeParse((await props.params).id);
   if (!id.success) notFound();
   const achado = await localizar(id.data);

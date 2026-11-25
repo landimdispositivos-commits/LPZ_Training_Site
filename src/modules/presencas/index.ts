@@ -1,7 +1,9 @@
 import { and, asc, desc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { ingressos, lotes, pedidos, presencas } from "@/db/schema";
-import { REGRAS_PRESENCA, type DiaPresenca } from "./regras";
+import { regraPresenca, type DiaPresenca } from "./regras";
+import { carregarCatalogo } from "@/modules/ingressos/catalogo";
+import { infoProduto, tiposDoCatalogo } from "@/modules/ingressos/produtos";
 
 export * from "./regras";
 
@@ -32,7 +34,7 @@ export async function registrarPresenca(
   if (!p) return { ok: false, motivo: "nao-encontrado" };
   if (p.status !== "pago") return { ok: false, motivo: "nao-pago" };
   if (p.ingressoStatus === "cancelado") return { ok: false, motivo: "cancelado" };
-  const regra = REGRAS_PRESENCA[p.tipo];
+  const regra = regraPresenca(p.tipo);
   if (!regra.dias.includes(dia)) return { ok: false, motivo: "dia-invalido" };
 
   const agora = new Date();
@@ -101,6 +103,8 @@ export async function ultimasPresencas(limite = 10) {
 // Totais para a portaria: pessoas (pedidos de entrada pagos) com ao menos uma
 // entrada, e entradas registradas hoje.
 export async function resumoPresencas() {
+  await carregarCatalogo();
+  const deEntrada = tiposDoCatalogo().filter((t) => infoProduto(t).entrada);
   const [linha] = await db
     .select({
       total: sql<number>`count(distinct ${pedidos.id})`.mapWith(Number),
@@ -109,6 +113,6 @@ export async function resumoPresencas() {
     .from(pedidos)
     .innerJoin(lotes, eq(lotes.id, pedidos.loteId))
     .leftJoin(presencas, eq(presencas.pedidoId, pedidos.id))
-    .where(and(eq(pedidos.status, "pago"), inArray(lotes.tipo, ["full_pass", "pacote_baile", "baile_avulso"])));
+    .where(and(eq(pedidos.status, "pago"), inArray(lotes.tipo, deEntrada)));
   return linha ?? { total: 0, presentes: 0 };
 }

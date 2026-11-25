@@ -38,7 +38,7 @@ export default async function Page(props: PageProps<"/professores/[id]">) {
           editavel={editavel}
           editar={busca.editar === "1"}
           ok={busca.ok === "1"}
-          erro={typeof busca.erro === "string"}
+          erro={typeof busca.erro === "string" ? busca.erro : undefined}
         />
       </main>
       <RodapeSite />

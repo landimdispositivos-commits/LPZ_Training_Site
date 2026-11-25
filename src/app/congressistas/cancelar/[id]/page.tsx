@@ -14,6 +14,7 @@ import { Aviso } from "../../../_components/form-ui";
 import { PaginaPublica } from "../../../_components/pagina-publica";
 import { SiteHeader } from "../../../_components/site-header";
 import { cancelarCompraAction } from "./actions";
+import { carregarCatalogo } from "@/modules/ingressos/catalogo";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: tx(await obterIdioma(), "Cancelar compra — LPZ Training", "Cancel purchase — LPZ Training", "Cancelar compra — LPZ Training") };
@@ -92,6 +93,7 @@ const TEXTOS = traducoes(
 );
 
 export default async function Page(props: PageProps<"/congressistas/cancelar/[id]">) {
+  await carregarCatalogo();
   const sessao = await obterSessao();
   const { id } = await props.params;
   if (!sessao) redirect(`/congressistas?proximo=${encodeURIComponent(`/congressistas/cancelar/${id}`)}`);

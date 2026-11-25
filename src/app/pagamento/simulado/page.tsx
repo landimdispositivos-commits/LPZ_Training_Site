@@ -11,6 +11,7 @@ import { CheckoutSimulado } from "./checkout";
 import { RodapeSite } from "../../_components/rodape-site";
 import { LOCALE, tx } from "@/i18n";
 import { MINUTOS_RESERVA, nomeDoLote, nomeDoProduto } from "@/modules/ingressos";
+import { carregarCatalogo } from "@/modules/ingressos/catalogo";
 
 export async function generateMetadata(): Promise<Metadata> {
   return { title: tx(await obterIdioma(), "Pagamento — LPZ Training", "Payment — LPZ Training", "Pago — LPZ Training") };
@@ -18,6 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 // Página de desenvolvimento (TEST_MODE): faz o papel da tela do Mercado Pago.
 export default async function Page(props: PageProps<"/pagamento/simulado">) {
+  await carregarCatalogo();
   if (process.env.TEST_MODE !== "true") notFound();
 
   const sessao = await obterSessao();

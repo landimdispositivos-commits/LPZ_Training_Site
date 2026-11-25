@@ -2,7 +2,8 @@ import type { NextRequest } from "next/server";
 import { gerarXlsx } from "@/lib/xlsx";
 import { exigirAdmin } from "@/modules/auth/sessao";
 import { listarCadastros, PAPEIS } from "@/modules/usuarios";
-import { COLUNAS } from "@/modules/usuarios/colunas";
+import { carregarCatalogo } from "@/modules/ingressos/catalogo";
+import { colunasDeUsuarios } from "@/modules/usuarios/colunas";
 
 // Excel (.xlsx) da grade de usuários, com as colunas escolhidas na tela.
 // Só organizadores. Respeita a busca e o filtro de perfil da tela.
@@ -10,6 +11,8 @@ export async function GET(request: NextRequest) {
   await exigirAdmin(["organizador"]);
   const params = request.nextUrl.searchParams;
 
+  await carregarCatalogo();
+  const COLUNAS = colunasDeUsuarios();
   const escolhidas = new Set(params.getAll("col"));
   const colunas = escolhidas.size ? COLUNAS.filter((c) => escolhidas.has(c.id)) : COLUNAS;
   const papel = PAPEIS.find((p) => p === params.get("papel"));

@@ -15,17 +15,91 @@ export const PRODUTOS = {
   massagem_pri: { nome: "Massagem — Pri Pastel", nomeEn: "Massage — Pri Pastel", nomeEs: "Masaje — Pri Pastel", entrada: false, opcoes: true },
   massagem_jessica: { nome: "Massagem — Jéssica", nomeEn: "Massage — Jéssica", nomeEs: "Masaje — Jéssica", entrada: false, opcoes: true },
 } as const;
-export type TipoProduto = keyof typeof PRODUTOS;
+export type TipoFixo = keyof typeof PRODUTOS;
+// Chave do produto: um dos fixos acima ou um pacote criado pela organização
+// na tela de Ingressos (tabela produtos_personalizados, chave "extra_...").
+export type TipoProduto = string;
+
+export type ModoPresenca = "entrada" | "servico";
+export interface InfoProduto {
+  nome: string;
+  nomeEn: string;
+  nomeEs: string;
+  entrada: boolean; // gera ingresso com QR para a portaria
+  opcoes: boolean; // cliente escolhe entre os lotes ativos (ex.: duração)
+  personalizado: boolean;
+  ativo: boolean;
+}
+
+export interface ProdutoPersonalizado {
+  chave: string;
+  nome: string;
+  nomeEn: string | null;
+  nomeEs: string | null;
+  presenca: string;
+  opcoes: boolean;
+  ativo: boolean;
+}
+
+// Catálogo dos pacotes criados pela organização, em memória do servidor
+// (globalThis: compartilhado entre páginas, ações e rotas do mesmo processo).
+// Quem carrega/atualiza é catalogo.ts (acesso ao banco); aqui só a leitura.
+const chaveGlobal = "__lpzProdutosPersonalizados" as const;
+type Global = typeof globalThis & { [chaveGlobal]?: { lista: ProdutoPersonalizado[]; carregadoEm: number } };
+
+export function definirProdutosPersonalizados(lista: ProdutoPersonalizado[]) {
+  (globalThis as Global)[chaveGlobal] = { lista, carregadoEm: Date.now() };
+}
+export function catalogoCarregadoEm() {
+  return (globalThis as Global)[chaveGlobal]?.carregadoEm ?? 0;
+}
+export function produtosPersonalizados(): ProdutoPersonalizado[] {
+  return (globalThis as Global)[chaveGlobal]?.lista ?? [];
+}
+
+export const TIPOS_FIXOS = Object.keys(PRODUTOS) as TipoFixo[];
+
+export function ehTipoFixo(tipo: string): tipo is TipoFixo {
+  return Object.prototype.hasOwnProperty.call(PRODUTOS, tipo);
+}
+
+// Todos os produtos conhecidos (fixos + personalizados, inclusive os desativados,
+// para relatórios de vendas antigas). `soAtivos` para a vitrine.
+export function tiposDoCatalogo({ soAtivos = false } = {}): TipoProduto[] {
+  const extras = produtosPersonalizados().filter((p) => !soAtivos || p.ativo);
+  return [...TIPOS_FIXOS, ...extras.map((p) => p.chave)];
+}
+
+export function ehTipoProduto(v: unknown): v is TipoProduto {
+  return typeof v === "string" && (ehTipoFixo(v) || produtosPersonalizados().some((p) => p.chave === v));
+}
+
+export function infoProduto(tipo: TipoProduto): InfoProduto {
+  if (ehTipoFixo(tipo)) {
+    const p = PRODUTOS[tipo];
+    return { nome: p.nome, nomeEn: p.nomeEn, nomeEs: p.nomeEs, entrada: p.entrada, opcoes: "opcoes" in p && p.opcoes === true, personalizado: false, ativo: true };
+  }
+  const extra = produtosPersonalizados().find((p) => p.chave === tipo);
+  if (!extra) return { nome: tipo, nomeEn: tipo, nomeEs: tipo, entrada: false, opcoes: false, personalizado: true, ativo: false };
+  return {
+    nome: extra.nome,
+    nomeEn: extra.nomeEn || extra.nome,
+    nomeEs: extra.nomeEs || extra.nome,
+    entrada: extra.presenca === "entrada",
+    opcoes: extra.opcoes,
+    personalizado: true,
+    ativo: extra.ativo,
+  };
+}
 
 // Produto vendido em opções (o cliente escolhe o lote: ex. duração da massagem).
 export function temOpcoes(tipo: TipoProduto) {
-  return "opcoes" in PRODUTOS[tipo] && PRODUTOS[tipo].opcoes === true;
+  return infoProduto(tipo).opcoes;
 }
-export const TIPOS_PRODUTO = Object.keys(PRODUTOS) as TipoProduto[];
 
 // Nome do produto no idioma do visitante (telas públicas).
 export function nomeDoProduto(tipo: TipoProduto, idioma: Idioma = "pt") {
-  const p = PRODUTOS[tipo];
+  const p = infoProduto(tipo);
   return idioma === "en" ? p.nomeEn : idioma === "es" ? p.nomeEs : p.nome;
 }
 

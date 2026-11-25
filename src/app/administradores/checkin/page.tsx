@@ -17,6 +17,7 @@ import { BotoesPresenca } from "../../_components/botoes-presenca";
 import { classeInput } from "../../_components/form-ui";
 import { SiteHeader } from "../../_components/site-header";
 import { LeitorQr } from "./leitor-qr";
+import { carregarCatalogo } from "@/modules/ingressos/catalogo";
 
 export const metadata: Metadata = { title: "Check-in — LPZ Training" };
 
@@ -32,6 +33,7 @@ const RESULTADOS = {
 } as const;
 
 export default async function Page(props: PageProps<"/administradores/checkin">) {
+  await carregarCatalogo();
   await exigirAdmin(["organizador", "portaria"]);
   const { q, r, pedido } = await props.searchParams;
   const termo = typeof q === "string" ? q.slice(0, 200) : typeof pedido === "string" ? pedido : "";

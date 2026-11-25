@@ -3,7 +3,7 @@ import type { Idioma } from "@/i18n";
 import type { TipoProduto } from "@/modules/ingressos/produtos";
 import {
   diaDeHoje,
-  REGRAS_PRESENCA,
+  regraPresenca,
   rotuloBotaoPresenca,
   rotuloPresenca,
   type DiaPresenca,
@@ -29,7 +29,7 @@ export function BotoesPresenca({
   qrId?: string;
   idioma?: Idioma;
 }) {
-  const regra = REGRAS_PRESENCA[tipo];
+  const regra = regraPresenca(tipo);
   const feitos = new Map(registros.map((r) => [r.dia, r]));
   const hoje = diaDeHoje();
   const faltam = regra.dias.filter((d) => !feitos.has(d));

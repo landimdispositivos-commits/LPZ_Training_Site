@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { traducoes, type Idioma } from "@/i18n";
-import { codigoCurto, nomeDoLote, nomeDoProduto, pedidosDoComprador, prazoParaCancelar, PRODUTOS } from "@/modules/ingressos";
+import { codigoCurto, infoProduto, nomeDoLote, nomeDoProduto, pedidosDoComprador, prazoParaCancelar } from "@/modules/ingressos";
 import { formatarDataHora, formatarPreco } from "@/lib/formatar";
 import { QrIngresso } from "./qr-ingresso";
 import { agruparPorPedido, presencasDosPedidos } from "@/modules/presencas";
@@ -107,7 +107,7 @@ export async function MeusIngressos({ email, idioma = "pt" }: { email: string; i
             </div>
           )}
 
-          {p.status === "pago" && !PRODUTOS[p.tipo].entrada && (
+          {p.status === "pago" && !infoProduto(p.tipo).entrada && (
             <p className="mt-3 text-sm text-teal-300">{p.tipo === "jack_and_jill"
                 ? t.jackAndJill
                 : p.tipo === "camiseta"

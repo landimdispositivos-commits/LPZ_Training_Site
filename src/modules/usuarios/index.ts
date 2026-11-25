@@ -2,8 +2,9 @@ import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { agruparPorPedido, presencasDosPedidos } from "@/modules/presencas";
 import { db } from "@/db";
 import { contas, ingressos, lotes, pedidos, professores, sessoes, usuarios } from "@/db/schema";
-import { TIPOS_PRODUTO, type TipoProduto } from "@/modules/ingressos/produtos";
+import { type TipoProduto, tiposDoCatalogo } from "@/modules/ingressos/produtos";
 import { perfilPrincipal } from "@/modules/auth/papeis";
+import { carregarCatalogo } from "@/modules/ingressos/catalogo";
 
 export const PAPEIS = ["congressista", "profissional", "portaria", "midias", "organizador", "acesso_total"] as const;
 export type Papel = (typeof PAPEIS)[number];
@@ -84,6 +85,7 @@ export async function alterarPapel(usuarioId: string, papel: Papel) {
 // Cadastro completo de cada pessoa + forma de cadastro + compras, para a
 // tela "Usuários" e a exportação para Excel (só organizador).
 export async function listarCadastros({ busca, papel, limite = 500 }: { busca?: string; papel?: Papel; limite?: number }) {
+  await carregarCatalogo();
   const filtros = [];
   if (busca && busca.trim().length >= 2) {
     const padrao = `%${escaparLike(busca.trim())}%`;
@@ -158,7 +160,7 @@ export async function listarCadastros({ busca, papel, limite = 500 }: { busca?: 
       ...u,
       formaCadastro,
       compras: comprasDele.map((c) => ({ ...c, presencas: presencasPorPedido.get(c.pedidoId) ?? [] })),
-      comprou: Object.fromEntries(TIPOS_PRODUTO.map((t) => [t, pagos.has(t)])) as Record<TipoProduto, boolean>,
+      comprou: Object.fromEntries(tiposDoCatalogo().map((t) => [t, pagos.has(t)])) as Record<TipoProduto, boolean>,
       totalPagoCentavos: comprasDele.filter((c) => c.status === "pago").reduce((t, c) => t + c.valorCentavos, 0),
     };
   });

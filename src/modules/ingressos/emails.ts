@@ -8,8 +8,9 @@ import { formatarDataHora, formatarPreco } from "@/lib/formatar";
 import { enviarEmail, escaparHtml } from "@/modules/email";
 import { descreverPagamento } from "@/modules/pagamentos/formas";
 import { linkInstagram, listarPerfis } from "@/modules/perfis";
-import { nomeDoLote, nomeDoProduto, PRODUTOS, type TipoProduto } from "./produtos";
+import { infoProduto, nomeDoLote, nomeDoProduto, type TipoProduto } from "./produtos";
 import { POLITICA_COMPRA } from "./politica";
+import { carregarCatalogo } from "./catalogo";
 
 // E-mail completo da compra, enviado assim que o pagamento é aprovado, no
 // idioma em que a pessoa estava no site. Traz: dados da compra e forma de
@@ -200,6 +201,7 @@ type DadosPedido = {
 };
 
 async function carregarPedido(pedidoId: string): Promise<DadosPedido | null> {
+  await carregarCatalogo();
   const p = await db
     .select({
       pedidoId: pedidos.id,
@@ -288,6 +290,7 @@ ${insta ? `<a href="${e(insta)}" style="font-size:12px;color:${COR.agua};text-de
 // Um e-mail por compra: todos os produtos pagos juntos (sacola), cada um com
 // o seu QR code. Recebe os ids dos pedidos da mesma compra.
 export async function enviarEmailCompra(pedidoIds: string[]) {
+  await carregarCatalogo();
   const todos = (await Promise.all(pedidoIds.map(carregarPedido))).filter(
     (p): p is DadosPedido => !!p && p.status === "pago",
   );
@@ -296,7 +299,7 @@ export async function enviarEmailCompra(pedidoIds: string[]) {
     const ingresso = await db.query.ingressos.findFirst({ where: eq(ingressos.pedidoId, p.pedidoId) });
     if (ingresso?.status === "cancelado") continue;
     const idQr = ingresso?.id ?? p.pedidoId;
-    itens.push({ ...p, idQr, codigo: idQr.slice(0, 8).toUpperCase(), entrada: PRODUTOS[p.tipo].entrada });
+    itens.push({ ...p, idQr, codigo: idQr.slice(0, 8).toUpperCase(), entrada: infoProduto(p.tipo).entrada });
   }
   if (itens.length === 0) return false;
 
@@ -507,6 +510,7 @@ const AVISOS = {
 
 // Itens ainda válidos do comprador (pagos e com ingresso não cancelado).
 async function itensAtivos(email: string, idioma: Idioma) {
+  await carregarCatalogo();
   const lista = await db
     .select({ tipo: lotes.tipo, loteNome: lotes.nome, ingressoStatus: ingressos.status })
     .from(pedidos)

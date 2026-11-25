@@ -5,7 +5,7 @@ import { obterSessao } from "@/modules/auth/sessao";
 import { linkInstagram, ROTA_CATEGORIA, type Categoria } from "@/modules/perfis";
 import type { professores } from "@/db/schema";
 import { Aviso, Campo, classeBotao, classeInput } from "./form-ui";
-import { moverPerfilAction, salvarPerfilAction } from "./perfis-actions";
+import { criarPerfilAction, moverPerfilAction, removerPerfilAction, salvarPerfilAction } from "./perfis-actions";
 
 // Caixinhas e página de bio dos casais de professores e dos DJs.
 type Perfil = typeof professores.$inferSelect;
@@ -32,6 +32,20 @@ export const TEXTOS_PERFIS = traducoes(
     fotoDica: "JPG, PNG ou WebP, até 8 MB. Deixe em branco para manter a foto atual.",
     removerFoto: "Remover a foto atual",
     fotoDe: (n: string) => `Foto de ${n}`,
+    editarLista: (c: Categoria): string => (c === "dj" ? "Editar DJs" : "Editar professores"),
+    sairEdicao: "Concluir edição",
+    dicaEdicao: "Use ◀ ▶ para mudar a ordem e a canetinha para editar cada perfil.",
+    adicionar: (c: Categoria): string => (c === "dj" ? "+ Adicionar DJ" : "+ Adicionar professor"),
+    adicionarBotao: "Adicionar",
+    criado: "Perfil adicionado!",
+    removido: "Perfil removido.",
+    fotoDicaNova: "JPG, PNG ou WebP, até 8 MB (opcional).",
+    removerTitulo: "Remover este perfil",
+    removerAviso: "Some do site na hora. As aulas do cronograma ligadas a ele ficam sem professor vinculado. Não dá para desfazer.",
+    removerConfirmar: "Sim, quero remover este perfil",
+    removerBotao: "Remover",
+    erroConfirmar: "Marque a confirmação para remover.",
+    vazio: (c: Categoria): string => (c === "dj" ? "DJs em breve." : "Professores em breve."),
   },
   {
     verBio: "Bio",
@@ -54,6 +68,20 @@ export const TEXTOS_PERFIS = traducoes(
     fotoDica: "JPG, PNG or WebP, up to 8 MB. Leave blank to keep the current photo.",
     removerFoto: "Remove current photo",
     fotoDe: (n: string) => `Photo of ${n}`,
+    editarLista: (c: Categoria): string => (c === "dj" ? "Edit DJs" : "Edit teachers"),
+    sairEdicao: "Finish editing",
+    dicaEdicao: "Use ◀ ▶ to change the order and the pencil to edit each profile.",
+    adicionar: (c: Categoria): string => (c === "dj" ? "+ Add DJ" : "+ Add teacher"),
+    adicionarBotao: "Add",
+    criado: "Profile added!",
+    removido: "Profile removed.",
+    fotoDicaNova: "JPG, PNG or WebP, up to 8 MB (optional).",
+    removerTitulo: "Remove this profile",
+    removerAviso: "It disappears from the site immediately. Schedule classes linked to it lose the teacher link. This cannot be undone.",
+    removerConfirmar: "Yes, I want to remove this profile",
+    removerBotao: "Remove",
+    erroConfirmar: "Tick the confirmation to remove.",
+    vazio: (c: Categoria): string => (c === "dj" ? "DJs coming soon." : "Teachers coming soon."),
   },
   {
     verBio: "Bio",
@@ -76,6 +104,20 @@ export const TEXTOS_PERFIS = traducoes(
     fotoDica: "JPG, PNG o WebP, hasta 8 MB. Déjalo en blanco para mantener la foto actual.",
     removerFoto: "Quitar la foto actual",
     fotoDe: (n: string) => `Foto de ${n}`,
+    editarLista: (c: Categoria): string => (c === "dj" ? "Editar DJs" : "Editar profesores"),
+    sairEdicao: "Terminar edición",
+    dicaEdicao: "Usa ◀ ▶ para cambiar el orden y el lápiz para editar cada perfil.",
+    adicionar: (c: Categoria): string => (c === "dj" ? "+ Añadir DJ" : "+ Añadir profesor"),
+    adicionarBotao: "Añadir",
+    criado: "¡Perfil añadido!",
+    removido: "Perfil eliminado.",
+    fotoDicaNova: "JPG, PNG o WebP, hasta 8 MB (opcional).",
+    removerTitulo: "Eliminar este perfil",
+    removerAviso: "Desaparece del sitio en el acto. Las clases del cronograma vinculadas quedan sin profesor. No se puede deshacer.",
+    removerConfirmar: "Sí, quiero eliminar este perfil",
+    removerBotao: "Eliminar",
+    erroConfirmar: "Marca la confirmación para eliminar.",
+    vazio: (c: Categoria): string => (c === "dj" ? "DJs próximamente." : "Profesores próximamente."),
   },
 );
 
@@ -184,7 +226,7 @@ export function GradePerfis({
   perfis: Perfil[];
   categoria: Categoria;
   idioma: Idioma;
-  editavel: boolean;
+  editavel: boolean; // modo edição ligado (só organização)
 }) {
   const t = TEXTOS_PERFIS[idioma];
   const base = ROTA_CATEGORIA[categoria];
@@ -245,6 +287,82 @@ export function GradePerfis({
   );
 }
 
+// Página da lista (Professores ou DJs): botão "Editar" para a organização, que
+// liga o modo edição (?editar=1) — setinhas, canetinhas e o formulário de novo perfil.
+export function ListaPerfis({
+  perfis,
+  categoria,
+  idioma,
+  editavel,
+  editando,
+  ok,
+  erro,
+}: {
+  perfis: Perfil[];
+  categoria: Categoria;
+  idioma: Idioma;
+  editavel: boolean;
+  editando: boolean;
+  ok?: string;
+  erro?: string;
+}) {
+  const t = TEXTOS_PERFIS[idioma];
+  const base = ROTA_CATEGORIA[categoria];
+  const sufixo = categoria === "dj" ? "dj" : "prof";
+  return (
+    <div className="space-y-6">
+      {editando && ok && <Aviso tipo="ok">{ok === "removido" ? t.removido : t.criado}</Aviso>}
+      {editando && erro && <Aviso tipo="erro">{erro === "foto" ? t.fotoDica : t.erro}</Aviso>}
+      {editavel && (
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link
+            href={editando ? base : `${base}?editar=1`}
+            className="inline-flex items-center gap-2 rounded-full bg-gold-400/15 px-4 py-2 text-sm font-semibold text-gold-300 hover:bg-gold-400/30"
+          >
+            <span aria-hidden="true">{editando ? "✓" : "✎"}</span> {editando ? t.sairEdicao : t.editarLista(categoria)}
+          </Link>
+          {editando && <p className="text-xs text-mist/60">{t.dicaEdicao}</p>}
+        </div>
+      )}
+      {editando && (
+        <details className="rounded-2xl border border-white/10 bg-petrol-900/80 p-5" open={perfis.length === 0}>
+          <summary className="cursor-pointer text-sm font-semibold text-gold-300">{t.adicionar(categoria)}</summary>
+          <form action={criarPerfilAction} className="mt-4 space-y-4">
+            <input type="hidden" name="categoria" value={categoria} />
+            <Campo id={`novo-${sufixo}-nome`} label={t.nome}>
+              <input id={`novo-${sufixo}-nome`} name="nome" required maxLength={100} className={classeInput} />
+            </Campo>
+            <Campo id={`novo-${sufixo}-bio`} label={t.bio}>
+              <textarea id={`novo-${sufixo}-bio`} name="bio" rows={4} maxLength={2000} className={classeInput} />
+            </Campo>
+            <Campo id={`novo-${sufixo}-bio-en`} label={t.bioEn}>
+              <textarea id={`novo-${sufixo}-bio-en`} name="bioEn" rows={4} maxLength={2000} className={classeInput} />
+            </Campo>
+            <Campo id={`novo-${sufixo}-insta`} label={t.instagram}>
+              <input id={`novo-${sufixo}-insta`} name="instagram" maxLength={31} placeholder="@perfil" className={classeInput} />
+            </Campo>
+            <Campo id={`novo-${sufixo}-foto`} label={t.foto} dica={t.fotoDicaNova}>
+              <input
+                id={`novo-${sufixo}-foto`}
+                name="foto"
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                className="block w-full text-sm text-mist/80 file:mr-3 file:rounded-full file:border-0 file:bg-gold-400/20 file:px-4 file:py-2 file:font-semibold file:text-gold-300 hover:file:bg-gold-400/30"
+              />
+            </Campo>
+            <button type="submit" className={classeBotao}>{t.adicionarBotao}</button>
+          </form>
+        </details>
+      )}
+      {perfis.length === 0 ? (
+        <p className="text-center text-mist/70">{t.vazio(categoria)}</p>
+      ) : (
+        <GradePerfis perfis={perfis} categoria={categoria} idioma={idioma} editavel={editando} />
+      )}
+    </div>
+  );
+}
+
 // Página da bio de um perfil; com ?editar=1 a organização vê o formulário.
 export function DetalhePerfil({
   perfil,
@@ -261,7 +379,7 @@ export function DetalhePerfil({
   editavel: boolean;
   editar: boolean;
   ok: boolean;
-  erro: boolean;
+  erro?: string;
 }) {
   const t = TEXTOS_PERFIS[idioma];
   const base = ROTA_CATEGORIA[categoria];
@@ -269,7 +387,7 @@ export function DetalhePerfil({
   return (
     <div className="mx-auto max-w-2xl space-y-6">
       {ok && <Aviso tipo="ok">{t.salvo}</Aviso>}
-      {erro && <Aviso tipo="erro">{t.erro}</Aviso>}
+      {erro && <Aviso tipo="erro">{erro === "confirmar" ? t.erroConfirmar : erro === "foto" ? t.fotoDica : t.erro}</Aviso>}
       <article className="relative flex flex-col items-center rounded-2xl border border-gold-500/40 bg-petrol-950/70 p-8 pb-16 text-center">
         {editavel && !editar && (
           <Link
@@ -321,8 +439,23 @@ export function DetalhePerfil({
         </form>
       )}
 
+      {editavel && editar && (
+        <form action={removerPerfilAction} className="space-y-3 rounded-2xl border border-ember-400/40 bg-petrol-900/80 p-6">
+          <h2 className="text-sm font-semibold uppercase tracking-wider text-ember-400">{t.removerTitulo}</h2>
+          <p className="text-sm text-mist/80">{t.removerAviso}</p>
+          <input type="hidden" name="id" value={perfil.id} />
+          <input type="hidden" name="categoria" value={categoria} />
+          <label className="flex items-center gap-2 text-sm text-mist">
+            <input type="checkbox" name="confirmar" required className="h-4 w-4 accent-ember-400" /> {t.removerConfirmar}
+          </label>
+          <button type="submit" className="rounded-full border border-ember-400/70 px-5 py-2 text-sm font-semibold text-ember-400 hover:bg-ember-400/10">
+            {t.removerBotao}
+          </button>
+        </form>
+      )}
+
       <p className="text-center">
-        <Link href={base} className="text-sm text-teal-300 hover:underline">{t.voltar(categoria)}</Link>
+        <Link href={editar && editavel ? `${base}?editar=1` : base} className="text-sm text-teal-300 hover:underline">{t.voltar(categoria)}</Link>
       </p>
     </div>
   );

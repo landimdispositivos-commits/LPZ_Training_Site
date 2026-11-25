@@ -3,11 +3,12 @@ import Link from "next/link";
 import { exigirAdmin } from "@/modules/auth/sessao";
 import { listarPedidos, lotesComVendas, resumoFinanceiro, STATUS_PEDIDO, type StatusPedido } from "@/modules/financeiro";
 import { dateParaDataHoraLocal, formatarDataHora, formatarPreco } from "@/lib/formatar";
-import { estornosPendentes, PRODUTOS, TIPOS_PRODUTO, type TipoProduto } from "@/modules/ingressos";
+import { estornosPendentes, nomeDoProduto, type TipoProduto, tiposDoCatalogo } from "@/modules/ingressos";
 import { Aviso, Campo, classeBotao, classeInput } from "../_components/form-ui";
 import { BotaoSalvar } from "../_components/botao-salvar";
 import { SiteHeader } from "../_components/site-header";
 import { reenviarIngressosAction, criarLoteAction, editarLoteAction, estornarAction } from "./actions";
+import { carregarCatalogo } from "@/modules/ingressos/catalogo";
 
 export const metadata: Metadata = { title: "Financeiro — LPZ Training" };
 
@@ -30,6 +31,7 @@ const MENSAGENS: Record<string, { tipo: "ok" | "erro"; texto: string }> = {
 };
 
 export default async function Page(props: PageProps<"/financeiro">) {
+  await carregarCatalogo();
   await exigirAdmin(["organizador"]);
   const { status, ok, erro, qtd } = await props.searchParams;
   const filtro = STATUS_PEDIDO.find((s) => s === status);
@@ -96,7 +98,7 @@ export default async function Page(props: PageProps<"/financeiro">) {
                     <div className="text-sm">
                       <p className="font-semibold text-white">{e.nome} <span className="font-normal text-mist/60">· {e.email}</span></p>
                       <p className="text-mist/70">
-                        {PRODUTOS[e.tipo].nome} ({e.loteNome}) · cancelado em {e.canceladoEm ? formatarDataHora(e.canceladoEm) : "—"}
+                        {nomeDoProduto(e.tipo)} ({e.loteNome}) · cancelado em {e.canceladoEm ? formatarDataHora(e.canceladoEm) : "—"}
                       </p>
                     </div>
                     <form action={estornarAction}>
@@ -121,7 +123,7 @@ export default async function Page(props: PageProps<"/financeiro">) {
                   <li key={l.id} className="rounded-xl border border-white/10 bg-petrol-950/60 p-4">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div>
-                        <p className="text-xs font-semibold uppercase tracking-wider text-gold-300">{PRODUTOS[l.tipo].nome}</p>
+                        <p className="text-xs font-semibold uppercase tracking-wider text-gold-300">{nomeDoProduto(l.tipo)}</p>
                         <p className="font-semibold text-white">
                           {l.nome} · {formatarPreco(l.precoCentavos)}
                         </p>
@@ -195,7 +197,7 @@ export default async function Page(props: PageProps<"/financeiro">) {
                           <p className="text-xs text-mist/60">{p.email}</p>
                         </td>
                         <td className="py-2 pr-3 text-mist/80">
-                          {PRODUTOS[p.tipo].nome}
+                          {nomeDoProduto(p.tipo)}
                           <span className="block text-xs text-mist/60">{p.loteNome}</span>
                         </td>
                         <td className="py-2 pr-3 whitespace-nowrap text-white">{formatarPreco(p.valorCentavos)}</td>
@@ -269,8 +271,8 @@ function FormLote({ action, lote }: { action: (form: FormData) => Promise<void>;
       {lote && <input type="hidden" name="id" value={lote.id} />}
       <Campo id={`${p}-tipo`} label="Produto">
         <select id={`${p}-tipo`} name="tipo" defaultValue={lote?.tipo ?? "full_pass"} className={classeInput}>
-          {TIPOS_PRODUTO.map((t) => (
-            <option key={t} value={t}>{PRODUTOS[t].nome}</option>
+          {tiposDoCatalogo().map((t) => (
+            <option key={t} value={t}>{nomeDoProduto(t)}</option>
           ))}
         </select>
       </Campo>

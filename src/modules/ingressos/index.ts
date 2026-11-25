@@ -5,8 +5,10 @@ import { configuracoes, ingressos, lotes, pedidos, presencas } from "@/db/schema
 import type { Idioma } from "@/i18n";
 import { paymentProvider } from "@/modules/pagamentos";
 import { enviarEmailCancelamento, enviarEmailEstorno, enviarEmailsDaCompra } from "./emails";
-import { PRODUTOS, temOpcoes, TIPOS_PRODUTO, type TipoProduto } from "./produtos";
-export { nomeDoLote, nomeDoProduto, PRODUTOS, temOpcoes, TIPOS_PRODUTO, type TipoProduto } from "./produtos";
+import { infoProduto, nomeDoProduto, temOpcoes, type TipoProduto, tiposDoCatalogo } from "./produtos";
+export { ehTipoProduto, infoProduto, nomeDoLote, nomeDoProduto, temOpcoes, type TipoProduto, tiposDoCatalogo } from "./produtos";
+export { atualizarPacote, carregarCatalogo, criarPacote } from "./catalogo";
+import { carregarCatalogo } from "./catalogo";
 
 // ---------------------------------------------------------------------------
 // Regras de venda de ingressos.
@@ -63,15 +65,16 @@ export async function loteVigente(tipo: TipoProduto) {
 const CHAVE_ORDEM = "ordem_produtos";
 
 export async function ordemDosProdutos(): Promise<TipoProduto[]> {
+  await carregarCatalogo();
   const linha = await db.query.configuracoes.findFirst({ where: eq(configuracoes.chave, CHAVE_ORDEM) });
   let salva: string[] = [];
   try {
     const lista = JSON.parse(linha?.valor ?? "[]");
     if (Array.isArray(lista)) salva = lista.map(String);
   } catch {}
-  const conhecidos = salva.filter((t): t is TipoProduto => (TIPOS_PRODUTO as string[]).includes(t));
+  const conhecidos = salva.filter((t): t is TipoProduto => (tiposDoCatalogo() as string[]).includes(t));
   // Produto novo que ainda não está na lista salva entra no fim.
-  return [...conhecidos, ...TIPOS_PRODUTO.filter((t) => !conhecidos.includes(t))];
+  return [...conhecidos, ...tiposDoCatalogo().filter((t) => !conhecidos.includes(t))];
 }
 
 export async function salvarOrdemDosProdutos(ordem: TipoProduto[]) {
@@ -83,26 +86,28 @@ export async function salvarOrdemDosProdutos(ordem: TipoProduto[]) {
     .onConflictDoUpdate({ target: configuracoes.chave, set: { valor, atualizadoEm: agora } });
 }
 
-export async function vitrine() {
+export async function vitrine({ incluirInativos = false } = {}) {
   const agora = new Date();
   const ativos = await db
     .select()
     .from(lotes)
     .where(and(...filtrosVigencia(agora)))
     .orderBy(asc(lotes.precoCentavos), asc(lotes.criadoEm));
-  const ordem = await ordemDosProdutos();
+  // Pacotes desativados pela organização somem da vitrine (vendas antigas seguem nos relatórios).
+  const ordem = (await ordemDosProdutos()).filter((tipo) => incluirInativos || infoProduto(tipo).ativo);
   return ordem.map((tipo) => {
     const doTipo = ativos.filter((l) => l.tipo === tipo);
     const opcoes = doTipo.filter((l) => l.quantidadeVendida < l.quantidadeTotal);
     const comVaga = opcoes[0] ?? null;
     return {
       tipo,
-      produto: PRODUTOS[tipo],
+      produto: infoProduto(tipo),
       lote: comVaga,
       // Produtos com opções (massagens) mostram todos os lotes com vaga para escolher.
       opcoes: temOpcoes(tipo) ? opcoes : [],
       esgotado: doTipo.length > 0 && !comVaga,
       emBreve: doTipo.length === 0,
+      ativo: infoProduto(tipo).ativo,
     };
   });
 }
@@ -142,6 +147,7 @@ export interface Comprador {
 
 // Situação do comprador por produto: pago e/ou pedido pendente em aberto.
 export async function situacaoDoComprador(email: string) {
+  await carregarCatalogo();
   await liberarReservasVencidas();
   const lista = await db
     .select({ id: pedidos.id, status: pedidos.status, tipo: lotes.tipo })
@@ -150,7 +156,7 @@ export async function situacaoDoComprador(email: string) {
     .where(and(eq(pedidos.email, email), inArray(pedidos.status, ["pago", "pendente"])))
     .orderBy(desc(pedidos.criadoEm));
   const porTipo = {} as Record<TipoProduto, { pago: string | null; pendente: string | null }>;
-  for (const tipo of TIPOS_PRODUTO) {
+  for (const tipo of tiposDoCatalogo()) {
     porTipo[tipo] = {
       pago: lista.find((p) => p.tipo === tipo && p.status === "pago")?.id ?? null,
       pendente: lista.find((p) => p.tipo === tipo && p.status === "pendente")?.id ?? null,
@@ -166,6 +172,7 @@ export async function criarPedido(comprador: Comprador, tipo: TipoProduto, idiom
   const situacao = (await situacaoDoComprador(comprador.email))[tipo];
   if (situacao.pago) throw new ErroCompra("ja-tem-ingresso");
   if (situacao.pendente) return situacao.pendente;
+  if (!infoProduto(tipo).ativo) throw new ErroCompra("sem-lote");
 
   // Produto com opções: o lote escolhido precisa ser deste produto e estar vigente.
   const lote =
@@ -211,6 +218,7 @@ export async function criarPedido(comprador: Comprador, tipo: TipoProduto, idiom
 
 // Itens da sacola: os pedidos pendentes (vaga reservada) do comprador.
 export async function sacolaDoComprador(email: string) {
+  await carregarCatalogo();
   await liberarReservasVencidas();
   return db
     .select({
@@ -267,7 +275,7 @@ async function abrirCheckout(pedidoIds: string[], email: string) {
       referencia,
       itens: lista.map((p) => ({
         id: p.id,
-        descricao: `LPZ Training — ${PRODUTOS[p.tipo].nome} (${p.loteNome})`,
+        descricao: `LPZ Training — ${nomeDoProduto(p.tipo)} (${p.loteNome})`,
         valorCentavos: p.valorCentavos,
       })),
       compradorEmail: email,
@@ -319,6 +327,7 @@ export async function confirmarPagamento(pedidoId: string) {
 
 // Confirma todos os pedidos de uma referência (compra da sacola ou pedido único).
 export async function confirmarCompra(referencia: string) {
+  await carregarCatalogo();
   const daCompra = await db
     .select()
     .from(pedidos)
@@ -361,7 +370,7 @@ export async function confirmarCompra(referencia: string) {
         })
         .where(eq(pedidos.id, id));
       // Só produtos de entrada geram ingresso de entrada (serviços usam o QR do pedido).
-      if (!lote || PRODUTOS[lote.tipo].entrada) await tx.insert(ingressos).values({ pedidoId: id });
+      if (!lote || infoProduto(lote.tipo).entrada) await tx.insert(ingressos).values({ pedidoId: id });
     }
   });
   if (confirmadosAgora.length > 0) enviarEmailsDaCompra(confirmadosAgora);
@@ -397,6 +406,7 @@ export async function cancelarPedidoPendente(pedidoId: string, email: string) {
 
 // Pedidos e ingressos de um comprador, para a "Minha área".
 export async function pedidosDoComprador(email: string) {
+  await carregarCatalogo();
   return db
     .select({
       pedidoId: pedidos.id,
@@ -488,6 +498,7 @@ function enviarEmailEmSegundoPlanoCancelamento(pedidoId: string) {
 
 // Estornos aguardando aprovação (Financeiro).
 export async function estornosPendentes() {
+  await carregarCatalogo();
   return db
     .select({
       pedidoId: pedidos.id,

@@ -2,7 +2,8 @@ import { asc } from "drizzle-orm";
 import { db } from "@/db";
 import { cronogramaItens, lotes, professores } from "@/db/schema";
 import { tx, type Idioma } from "@/i18n";
-import { nomeDoLote, nomeDoProduto, TIPOS_PRODUTO } from "@/modules/ingressos/produtos";
+import { nomeDoLote, nomeDoProduto, tiposDoCatalogo } from "@/modules/ingressos/produtos";
+import { carregarCatalogo } from "@/modules/ingressos/catalogo";
 
 // Busca do site (lupa do topo): páginas, produtos, professores, DJs e
 // cronograma. Sem acentos e sem diferenciar maiúsculas; todas as palavras
@@ -43,6 +44,7 @@ function paginas(idioma: Idioma): (ResultadoBusca & { chaves: string })[] {
 }
 
 export async function buscarNoSite(consulta: string, idioma: Idioma): Promise<ResultadoBusca[]> {
+  await carregarCatalogo();
   const palavras = normalizar(consulta).split(/\s+/).filter((p) => p.length >= 2).slice(0, 8);
   if (palavras.length === 0) return [];
   const casa = (...textos: (string | null | undefined)[]) => {
@@ -59,7 +61,7 @@ export async function buscarNoSite(consulta: string, idioma: Idioma): Promise<Re
   const resultados: ResultadoBusca[] = [];
   for (const pg of paginas(idioma)) if (casa(pg.titulo, pg.resumo, pg.chaves)) resultados.push(pg);
 
-  for (const tipo of TIPOS_PRODUTO) {
+  for (const tipo of tiposDoCatalogo({ soAtivos: true })) {
     const nomes = [nomeDoProduto(tipo, "pt"), nomeDoProduto(tipo, "en"), nomeDoProduto(tipo, "es")];
     const doTipo = listaLotes.filter((l) => l.tipo === tipo).map((l) => nomeDoLote(l.nome, idioma));
     if (casa(...nomes, ...doTipo)) {
