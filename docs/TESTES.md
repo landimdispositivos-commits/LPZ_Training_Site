@@ -120,6 +120,16 @@ Legenda: ✅ já testado pelo Claude · 🔑 precisa do login da organização.
 - [ ] 🔑 No modo "ver como", comprar/cancelar/editar cadastro ficam bloqueados
 - [ ] 🔑 Auditoria registra início e fim do "ver como"
 
+## 8.5 Editar Professores, DJs e Ingressos (24/11)
+- [ ] 🔑 Professores e DJs: botão "Editar" liga/desliga o modo edição; setinhas ◀ ▶ e canetinha só aparecem nele
+- [ ] 🔑 "+ Adicionar professor/DJ" (nome, bio pt/en, Instagram, foto) → novo perfil aparece no fim da grade
+- [ ] 🔑 Na bio, em modo edição: "Remover este perfil" só funciona com a caixinha de confirmação marcada
+- [ ] 🔑 Ingressos: botão "Editar ingressos"; setinhas só no modo edição
+- [ ] 🔑 "+ Adicionar pacote" (nome pt/en/es, entrada com QR ou serviço, opções, primeiro lote, preço, vagas) → caixa nova na grade
+- [ ] 🔑 Pacote novo aparece no Financeiro (lotes), em Usuários (coluna Comprou, detalhe, Excel), na busca e no check-in
+- [ ] 🔑 Comprar o pacote novo: e-mail de confirmação com o nome certo; QR só se for "entrada"
+- [ ] 🔑 "Editar pacote": mudar nomes, opções e desativar → some da loja, mas continua nos relatórios; reativar volta
+
 ## 9. Fale conosco
 - [ ] Contatos com ícones: lpztraining@gmail.com, +55 11 94502-6344 (abre o WhatsApp), @lpztrainingsp
 - [ ] Enviar mensagem pelo formulário → chega no e-mail da organização (Mailpit em teste)
