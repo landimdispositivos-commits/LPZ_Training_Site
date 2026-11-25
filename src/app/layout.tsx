@@ -45,7 +45,9 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       lang={LOCALE[idioma]}
       className={`${poppins.variable} ${michroma.variable} ${scriptAccent.variable}`}
     >
-      <body className="min-h-screen antialiased">
+      {/* overflow-x-clip: rede de segurança contra rolagem lateral no celular
+          (ex.: linhas decorativas do fundo). "clip" não quebra o header sticky. */}
+      <body className="min-h-screen overflow-x-clip antialiased">
         <ProvedorIdioma idioma={idioma}>
           {children}
           <BotaoReportar />
