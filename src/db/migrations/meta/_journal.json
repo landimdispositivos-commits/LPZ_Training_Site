@@ -176,6 +176,13 @@
       "when": 1795700200000,
       "tag": "0024_servicos_e_nascimento",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1795700300000,
+      "tag": "0025_caixas_texto",
+      "breakpoints": true
     }
   ]
 }

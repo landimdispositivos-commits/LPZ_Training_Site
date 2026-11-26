@@ -141,6 +141,7 @@ Legenda: ✅ já testado pelo Claude · 🔑 precisa do login da organização.
 - [ ] Botão de reportar problema dourado no canto inferior direito em todas as telas
 - [ ] Login (congressista, profissional, organização) cai na página principal; "Comprar" sem login volta para a compra
 - [ ] Data de nascimento: Minha área do profissional, painel da organização e canetinha de professores/DJs
+- [ ] 🔑 Quem somos: botão "Editar Quem somos" → mudar título e texto das caixas, adicionar, remover e ordenar com ◀ ▶
 
 ## 9. Fale conosco
 - [ ] Contatos com ícones: lpztraining@gmail.com, +55 11 94502-6344 (abre o WhatsApp), @lpztrainingsp
