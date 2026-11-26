@@ -20,6 +20,11 @@ const caixaSchema = z.object({
   texto: z.string().trim().max(5000),
   textoEn: opcional(5000),
   textoEs: opcional(5000),
+  oculta: z.boolean(),
+  temPagina: z.boolean(),
+  detalhe: opcional(20000),
+  detalheEn: opcional(20000),
+  detalheEs: opcional(20000),
 });
 
 function lerPagina(form: FormData): PaginaCaixas {
@@ -37,6 +42,12 @@ function ler(form: FormData) {
     texto: campo("texto"),
     textoEn: campo("textoEn"),
     textoEs: campo("textoEs"),
+    oculta: form.get("oculta") === "on",
+    // Página própria só existe em Serviços.
+    temPagina: form.get("temPagina") === "on" && form.get("pagina") === "servicos",
+    detalhe: campo("detalhe"),
+    detalheEn: campo("detalheEn"),
+    detalheEs: campo("detalheEs"),
   });
 }
 
@@ -66,6 +77,7 @@ export async function salvarCaixaAction(form: FormData) {
     .set({ ...dados.data, atualizadoEm: new Date() })
     .where(caixaDaPagina(pagina, id.data));
   revalidatePath(PAGINAS_CAIXAS[pagina]);
+  revalidatePath(`${PAGINAS_CAIXAS[pagina]}/${id.data}`);
   redirect(`${voltar(pagina)}&ok=salvo#caixa-${id.data}`);
 }
 

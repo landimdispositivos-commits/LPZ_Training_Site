@@ -167,6 +167,13 @@ export const caixasTexto = pgTable(
     textoEn: text("texto_en"),
     textoEs: text("texto_es"),
     ordem: integer("ordem").notNull().default(0),
+    // Oculta: caixa (e a página dela) só aparece para a organização.
+    oculta: boolean("oculta").notNull().default(false),
+    // Página própria (Serviços): a caixa vira link para /servicos/<id>.
+    temPagina: boolean("tem_pagina").notNull().default(false),
+    detalhe: text("detalhe"),
+    detalheEn: text("detalhe_en"),
+    detalheEs: text("detalhe_es"),
     criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
     atualizadoEm: timestamp("atualizado_em", { withTimezone: true }).notNull().defaultNow(),
   },

@@ -30,3 +30,16 @@ export function caixaNoIdioma(c: Caixa, idioma: Idioma) {
   if (idioma === "es") return { titulo: c.tituloEs || c.titulo, texto: c.textoEs || c.texto };
   return { titulo: c.titulo, texto: c.texto };
 }
+
+// Conteúdo da página própria da caixa (sem texto próprio, usa o da caixa).
+export function detalheNoIdioma(c: Caixa, idioma: Idioma) {
+  const { texto } = caixaNoIdioma(c, idioma);
+  if (idioma === "en") return c.detalheEn || c.detalhe || texto;
+  if (idioma === "es") return c.detalheEs || c.detalhe || texto;
+  return c.detalhe || texto;
+}
+
+export async function caixaPorId(pagina: PaginaCaixas, id: string) {
+  const [caixa] = await db.select().from(caixasTexto).where(caixaDaPagina(pagina, id)).limit(1);
+  return caixa ?? null;
+}

@@ -183,6 +183,13 @@
       "when": 1795700300000,
       "tag": "0025_caixas_texto",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1795700400000,
+      "tag": "0026_caixas_pagina_oculta",
+      "breakpoints": true
     }
   ]
 }

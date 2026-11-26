@@ -67,6 +67,7 @@ export default async function Page(props: PageProps<"/servicos">) {
           rotuloEditar={t.editar}
           rotuloAdicionar={t.adicionar}
           vazio={t.vazio}
+          comSubpagina
         />
         <p className="text-center text-sm text-mist/80">
           {t.contato}{" "}
