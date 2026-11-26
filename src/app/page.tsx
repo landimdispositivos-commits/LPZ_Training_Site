@@ -4,6 +4,11 @@ import Link from "next/link";
 import { SiteHeader } from "./_components/site-header";
 import { RodapeSite } from "./_components/rodape-site";
 import { obterIdioma } from "@/i18n/servidor";
+import { obterSessao } from "@/modules/auth/sessao";
+import { ehGestor } from "@/modules/auth/papeis";
+import { obterLinkParty } from "@/modules/midia/link-party";
+import { salvarLinkPartyAction } from "./_components/inicio/actions";
+import { classeInput } from "./_components/form-ui";
 
 // Página inicial: só a apresentação. Cronograma, Professores, Ingressos e
 // Galeria são subpáginas, abertas pelo menu do topo.
@@ -27,8 +32,17 @@ function LinhasDecorativas() {
   );
 }
 
-export default async function Home() {
+export const dynamic = "force-dynamic";
+
+const classeBotaoInicio =
+  "bg-gold-metal inline-block rounded-full px-8 py-3 font-semibold text-gold-ink shadow-[0_0_30px_rgb(230_181_74/0.35)] transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold-300";
+
+export default async function Home(props: PageProps<"/">) {
   const idioma = await obterIdioma();
+  const [busca, linkParty, sessao] = await Promise.all([props.searchParams, obterLinkParty(), obterSessao().catch(() => null)]);
+  // Organização edita o link do LPZ Party aqui mesmo (canetinha embaixo do botão).
+  const gestor = !!sessao && ehGestor(sessao.user.papel);
+  const editandoParty = gestor && busca.editar === "party";
   return (
     <>
       <a
@@ -80,12 +94,61 @@ export default async function Home() {
                 </>
               )}
             </p>
-            <Link
-              href="/quem-somos"
-              className="bg-gold-metal mt-10 inline-block rounded-full px-8 py-3 font-semibold text-gold-ink shadow-[0_0_30px_rgb(230_181_74/0.35)] transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold-300"
-            >
-              {tx(idioma, "Quem somos", "About us", "Quiénes somos")}
-            </Link>
+            <div className="mt-10 flex flex-col items-center gap-4">
+              <Link href="/quem-somos" className={classeBotaoInicio}>
+                {tx(idioma, "Quem somos", "About us", "Quiénes somos")}
+              </Link>
+              {/* LPZ Party: site externo da organização. Para o público o botão
+                  só aparece depois que a organização cadastrar o link. */}
+              <div id="lpz-party" className="flex scroll-mt-24 flex-col items-center gap-2">
+                {linkParty ? (
+                  <a href={linkParty} target="_blank" rel="noopener noreferrer" className={classeBotaoInicio}>
+                    LPZ Party <span aria-hidden="true">↗</span>
+                  </a>
+                ) : (
+                  gestor && (
+                    <span className={`${classeBotaoInicio} cursor-not-allowed opacity-50`} title="Cadastre o link para o botão aparecer para o público">
+                      LPZ Party
+                    </span>
+                  )
+                )}
+                {gestor && busca.salvo === "party" && (
+                  <p role="status" className="text-sm text-teal-300">Link salvo.</p>
+                )}
+                {gestor && !editandoParty && (
+                  <Link href="/?editar=party#lpz-party" className="text-xs font-semibold text-gold-300 hover:underline">
+                    ✎ {linkParty ? "Editar link do LPZ Party" : "Cadastrar link do LPZ Party (só a organização vê este botão)"}
+                  </Link>
+                )}
+                {editandoParty && (
+                  <form action={salvarLinkPartyAction} className="mt-2 w-[min(90vw,28rem)] space-y-3 rounded-2xl border border-white/10 bg-petrol-900/90 p-4 text-left">
+                    <label htmlFor="link-party" className="block text-sm text-mist">
+                      Link do LPZ Party
+                      <input
+                        id="link-party"
+                        name="link"
+                        type="url"
+                        inputMode="url"
+                        maxLength={500}
+                        defaultValue={linkParty ?? ""}
+                        placeholder="https://..."
+                        className={`${classeInput} mt-1`}
+                      />
+                    </label>
+                    <p className="text-xs text-mist/60">Endereço completo, começando com https://. Deixe em branco para tirar o botão do site.</p>
+                    {busca.erro && <p role="alert" className="text-sm text-ember-400">Link inválido: use um endereço que comece com https://</p>}
+                    <div className="flex flex-wrap items-center gap-3">
+                      <button type="submit" className="bg-gold-metal rounded-full px-5 py-2 text-sm font-semibold text-gold-ink hover:brightness-110">
+                        Salvar
+                      </button>
+                      <Link href="/#lpz-party" className="rounded-full border border-white/25 px-5 py-2 text-sm font-semibold text-mist/80 hover:bg-white/10">
+                        Cancelar
+                      </Link>
+                    </div>
+                  </form>
+                )}
+              </div>
+            </div>
           </div>
         </section>
 

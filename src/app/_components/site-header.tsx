@@ -143,7 +143,7 @@ async function MenuConta({ idioma }: { idioma: Idioma }) {
 
   return (
     <MenuSuspenso
-      className="group relative min-w-0"
+      className="group relative min-w-0 sm:shrink-0"
       resumoClassName={classeBotaoConta}
       resumo={
         <>
@@ -222,7 +222,7 @@ export async function SiteHeader() {
       <FaixaVerComo />
       <nav
         aria-label={t.navegacao}
-        className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-4 sm:gap-6 sm:px-4"
+        className="mx-auto flex max-w-[100rem] items-center justify-between gap-2 px-3 py-4 sm:gap-6 sm:px-4"
       >
         <Link href="/" className="shrink-0 whitespace-nowrap font-display text-xs tracking-[0.18em] text-gold-metal sm:text-sm sm:tracking-[0.25em]">
           {/* No celular a marca encurta para "LPZ" e sobra espaço para o nome do usuário. */}
@@ -230,7 +230,7 @@ export async function SiteHeader() {
           <span className="hidden sm:inline">LPZ TRAINING</span>
         </Link>
 
-        <ul className="hidden items-center gap-5 whitespace-nowrap text-sm font-medium xl:flex 2xl:gap-6">
+        <ul className="hidden items-center gap-5 whitespace-nowrap text-sm font-medium 2xl:flex">
           {t.links.map((link) => (
             <li key={link.href}>
               <Link href={link.href} className={classeLink}>{link.label}</Link>
@@ -280,14 +280,14 @@ export async function SiteHeader() {
           <MenuConta idioma={idioma} />
           <Link
             href="/fale-conosco"
-            className="hidden h-11 items-center whitespace-nowrap rounded-full border border-gold-500/60 px-4 text-sm font-semibold text-gold-300 hover:bg-gold-500/10 xl:flex"
+            className="hidden h-11 items-center whitespace-nowrap rounded-full border border-gold-500/60 px-4 text-sm font-semibold text-gold-300 hover:bg-gold-500/10 2xl:flex"
           >
             {t.faleConosco}
           </Link>
 
-          {/* Menu (☰) do celular e do notebook menor que 1280px, sem JavaScript: <details> abre/fecha nativamente. */}
+          {/* Menu (☰) abaixo de 1536px (o menu em linha tem 7 itens + conta), sem JavaScript: <details> abre/fecha nativamente. */}
           <MenuSuspenso
-            className="group relative shrink-0 xl:hidden"
+            className="group relative shrink-0 2xl:hidden"
             resumoClassName="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-lg text-gold-300 hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-300 [&::-webkit-details-marker]:hidden"
             resumo={
               <>
