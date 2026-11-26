@@ -9,7 +9,8 @@ import { itensDaGaleria } from "@/modules/midia/galeria";
 import { Aviso, Campo, classeBotao, classeInput } from "../../_components/form-ui";
 import { obterSessao } from "@/modules/auth/sessao";
 import { perfisDo } from "@/modules/auth/papeis";
-import { obterLinksDrive } from "@/modules/midia/links-drive";
+import { obterLinksDrive, type SecaoDrive } from "@/modules/midia/links-drive";
+import { situacaoDoComprador } from "@/modules/ingressos";
 import { salvarLinkDriveAction } from "./actions";
 import { RodapeSite } from "../../_components/rodape-site";
 import { SiteHeader } from "../../_components/site-header";
@@ -28,8 +29,16 @@ const TEXTOS = traducoes(
     comprarFoto: "Contratar Paparazzi — fotos",
     videosTitulo: "Vídeos",
     audiosTitulo: "Áudios",
-    drive: { videos: "Ver todos os vídeos no Google Drive", fotos: "Ver todas as fotos no Google Drive" } as Record<"videos" | "fotos", string>,
+    drive: {
+      videos: "Ver todos os vídeos no Google Drive",
+      fotos: "Ver todas as fotos no Google Drive",
+      paparazzi_video: "Seus vídeos do Paparazzi no Google Drive",
+      paparazzi_foto: "Suas fotos do Paparazzi no Google Drive",
+    } as Record<SecaoDrive, string>,
     editarDrive: "Editar link do Google Drive",
+    editarPaparazzi: { paparazzi_video: "Editar link do Drive — vídeo", paparazzi_foto: "Editar link do Drive — fotos" } as Record<string, string>,
+    dicaPaparazzi: "Este link só aparece para quem contratou este Paparazzi (e para a organização).",
+    cancelar: "Cancelar",
     linkDrive: "Link da pasta no Google Drive",
     dicaDrive: "Cole o link de compartilhamento da pasta (começa com https://). Deixe em branco para tirar o botão.",
     salvar: "Salvar link",
@@ -46,8 +55,16 @@ const TEXTOS = traducoes(
     comprarFoto: "Book Paparazzi — photos",
     videosTitulo: "Videos",
     audiosTitulo: "Audio",
-    drive: { videos: "See all videos on Google Drive", fotos: "See all photos on Google Drive" } as Record<"videos" | "fotos", string>,
+    drive: {
+      videos: "See all videos on Google Drive",
+      fotos: "See all photos on Google Drive",
+      paparazzi_video: "Your Paparazzi videos on Google Drive",
+      paparazzi_foto: "Your Paparazzi photos on Google Drive",
+    } as Record<SecaoDrive, string>,
     editarDrive: "Edit Google Drive link",
+    editarPaparazzi: { paparazzi_video: "Edit Drive link — video", paparazzi_foto: "Edit Drive link — photos" } as Record<string, string>,
+    dicaPaparazzi: "This link is only shown to people who booked this Paparazzi (and to the organizers).",
+    cancelar: "Cancel",
     linkDrive: "Google Drive folder link",
     dicaDrive: "Paste the folder sharing link (starting with https://). Leave blank to remove the button.",
     salvar: "Save link",
@@ -64,8 +81,16 @@ const TEXTOS = traducoes(
     comprarFoto: "Contratar Paparazzi — fotos",
     videosTitulo: "Videos",
     audiosTitulo: "Audios",
-    drive: { videos: "Ver todos los videos en Google Drive", fotos: "Ver todas las fotos en Google Drive" } as Record<"videos" | "fotos", string>,
+    drive: {
+      videos: "Ver todos los videos en Google Drive",
+      fotos: "Ver todas las fotos en Google Drive",
+      paparazzi_video: "Tus videos del Paparazzi en Google Drive",
+      paparazzi_foto: "Tus fotos del Paparazzi en Google Drive",
+    } as Record<SecaoDrive, string>,
     editarDrive: "Editar enlace de Google Drive",
+    editarPaparazzi: { paparazzi_video: "Editar enlace de Drive — video", paparazzi_foto: "Editar enlace de Drive — fotos" } as Record<string, string>,
+    dicaPaparazzi: "Este enlace solo aparece para quien contrató este Paparazzi (y para la organización).",
+    cancelar: "Cancelar",
     linkDrive: "Enlace de la carpeta en Google Drive",
     dicaDrive: "Pega el enlace para compartir la carpeta (empieza con https://). Déjalo en blanco para quitar el botón.",
     salvar: "Guardar enlace",
@@ -84,6 +109,86 @@ export async function generateMetadata(props: PageProps<"/galeria/[secao]">): Pr
   return { title: secao ? `${t.titulo[secao]} — LPZ Training` : "LPZ Training" };
 }
 
+// Botão do Google Drive de uma seção + canetinha para colar/trocar o link
+// (organização e Mídias). `?editar=<chave>` abre o formulário daquele link.
+function BlocoDrive({
+  chave,
+  link,
+  mostrarLink,
+  editavel,
+  editando,
+  pagina,
+  rotuloEditar,
+  dica,
+  t,
+}: {
+  chave: SecaoDrive;
+  link: string | null;
+  mostrarLink: boolean;
+  editavel: boolean;
+  editando: boolean;
+  pagina: string;
+  rotuloEditar: string;
+  dica?: string;
+  t: (typeof TEXTOS)["pt"];
+}) {
+  if (!(link && mostrarLink) && !editavel) return null;
+  return (
+    <div id={`drive-${chave}`} className="flex scroll-mt-24 flex-col items-center gap-3">
+      {link && mostrarLink && (
+        <a
+          href={link}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bg-gold-metal inline-flex items-center gap-3 rounded-full px-7 py-3 font-semibold text-gold-ink shadow-lg hover:brightness-110"
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
+            <path d="M8 3h8l6 10.5-4 7H6l-4-7Z" />
+            <path d="M8 3l6 10.5M16 3 10 13.5M2 13.5h20" />
+          </svg>
+          {t.drive[chave]}
+          <span aria-hidden="true">↗</span>
+        </a>
+      )}
+      {editavel && !editando && (
+        <Link
+          href={`${pagina}?editar=${chave}#editar-${chave}`}
+          className="inline-flex items-center gap-2 rounded-full bg-gold-400/15 px-4 py-2 text-sm font-semibold text-gold-300 hover:bg-gold-400/30"
+        >
+          <span aria-hidden="true">✎</span> {rotuloEditar}
+        </Link>
+      )}
+      {editando && (
+        <form
+          id={`editar-${chave}`}
+          action={salvarLinkDriveAction}
+          className="w-full max-w-xl scroll-mt-24 space-y-3 rounded-2xl border border-white/10 bg-petrol-900/80 p-6 text-left"
+        >
+          <input type="hidden" name="secao" value={chave} />
+          <Campo id={`link-${chave}`} label={t.linkDrive} dica={dica ? `${t.dicaDrive} ${dica}` : t.dicaDrive}>
+            <input
+              id={`link-${chave}`}
+              name="link"
+              type="url"
+              inputMode="url"
+              maxLength={500}
+              defaultValue={link ?? ""}
+              placeholder="https://drive.google.com/drive/folders/..."
+              className={classeInput}
+            />
+          </Campo>
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="submit" className={`${classeBotao} sm:w-auto`}>{t.salvar}</button>
+            <Link href={`${pagina}#drive-${chave}`} className="rounded-full border border-white/25 px-5 py-2 text-sm font-semibold text-mist/80 hover:bg-white/10">
+              {t.cancelar}
+            </Link>
+          </div>
+        </form>
+      )}
+    </div>
+  );
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function Page(props: PageProps<"/galeria/[secao]">) {
@@ -95,10 +200,16 @@ export default async function Page(props: PageProps<"/galeria/[secao]">) {
   const temDrive = secao === "videos" || secao === "fotos";
   const [links, sessao] = await Promise.all([obterLinksDrive(), obterSessao().catch(() => null)]);
   const linkDrive = temDrive ? links[secao] : null;
-  // Organização e Mídias editam o link (conferido de novo no servidor ao salvar).
+  // Organização e Mídias editam os links (conferido de novo no servidor ao salvar).
   const editavel =
-    temDrive && !!sessao && perfisDo(sessao.user).some((p) => p === "organizador" || p === "acesso_total" || p === "midias");
-  const editando = editavel && busca.editar === "1";
+    !!sessao && perfisDo(sessao.user).some((p) => p === "organizador" || p === "acesso_total" || p === "midias");
+  const editandoChave = typeof busca.editar === "string" ? (busca.editar === "1" ? secao : busca.editar) : null;
+  // Material do Paparazzi: o link só aparece para quem contratou (e para quem edita).
+  const comprou =
+    secao === "paparazzi" && sessao
+      ? await situacaoDoComprador(sessao.user.email).catch(() => null)
+      : null;
+  const vePaparazzi = (tipo: "paparazzi_video" | "paparazzi_foto") => editavel || !!comprou?.[tipo]?.pago;
 
   const itens = secao === "paparazzi" ? [] : await itensDaGaleria();
   const fotos = secao === "fotos" ? itens.filter((i) => i.tipo === "foto") : [];
@@ -116,54 +227,17 @@ export default async function Page(props: PageProps<"/galeria/[secao]">) {
           {busca.salvo && editavel && <Aviso tipo="ok">{t.salvo}</Aviso>}
           {busca.erro && editavel && <Aviso tipo="erro">{t.erroLink}</Aviso>}
 
-          {temDrive && (linkDrive || editavel) && (
-            <div className="flex flex-col items-center gap-3">
-              {linkDrive && (
-                <a
-                  href={linkDrive}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="bg-gold-metal inline-flex items-center gap-3 rounded-full px-7 py-3 font-semibold text-gold-ink shadow-lg hover:brightness-110"
-                >
-                  <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinejoin="round">
-                    <path d="M8 3h8l6 10.5-4 7H6l-4-7Z" />
-                    <path d="M8 3l6 10.5M16 3 10 13.5M2 13.5h20" />
-                  </svg>
-                  {t.drive[secao as "videos" | "fotos"]}
-                  <span aria-hidden="true">↗</span>
-                </a>
-              )}
-              {editavel && !editando && (
-                <Link
-                  href={`/galeria/${secao}?editar=1#editar-drive`}
-                  className="inline-flex items-center gap-2 rounded-full bg-gold-400/15 px-4 py-2 text-sm font-semibold text-gold-300 hover:bg-gold-400/30"
-                >
-                  <span aria-hidden="true">✎</span> {t.editarDrive}
-                </Link>
-              )}
-              {editando && (
-                <form
-                  id="editar-drive"
-                  action={salvarLinkDriveAction}
-                  className="w-full max-w-xl scroll-mt-24 space-y-3 rounded-2xl border border-white/10 bg-petrol-900/80 p-6"
-                >
-                  <input type="hidden" name="secao" value={secao} />
-                  <Campo id="link-drive" label={t.linkDrive} dica={t.dicaDrive}>
-                    <input
-                      id="link-drive"
-                      name="link"
-                      type="url"
-                      inputMode="url"
-                      maxLength={500}
-                      defaultValue={linkDrive ?? ""}
-                      placeholder="https://drive.google.com/drive/folders/..."
-                      className={classeInput}
-                    />
-                  </Campo>
-                  <button type="submit" className={classeBotao}>{t.salvar}</button>
-                </form>
-              )}
-            </div>
+          {temDrive && (
+            <BlocoDrive
+              chave={secao as "videos" | "fotos"}
+              link={linkDrive}
+              mostrarLink
+              editavel={editavel}
+              editando={editavel && editandoChave === secao}
+              pagina={`/galeria/${secao}`}
+              rotuloEditar={t.editarDrive}
+              t={t}
+            />
           )}
 
           {vazio && !linkDrive && <p className="text-center text-mist/70">{t.vazio[secao]}</p>}
@@ -171,10 +245,25 @@ export default async function Page(props: PageProps<"/galeria/[secao]">) {
           {secao === "paparazzi" && (
             <div className="mx-auto max-w-xl space-y-6 rounded-2xl border border-gold-500/40 bg-petrol-950/70 p-8 text-center">
               <p className="text-mist/90">{t.paparazzi}</p>
-              <div className="space-y-3">
-                <Link href={urlCompra("paparazzi_video")} className={`${classeBotao} inline-block`}>{t.comprarVideo}</Link>
-                <Link href={urlCompra("paparazzi_foto")} className={`${classeBotao} inline-block`}>{t.comprarFoto}</Link>
-              </div>
+              {(["paparazzi_video", "paparazzi_foto"] as const).map((chave) => (
+                <div key={chave} className="space-y-3 border-t border-white/10 pt-5">
+                  {/* Contratar leva para a Loja; o link do Drive (material entregue) fica logo abaixo. */}
+                  <Link href={urlCompra(chave)} className={`${classeBotao} inline-block`}>
+                    {chave === "paparazzi_video" ? t.comprarVideo : t.comprarFoto}
+                  </Link>
+                  <BlocoDrive
+                    chave={chave}
+                    link={links[chave]}
+                    mostrarLink={vePaparazzi(chave)}
+                    editavel={editavel}
+                    editando={editavel && editandoChave === chave}
+                    pagina="/galeria/paparazzi"
+                    rotuloEditar={t.editarPaparazzi[chave]}
+                    dica={t.dicaPaparazzi}
+                    t={t}
+                  />
+                </div>
+              ))}
             </div>
           )}
 

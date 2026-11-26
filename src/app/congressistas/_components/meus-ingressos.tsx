@@ -26,6 +26,8 @@ const TEXTOS = traducoes(
     cancelado: "Ingresso cancelado. Fale com a organização.",
     cancelarCompra: "Cancelar compra",
     cancelarAte: (d: string) => `Você pode cancelar até ${d} (direito de arrependimento, 7 dias).`,
+    prazoEncerrado: (d: string) =>
+      `Prazo de cancelamento encerrado em ${d}. Depois de 7 dias da compra não é mais possível cancelar este produto.`,
     canceladoPorVoce: (d: string) => `Cancelado por você em ${d}. O estorno está em análise pela organização.`,
     estornado: (d: string) => `Cancelado. Estorno realizado em ${d}.`,
   },
@@ -46,6 +48,8 @@ const TEXTOS = traducoes(
     cancelado: "Ticket cancelled. Please contact the organizers.",
     cancelarCompra: "Cancel purchase",
     cancelarAte: (d: string) => `You can cancel until ${d} (7-day right of withdrawal).`,
+    prazoEncerrado: (d: string) =>
+      `Cancellation period ended on ${d}. After 7 days from purchase this product can no longer be cancelled.`,
     canceladoPorVoce: (d: string) => `Cancelled by you on ${d}. The refund is being reviewed by the organizers.`,
     estornado: (d: string) => `Cancelled. Refund processed on ${d}.`,
   },
@@ -66,6 +70,8 @@ const TEXTOS = traducoes(
     cancelado: "Entrada cancelada. Contacta a la organización.",
     cancelarCompra: "Cancelar compra",
     cancelarAte: (d: string) => `Puedes cancelar hasta el ${d} (derecho de arrepentimiento, 7 días).`,
+    prazoEncerrado: (d: string) =>
+      `El plazo de cancelación terminó el ${d}. Después de 7 días de la compra ya no es posible cancelar este producto.`,
     canceladoPorVoce: (d: string) => `Cancelado por ti el ${d}. El reembolso está en revisión por la organización.`,
     estornado: (d: string) => `Cancelado. Reembolso realizado el ${d}.`,
   },
@@ -150,6 +156,16 @@ export async function MeusIngressos({ email, idioma = "pt" }: { email: string; i
                 : t.canceladoPorVoce(formatarDataHora(p.canceladoPeloClienteEm, idioma))}
             </p>
           )}
+
+          {p.status === "pago" &&
+            p.ingressoStatus !== "cancelado" &&
+            !presencas.get(p.pedidoId)?.length &&
+            Date.now() > prazoParaCancelar(p).getTime() && (
+              // Passados 7 dias da compra o botão some e fica só este aviso.
+              <p className="mt-4 border-t border-white/10 pt-3 text-xs text-mist/60">
+                {t.prazoEncerrado(formatarDataHora(prazoParaCancelar(p), idioma))}
+              </p>
+            )}
 
           {p.status === "pago" &&
             p.ingressoStatus !== "cancelado" &&

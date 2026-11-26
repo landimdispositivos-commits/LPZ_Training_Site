@@ -130,6 +130,18 @@ Legenda: ✅ já testado pelo Claude · 🔑 precisa do login da organização.
 - [ ] 🔑 Comprar o pacote novo: e-mail de confirmação com o nome certo; QR só se for "entrada"
 - [ ] 🔑 "Editar pacote": mudar nomes, opções e desativar → some da loja, mas continua nos relatórios; reativar volta
 
+## 8.6 Ajustes de 25/11
+- [ ] Celular: topo mostra "LPZ", lupa, primeiro nome do usuário e menu, sem rolar para o lado
+- [ ] Menu mostra "Loja" (no lugar de Ingressos) e "Serviços" ao lado de Galeria
+- [ ] 🔑 Serviços: Editar → adicionar, editar, remover (com confirmação) e ordenar caixas
+- [ ] 🔑 Botão "Cancelar" nos formulários de edição (cronograma, professores, DJs, loja, serviços, link do Drive)
+- [ ] 🔑 Setinhas ◀ ▶ (Loja, Professores, DJs, Serviços): a tela não sobe nem desce
+- [ ] 🔑 Galeria → Paparazzi: "Editar link do Drive — vídeo/fotos" abre a caixa para colar o link; o link só aparece para quem comprou
+- [ ] Compra com mais de 7 dias: some o "Cancelar compra" e aparece o aviso de prazo encerrado
+- [ ] Botão de reportar problema dourado no canto inferior direito em todas as telas
+- [ ] Login (congressista, profissional, organização) cai na página principal; "Comprar" sem login volta para a compra
+- [ ] Data de nascimento: Minha área do profissional, painel da organização e canetinha de professores/DJs
+
 ## 9. Fale conosco
 - [ ] Contatos com ícones: lpztraining@gmail.com, +55 11 94502-6344 (abre o WhatsApp), @lpztrainingsp
 - [ ] Enviar mensagem pelo formulário → chega no e-mail da organização (Mailpit em teste)

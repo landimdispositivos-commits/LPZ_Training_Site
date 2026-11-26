@@ -1,6 +1,7 @@
 import { comoChamar } from "@/modules/perfil/apelido";
 import { temPerfil } from "@/modules/auth/papeis";
 import { CampoApelido } from "@/app/_components/campo-apelido";
+import { CampoNascimento } from "@/app/_components/campo-nascimento";
 import { tx } from "@/i18n";
 import { asc, eq } from "drizzle-orm";
 import type { Metadata } from "next";
@@ -68,6 +69,7 @@ export default async function Page() {
           </section>
 
           <CampoApelido apelido={user.apelido ?? null} primeiroNome={user.name.split(" ")[0]} />
+          <CampoNascimento dataNascimento={user.dataNascimento ?? null} />
 
           <section className="mt-6 rounded-2xl border border-white/10 bg-petrol-900/80 p-6">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-teal-300">{tx(idioma, "Minhas aulas", "My classes", "Mis clases")}</h2>

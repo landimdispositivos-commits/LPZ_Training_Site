@@ -29,8 +29,9 @@ const TEXTOS = traducoes(
       { href: "/cronograma", label: "Cronograma" },
       { href: "/professores", label: "Professores" },
       { href: "/djs", label: "DJs" },
-      { href: "/ingressos", label: "Ingressos" },
+      { href: "/ingressos", label: "Loja" },
       { href: "/galeria", label: "Galeria" },
+      { href: "/servicos", label: "Serviços" },
     ],
   },
   {
@@ -50,8 +51,9 @@ const TEXTOS = traducoes(
       { href: "/cronograma", label: "Schedule" },
       { href: "/professores", label: "Teachers" },
       { href: "/djs", label: "DJs" },
-      { href: "/ingressos", label: "Tickets" },
+      { href: "/ingressos", label: "Shop" },
       { href: "/galeria", label: "Gallery" },
+      { href: "/servicos", label: "Services" },
     ],
   },
   {
@@ -71,8 +73,9 @@ const TEXTOS = traducoes(
       { href: "/cronograma", label: "Cronograma" },
       { href: "/professores", label: "Profesores" },
       { href: "/djs", label: "DJs" },
-      { href: "/ingressos", label: "Entradas" },
+      { href: "/ingressos", label: "Tienda" },
       { href: "/galeria", label: "Galería" },
+      { href: "/servicos", label: "Servicios" },
     ],
   },
 );
@@ -142,7 +145,9 @@ async function MenuConta({ idioma }: { idioma: Idioma }) {
       resumo={
         <>
           <IconePessoa className="h-5 w-5 shrink-0" />
-          <span className="min-w-0 max-w-[9rem] truncate">{comoChamar(user)}</span>
+          {/* No celular só o primeiro nome (o topo tem 360–390px); do tablet para cima, o nome todo. */}
+          <span className="min-w-0 max-w-[6.5rem] truncate sm:hidden">{comoChamar(user).split(" ")[0]}</span>
+          <span className="hidden min-w-0 max-w-[10rem] truncate sm:inline">{comoChamar(user)}</span>
           <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 shrink-0 transition group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M6 9l6 6 6-6" />
           </svg>
@@ -214,13 +219,15 @@ export async function SiteHeader() {
       <FaixaVerComo />
       <nav
         aria-label={t.navegacao}
-        className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:gap-6"
+        className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-4 sm:gap-6 sm:px-4"
       >
         <Link href="/" className="shrink-0 whitespace-nowrap font-display text-xs tracking-[0.18em] text-gold-metal sm:text-sm sm:tracking-[0.25em]">
-          LPZ TRAINING
+          {/* No celular a marca encurta para "LPZ" e sobra espaço para o nome do usuário. */}
+          <span className="sm:hidden">LPZ</span>
+          <span className="hidden sm:inline">LPZ TRAINING</span>
         </Link>
 
-        <ul className="hidden items-center gap-6 whitespace-nowrap text-sm font-medium lg:flex">
+        <ul className="hidden items-center gap-5 whitespace-nowrap text-sm font-medium lg:flex xl:gap-6">
           {t.links.map((link) => (
             <li key={link.href}>
               <Link href={link.href} className={classeLink}>{link.label}</Link>
@@ -230,7 +237,7 @@ export async function SiteHeader() {
 
         {/* No celular o seletor de idioma vai para dentro do menu (☰): as três
             bandeiras + conta + menu não cabem numa linha de 360–390px. */}
-        <div className="flex min-w-0 items-center gap-2">
+        <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
           <MenuSuspenso
             resumoClassName="flex h-10 w-10 cursor-pointer list-none items-center justify-center rounded-full text-gold-300 hover:bg-gold-500/10 [&::-webkit-details-marker]:hidden"
             resumo={

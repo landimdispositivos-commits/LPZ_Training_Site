@@ -14,13 +14,18 @@ const obterSessaoReal = cache(async () => {
   const sessao = await auth.api.getSession({ headers: await headers() });
   if (!sessao) return sessao;
   const [linha] = await db
-    .select({ apelido: usuarios.apelido, perfisExtras: usuarios.perfisExtras })
+    .select({ apelido: usuarios.apelido, perfisExtras: usuarios.perfisExtras, dataNascimento: usuarios.dataNascimento })
     .from(usuarios)
     .where(eq(usuarios.id, sessao.user.id))
     .limit(1);
   return {
     ...sessao,
-    user: { ...sessao.user, apelido: linha?.apelido ?? null, perfisExtras: linha?.perfisExtras ?? ([] as string[]) },
+    user: {
+      ...sessao.user,
+      apelido: linha?.apelido ?? null,
+      perfisExtras: linha?.perfisExtras ?? ([] as string[]),
+      dataNascimento: linha?.dataNascimento ?? null,
+    },
     impersonador: null as null | { id: string; name: string; email: string },
   };
 });

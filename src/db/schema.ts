@@ -148,7 +148,24 @@ export const professores = pgTable("professores", {
   // "professor" (casal de professores) ou "dj": cada um tem sua página no site.
   categoria: text("categoria").notNull().default("professor"),
   ordem: integer("ordem").notNull().default(0),
+  // Uso interno da organização (não aparece no site). Opcional.
+  dataNascimento: date("data_nascimento", { mode: "string" }),
   criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
+});
+
+// Página "Serviços": caixas que a organização escreve e edita na própria
+// página (telão, expositores, divulgação, parcerias, paparazzi...).
+export const servicos = pgTable("servicos", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  titulo: text("titulo").notNull(),
+  tituloEn: text("titulo_en"),
+  tituloEs: text("titulo_es"),
+  texto: text("texto").notNull().default(""),
+  textoEn: text("texto_en"),
+  textoEs: text("texto_es"),
+  ordem: integer("ordem").notNull().default(0),
+  criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
+  atualizadoEm: timestamp("atualizado_em", { withTimezone: true }).notNull().defaultNow(),
 });
 
 export const cronogramaItens = pgTable("cronograma_itens", {

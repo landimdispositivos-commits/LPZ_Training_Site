@@ -169,6 +169,13 @@
       "when": 1795700100000,
       "tag": "0023_produtos_personalizados",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1795700200000,
+      "tag": "0024_servicos_e_nascimento",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,5 @@
 import { Fragment } from "react";
+import { CancelarEdicao } from "../_components/cancelar-edicao";
 import { ehGestor, temPerfil } from "@/modules/auth/papeis";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -20,12 +21,12 @@ import { infoProduto } from "@/modules/ingressos/produtos";
 import { carregarCatalogo } from "@/modules/ingressos/catalogo";
 
 export async function generateMetadata(): Promise<Metadata> {
-  return { title: tx(await obterIdioma(), "Ingressos — LPZ Training", "Tickets — LPZ Training", "Entradas — LPZ Training") };
+  return { title: tx(await obterIdioma(), "Loja — LPZ Training", "Shop — LPZ Training", "Tienda — LPZ Training") };
 }
 
 const TEXTOS = traducoes(
   {
-    titulo: "Ingressos",
+    titulo: "Loja",
     cancelado: "Pedido cancelado. A vaga voltou para o lote.",
     paraComprar: "Para comprar, entre na sua conta ou faça um cadastro rápido.",
     cadastreLogin: "Cadastre-se ou faça login",
@@ -57,7 +58,7 @@ const TEXTOS = traducoes(
       `Pagamento processado pelo Mercado Pago — os dados do seu cartão não passam pelo nosso site. A vaga fica reservada por ${min} minutos enquanto você paga.`,
   },
   {
-    titulo: "Tickets",
+    titulo: "Shop",
     cancelado: "Order cancelled. The spot went back to the batch.",
     paraComprar: "To buy, sign in to your account or create one quickly.",
     cadastreLogin: "Sign up or log in",
@@ -89,7 +90,7 @@ const TEXTOS = traducoes(
       `Payment processed by Mercado Pago — your card details never pass through our site. Your spot is held for ${min} minutes while you pay.`,
   },
   {
-    titulo: "Entradas",
+    titulo: "Tienda",
     cancelado: "Pedido cancelado. El lugar volvió al lote.",
     paraComprar: "Para comprar, entra en tu cuenta o regístrate rápidamente.",
     cadastreLogin: "Regístrate o inicia sesión",
@@ -123,7 +124,7 @@ const TEXTOS = traducoes(
 );
 const EDICAO = traducoes(
   {
-    editar: "Editar ingressos",
+    editar: "Editar loja",
     sair: "Concluir edição",
     dica: "Use ◀ ▶ para mudar a ordem. Preços, novos lotes e opções ficam no Financeiro.",
     financeiro: "Abrir o Financeiro",
@@ -142,6 +143,7 @@ const EDICAO = traducoes(
     editarPacote: "Editar pacote",
     ativo: "Ativo (aparece na loja)",
     salvar: "Salvar",
+    cancelar: "Cancelar",
     fixo: "Produto fixo do site: nome e regras não mudam por aqui.",
     desativado: "Desativado — não aparece para o público",
     okCriado: "Pacote criado! Ele já aparece na grade, no Financeiro e em Usuários.",
@@ -149,7 +151,7 @@ const EDICAO = traducoes(
     erro: "Confira os campos: nome obrigatório, preço válido e quantidade de pelo menos 1.",
   },
   {
-    editar: "Edit tickets",
+    editar: "Edit shop",
     sair: "Finish editing",
     dica: "Use ◀ ▶ to change the order. Prices, new batches and options are managed in Finance.",
     financeiro: "Open Finance",
@@ -168,6 +170,7 @@ const EDICAO = traducoes(
     editarPacote: "Edit package",
     ativo: "Active (shown in the store)",
     salvar: "Save",
+    cancelar: "Cancel",
     fixo: "Built-in product: name and rules can't be changed here.",
     desativado: "Disabled — hidden from the public",
     okCriado: "Package created! It now shows in the grid, Finance and Users.",
@@ -175,7 +178,7 @@ const EDICAO = traducoes(
     erro: "Check the fields: name is required, price must be valid and spots at least 1.",
   },
   {
-    editar: "Editar entradas",
+    editar: "Editar tienda",
     sair: "Terminar edición",
     dica: "Usa ◀ ▶ para cambiar el orden. Precios, nuevos lotes y opciones están en Finanzas.",
     financeiro: "Abrir Finanzas",
@@ -194,6 +197,7 @@ const EDICAO = traducoes(
     editarPacote: "Editar paquete",
     ativo: "Activo (aparece en la tienda)",
     salvar: "Guardar",
+    cancelar: "Cancelar",
     fixo: "Producto fijo del sitio: nombre y reglas no se cambian aquí.",
     desativado: "Desactivado — no aparece al público",
     okCriado: "¡Paquete creado! Ya aparece en la grilla, en Finanzas y en Usuarios.",
@@ -296,7 +300,10 @@ export default async function Page(props: PageProps<"/ingressos">) {
                     <input id="pacote-qtd" name="quantidade" type="number" required min={1} max={10000} defaultValue={100} className={classeInput} />
                   </Campo>
                 </div>
-                <button type="submit" className={classeBotao}>{te.criar}</button>
+                <div className="flex flex-wrap items-center gap-3">
+                  <button type="submit" className={`${classeBotao} sm:w-auto`}>{te.criar}</button>
+                  <CancelarEdicao rotulo={te.cancelar} />
+                </div>
               </form>
             </details>
           )}
@@ -445,7 +452,10 @@ export default async function Page(props: PageProps<"/ingressos">) {
                               <label className="flex items-center gap-2 text-xs text-mist/90">
                                 <input type="checkbox" name="ativo" defaultChecked={item.ativo} className="h-4 w-4 accent-teal-400" /> {te.ativo}
                               </label>
-                              <button type="submit" className={classeBotao}>{te.salvar}</button>
+                              <div className="flex flex-wrap items-center gap-3">
+                                <button type="submit" className={`${classeBotao} sm:w-auto`}>{te.salvar}</button>
+                                <CancelarEdicao rotulo={te.cancelar} />
+                              </div>
                             </form>
                           </details>
                         ) : (

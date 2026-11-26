@@ -1,4 +1,5 @@
 import { traducoes, tx } from "@/i18n";
+import { CancelarEdicao } from "../_components/cancelar-edicao";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { asc, eq } from "drizzle-orm";
@@ -41,6 +42,7 @@ const EDICAO = traducoes(
     professor: "Professor(es)/DJ (opcional)",
     nenhum: "— Nenhum —",
     salvar: "Salvar aula",
+    cancelar: "Cancelar",
     ordem: "As aulas ficam em ordem automática pelo horário de início.",
     ok: "Cronograma atualizado.",
     erro: "Confira os campos: horário no formato 12:00 e o fim depois do início.",
@@ -62,6 +64,7 @@ const EDICAO = traducoes(
     professor: "Teacher(s)/DJ (optional)",
     nenhum: "— None —",
     salvar: "Save class",
+    cancelar: "Cancel",
     ordem: "Classes are automatically sorted by start time.",
     ok: "Schedule updated.",
     erro: "Check the fields: time as 12:00 and the end after the start.",
@@ -83,6 +86,7 @@ const EDICAO = traducoes(
     professor: "Profesor(es)/DJ (opcional)",
     nenhum: "— Ninguno —",
     salvar: "Guardar clase",
+    cancelar: "Cancelar",
     ordem: "Las clases se ordenan automáticamente por la hora de inicio.",
     ok: "Cronograma actualizado.",
     erro: "Revisa los campos: hora como 12:00 y el fin después del inicio.",
@@ -154,7 +158,10 @@ function FormAula({
           <input name="descricao" maxLength={1000} defaultValue={aula?.descricao ?? ""} className={`${classeInput} mt-1`} />
         </label>
       </div>
-      <button type="submit" className={classeBotao}>{t.salvar}</button>
+      <div className="flex flex-wrap items-center gap-3">
+        <button type="submit" className={`${classeBotao} sm:w-auto`}>{t.salvar}</button>
+        <CancelarEdicao rotulo={t.cancelar} />
+      </div>
     </form>
   );
 }
