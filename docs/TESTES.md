@@ -145,6 +145,8 @@ Legenda: ✅ já testado pelo Claude · 🔑 precisa do login da organização.
 - [ ] 🔑 Galeria: botão "Editar galeria" → mudar título e descrição de Vídeos, Fotos e Paparazzi (o título novo aparece também na página da seção)
 - [ ] 🔑 Serviços: "+ Adicionar página oculta" → caixa com página própria; deslogado não aparece nem abre (404); desmarcar "Oculta" publica; clicar na caixa abre /servicos/<id>
 - [ ] 🔑 Financeiro → aba Gráficos: recebido, em andamento, projeção mês a mês até set/27, potencial, recebido por produto e situação dos pedidos (conferir com a aba Tabelas)
+- [ ] 🔑 Menu da conta (bolinha dourada) da organização sem Cronograma, Professores e DJ repetidos
+- [ ] Menu principal com "Jack and Jill" (página pública com caixa editável); no notebook < 1280 px os itens vão para o ☰
 
 ## 9. Fale conosco
 - [ ] Contatos com ícones: lpztraining@gmail.com, +55 11 94502-6344 (abre o WhatsApp), @lpztrainingsp

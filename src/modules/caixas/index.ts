@@ -4,7 +4,7 @@ import { caixasTexto } from "@/db/schema";
 import type { Idioma } from "@/i18n";
 
 // Páginas com caixas de texto editáveis pela organização e o endereço de cada uma.
-export const PAGINAS_CAIXAS = { servicos: "/servicos", quem_somos: "/quem-somos" } as const;
+export const PAGINAS_CAIXAS = { servicos: "/servicos", quem_somos: "/quem-somos", jack_and_jill: "/jack-and-jill" } as const;
 export type PaginaCaixas = keyof typeof PAGINAS_CAIXAS;
 export type Caixa = typeof caixasTexto.$inferSelect;
 

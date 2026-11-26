@@ -32,6 +32,7 @@ const TEXTOS = traducoes(
       { href: "/ingressos", label: "Loja" },
       { href: "/galeria", label: "Galeria" },
       { href: "/servicos", label: "Serviços" },
+      { href: "/jack-and-jill", label: "Jack and Jill" },
     ],
   },
   {
@@ -54,6 +55,7 @@ const TEXTOS = traducoes(
       { href: "/ingressos", label: "Shop" },
       { href: "/galeria", label: "Gallery" },
       { href: "/servicos", label: "Services" },
+      { href: "/jack-and-jill", label: "Jack and Jill" },
     ],
   },
   {
@@ -76,6 +78,7 @@ const TEXTOS = traducoes(
       { href: "/ingressos", label: "Tienda" },
       { href: "/galeria", label: "Galería" },
       { href: "/servicos", label: "Servicios" },
+      { href: "/jack-and-jill", label: "Jack and Jill" },
     ],
   },
 );
@@ -227,7 +230,7 @@ export async function SiteHeader() {
           <span className="hidden sm:inline">LPZ TRAINING</span>
         </Link>
 
-        <ul className="hidden items-center gap-5 whitespace-nowrap text-sm font-medium lg:flex xl:gap-6">
+        <ul className="hidden items-center gap-5 whitespace-nowrap text-sm font-medium xl:flex 2xl:gap-6">
           {t.links.map((link) => (
             <li key={link.href}>
               <Link href={link.href} className={classeLink}>{link.label}</Link>
@@ -277,14 +280,14 @@ export async function SiteHeader() {
           <MenuConta idioma={idioma} />
           <Link
             href="/fale-conosco"
-            className="hidden h-11 items-center whitespace-nowrap rounded-full border border-gold-500/60 px-4 text-sm font-semibold text-gold-300 hover:bg-gold-500/10 lg:flex"
+            className="hidden h-11 items-center whitespace-nowrap rounded-full border border-gold-500/60 px-4 text-sm font-semibold text-gold-300 hover:bg-gold-500/10 xl:flex"
           >
             {t.faleConosco}
           </Link>
 
-          {/* Menu mobile sem JavaScript: <details> abre/fecha nativamente. */}
+          {/* Menu (☰) do celular e do notebook menor que 1280px, sem JavaScript: <details> abre/fecha nativamente. */}
           <MenuSuspenso
-            className="group relative shrink-0 lg:hidden"
+            className="group relative shrink-0 xl:hidden"
             resumoClassName="flex h-11 w-11 cursor-pointer list-none items-center justify-center rounded-lg text-gold-300 hover:bg-white/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-gold-300 [&::-webkit-details-marker]:hidden"
             resumo={
               <>
