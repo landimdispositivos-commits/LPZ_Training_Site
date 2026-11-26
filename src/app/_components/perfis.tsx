@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CancelarEdicao } from "./cancelar-edicao";
 import { traducoes, type Idioma } from "@/i18n";
 import { ehGestor } from "@/modules/auth/papeis";
 import { obterSessao } from "@/modules/auth/sessao";
@@ -27,7 +28,10 @@ export const TEXTOS_PERFIS = traducoes(
     bio: "Bio em português",
     bioEn: "Bio em inglês (opcional — sem ela, aparece a bio em português)",
     instagram: "Instagram",
+    nascimento: "Data de nascimento",
+    nascimentoDica: "Uso interno da organização: não aparece no site.",
     salvar: "Salvar",
+    cancelar: "Cancelar",
     foto: "Foto",
     fotoDica: "JPG, PNG ou WebP, até 8 MB. Deixe em branco para manter a foto atual.",
     removerFoto: "Remover a foto atual",
@@ -63,7 +67,10 @@ export const TEXTOS_PERFIS = traducoes(
     bio: "Bio in Portuguese",
     bioEn: "Bio in English (optional — without it, the Portuguese bio is shown)",
     instagram: "Instagram",
+    nascimento: "Date of birth",
+    nascimentoDica: "Internal use by the organizers: not shown on the site.",
     salvar: "Save",
+    cancelar: "Cancel",
     foto: "Photo",
     fotoDica: "JPG, PNG or WebP, up to 8 MB. Leave blank to keep the current photo.",
     removerFoto: "Remove current photo",
@@ -99,7 +106,10 @@ export const TEXTOS_PERFIS = traducoes(
     bio: "Bio en portugués",
     bioEn: "Bio en inglés (opcional — sin ella, se muestra la bio en portugués)",
     instagram: "Instagram",
+    nascimento: "Fecha de nacimiento",
+    nascimentoDica: "Uso interno de la organización: no aparece en el sitio.",
     salvar: "Guardar",
+    cancelar: "Cancelar",
     foto: "Foto",
     fotoDica: "JPG, PNG o WebP, hasta 8 MB. Déjalo en blanco para mantener la foto actual.",
     removerFoto: "Quitar la foto actual",
@@ -341,6 +351,9 @@ export function ListaPerfis({
             <Campo id={`novo-${sufixo}-insta`} label={t.instagram}>
               <input id={`novo-${sufixo}-insta`} name="instagram" maxLength={31} placeholder="@perfil" className={classeInput} />
             </Campo>
+            <Campo id={`novo-${sufixo}-nasc`} label={t.nascimento} dica={t.nascimentoDica}>
+              <input id={`novo-${sufixo}-nasc`} name="dataNascimento" type="date" min="1915-01-01" className={`${classeInput} [color-scheme:dark]`} />
+            </Campo>
             <Campo id={`novo-${sufixo}-foto`} label={t.foto} dica={t.fotoDicaNova}>
               <input
                 id={`novo-${sufixo}-foto`}
@@ -350,7 +363,10 @@ export function ListaPerfis({
                 className="block w-full text-sm text-mist/80 file:mr-3 file:rounded-full file:border-0 file:bg-gold-400/20 file:px-4 file:py-2 file:font-semibold file:text-gold-300 hover:file:bg-gold-400/30"
               />
             </Campo>
-            <button type="submit" className={classeBotao}>{t.adicionarBotao}</button>
+            <div className="flex flex-wrap items-center gap-3">
+              <button type="submit" className={`${classeBotao} sm:w-auto`}>{t.adicionarBotao}</button>
+              <CancelarEdicao rotulo={t.cancelar} />
+            </div>
           </form>
         </details>
       )}
@@ -421,6 +437,16 @@ export function DetalhePerfil({
           <Campo id="perfil-insta" label={t.instagram}>
             <input id="perfil-insta" name="instagram" maxLength={31} defaultValue={perfil.instagram ?? ""} placeholder="@perfil" className={classeInput} />
           </Campo>
+          <Campo id="perfil-nasc" label={t.nascimento} dica={t.nascimentoDica}>
+            <input
+              id="perfil-nasc"
+              name="dataNascimento"
+              type="date"
+              min="1915-01-01"
+              defaultValue={perfil.dataNascimento ?? ""}
+              className={`${classeInput} [color-scheme:dark]`}
+            />
+          </Campo>
           <Campo id="perfil-foto" label={t.foto} dica={t.fotoDica}>
             <input
               id="perfil-foto"
@@ -435,7 +461,10 @@ export function DetalhePerfil({
               <input type="checkbox" name="removerFoto" className="h-4 w-4 accent-teal-400" /> {t.removerFoto}
             </label>
           )}
-          <button type="submit" className={classeBotao}>{t.salvar}</button>
+          <div className="flex flex-wrap items-center gap-3">
+            <button type="submit" className={`${classeBotao} sm:w-auto`}>{t.salvar}</button>
+            <CancelarEdicao rotulo={t.cancelar} voltarPara={`${base}?editar=1#perfil-${perfil.id}`} />
+          </div>
         </form>
       )}
 

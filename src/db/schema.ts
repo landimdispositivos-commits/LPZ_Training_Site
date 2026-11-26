@@ -148,8 +148,37 @@ export const professores = pgTable("professores", {
   // "professor" (casal de professores) ou "dj": cada um tem sua página no site.
   categoria: text("categoria").notNull().default("professor"),
   ordem: integer("ordem").notNull().default(0),
+  // Uso interno da organização (não aparece no site). Opcional.
+  dataNascimento: date("data_nascimento", { mode: "string" }),
   criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
 });
+
+// Caixas de texto editáveis na própria página pela organização (título e
+// texto em pt/en/es + ordem). `pagina`: "servicos" ou "quem_somos".
+export const caixasTexto = pgTable(
+  "caixas_texto",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    pagina: text("pagina").notNull(),
+    titulo: text("titulo").notNull(),
+    tituloEn: text("titulo_en"),
+    tituloEs: text("titulo_es"),
+    texto: text("texto").notNull().default(""),
+    textoEn: text("texto_en"),
+    textoEs: text("texto_es"),
+    ordem: integer("ordem").notNull().default(0),
+    // Oculta: caixa (e a página dela) só aparece para a organização.
+    oculta: boolean("oculta").notNull().default(false),
+    // Página própria (Serviços): a caixa vira link para /servicos/<id>.
+    temPagina: boolean("tem_pagina").notNull().default(false),
+    detalhe: text("detalhe"),
+    detalheEn: text("detalhe_en"),
+    detalheEs: text("detalhe_es"),
+    criadoEm: timestamp("criado_em", { withTimezone: true }).notNull().defaultNow(),
+    atualizadoEm: timestamp("atualizado_em", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => ({ paginaIdx: index("caixas_texto_pagina_idx").on(t.pagina, t.ordem) }),
+);
 
 export const cronogramaItens = pgTable("cronograma_itens", {
   id: uuid("id").primaryKey().defaultRandom(),

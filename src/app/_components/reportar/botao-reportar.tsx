@@ -88,13 +88,16 @@ export function BotaoReportar() {
         onClick={() => dialogo.current?.showModal()}
         aria-label={t("botao")}
         title={t("botao")}
-        className="fixed bottom-4 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full border border-gold-400/70 bg-petrol-900/95 text-gold-300 shadow-lg backdrop-blur hover:bg-petrol-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-teal-300"
+        // Fixo no canto inferior direito de todas as telas, em dourado para ser
+        // fácil de achar; no computador mostra também o texto.
+        className="bg-gold-metal fixed bottom-5 right-5 z-50 flex h-14 items-center justify-center gap-2 rounded-full px-4 text-gold-ink shadow-[0_0_24px_rgb(230_181_74/0.45)] ring-2 ring-petrol-950/60 transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-300"
       >
-        <IconeReportar className="h-7 w-7" />
+        <IconeReportar className="h-8 w-8" />
+        <span className="hidden pr-1 text-sm font-semibold sm:inline">{t("botao")}</span>
       </button>
 
       {(aviso || pendente) && (
-        <p role="status" className="fixed bottom-20 right-4 z-40 max-w-xs rounded-xl border border-teal-400/50 bg-petrol-900/95 px-4 py-3 text-sm text-white shadow-lg">
+        <p role="status" className="fixed bottom-24 right-5 z-50 max-w-xs rounded-xl border border-teal-400/50 bg-petrol-900/95 px-4 py-3 text-sm text-white shadow-lg">
           {pendente ? t("enviando") : aviso}
         </p>
       )}

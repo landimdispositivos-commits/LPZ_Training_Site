@@ -27,6 +27,12 @@ const perfilSchema = z.object({
     .max(31)
     .regex(/^@?[A-Za-z0-9._]*$/)
     .transform((v) => (v ? (v.startsWith("@") ? v : `@${v}`) : null)),
+  // Opcional, uso interno: "AAAA-MM-DD" entre 1915 e hoje.
+  dataNascimento: z
+    .string()
+    .trim()
+    .refine((v) => v === "" || (/^\d{4}-\d{2}-\d{2}$/.test(v) && v >= "1915-01-01" && v <= new Date().toISOString().slice(0, 10)))
+    .transform((v) => v || null),
 });
 
 export async function salvarPerfilAction(form: FormData) {
@@ -39,12 +45,13 @@ export async function salvarPerfilAction(form: FormData) {
     bio: texto("bio"),
     bioEn: texto("bioEn"),
     instagram: texto("instagram"),
+    dataNascimento: texto("dataNascimento"),
   });
   const categoria = CATEGORIAS.find((c) => c === texto("categoria")) ?? "professor";
   const base = ROTA_CATEGORIA[categoria];
   if (!dados.success) redirect(`${base}/${encodeURIComponent(texto("id"))}?editar=1&erro=1`);
 
-  const { id, nome, bio, bioEn, instagram } = dados.data;
+  const { id, nome, bio, bioEn, instagram, dataNascimento } = dados.data;
   const atual = await db.query.professores.findFirst({
     where: and(eq(professores.id, id), eq(professores.categoria, dados.data.categoria)),
   });
@@ -69,7 +76,7 @@ export async function salvarPerfilAction(form: FormData) {
 
   await db
     .update(professores)
-    .set({ nome, bio, bioEn, instagram, fotoUrl })
+    .set({ nome, bio, bioEn, instagram, fotoUrl, dataNascimento })
     .where(and(eq(professores.id, id), eq(professores.categoria, dados.data.categoria)));
   revalidatePath(base);
   revalidatePath(`${base}/${id}`);
@@ -101,8 +108,8 @@ export async function moverPerfilAction(form: FormData) {
       await tx.update(professores).set({ ordem: posicao + 1 }).where(eq(professores.id, pid));
     }
   });
+  // Sem redirect: a página só se atualiza no lugar e a tela não pula.
   revalidatePath(base);
-  redirect(`${base}?editar=1#perfil-${id.data}`);
 }
 
 // "+ Adicionar professor/DJ" no modo edição da lista: entra no fim da ordem.
@@ -117,6 +124,7 @@ export async function criarPerfilAction(form: FormData) {
     bio: texto("bio"),
     bioEn: texto("bioEn"),
     instagram: texto("instagram"),
+    dataNascimento: texto("dataNascimento"),
   });
   if (!dados.success) redirect(`${base}?editar=1&erro=1`);
 
@@ -135,10 +143,10 @@ export async function criarPerfilAction(form: FormData) {
     .select({ maior: max(professores.ordem) })
     .from(professores)
     .where(eq(professores.categoria, categoria));
-  const { nome, bio, bioEn, instagram } = dados.data;
+  const { nome, bio, bioEn, instagram, dataNascimento } = dados.data;
   const [novo] = await db
     .insert(professores)
-    .values({ nome, bio, bioEn, instagram, fotoUrl, categoria, ordem: (maior ?? 0) + 1 })
+    .values({ nome, bio, bioEn, instagram, dataNascimento, fotoUrl, categoria, ordem: (maior ?? 0) + 1 })
     .returning({ id: professores.id });
   revalidatePath(base);
   redirect(`${base}?editar=1&ok=criado#perfil-${novo!.id}`);

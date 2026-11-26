@@ -150,8 +150,8 @@ export async function moverProdutoAction(form: FormData) {
   if (!tipo.success) redirect("/ingressos?editar=1");
   const direcao = form.get("direcao") === "cima" ? "cima" : "baixo";
   await salvarOrdemDosProdutos(moverNaLista(await ordemDosProdutos(), tipo.data, direcao));
+  // Sem redirect: a página só se atualiza no lugar e a tela não pula.
   revalidatePath("/ingressos");
-  redirect(`/ingressos?editar=1#produto-${tipo.data}`);
 }
 
 // ---------------------------------------------------------------------------

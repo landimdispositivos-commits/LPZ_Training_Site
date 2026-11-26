@@ -5,7 +5,6 @@ import { useState } from "react";
 import { traducoes } from "@/i18n";
 import { useIdioma } from "@/i18n/cliente";
 import { authClient } from "@/modules/auth/auth-client";
-import { areaDoPapel } from "@/modules/auth/papeis";
 import { Aviso, Campo, classeBotao, classeInput, traduzirErro } from "./form-ui";
 
 const TEXTOS = traducoes(
@@ -115,9 +114,9 @@ export function FormEntrar({
   const [etapa, setEtapa] = useState<"senha" | "codigo" | "recuperacao">("senha");
 
   function irParaArea(papel: string | null | undefined) {
-    router.push(
-      papelExigido ? destino : papel === "congressista" && destinoCongressista ? destinoCongressista : areaDoPapel(papel),
-    );
+    // Depois do login todo mundo cai na página principal; a exceção é quem
+    // clicou em "Comprar" sem estar logado, que volta para a compra.
+    router.push(papelExigido ? destino : papel === "congressista" && destinoCongressista ? destinoCongressista : "/");
     router.refresh();
   }
 

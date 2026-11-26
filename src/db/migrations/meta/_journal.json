@@ -169,6 +169,34 @@
       "when": 1795700100000,
       "tag": "0023_produtos_personalizados",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1795700200000,
+      "tag": "0024_servicos_e_nascimento",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1795700300000,
+      "tag": "0025_caixas_texto",
+      "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1795700400000,
+      "tag": "0026_caixas_pagina_oculta",
+      "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1795700500000,
+      "tag": "0027_jack_and_jill",
+      "breakpoints": true
     }
   ]
 }

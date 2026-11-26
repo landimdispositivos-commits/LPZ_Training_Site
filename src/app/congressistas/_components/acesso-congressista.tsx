@@ -12,7 +12,6 @@ import { Aviso, Campo, classeBotao, classeInput, traduzirErro } from "../../_com
 
 type Aba = "entrar" | "criar" | "esqueci";
 
-const AREA = "/congressistas/minha-area";
 
 const TEXTOS = traducoes(
   {
@@ -105,7 +104,8 @@ export function AcessoCongressista({
   // Veio de uma caixinha de ingresso: depois de entrar, volta para a compra.
   proximo?: string;
 }) {
-  const destino = proximo ?? AREA;
+  // Depois do login: página principal (ou de volta para a compra, se veio do "Comprar").
+  const destino = proximo ?? "/";
   const [aba, setAba] = useState<Aba>("entrar");
   const t = TEXTOS[useIdioma()];
 

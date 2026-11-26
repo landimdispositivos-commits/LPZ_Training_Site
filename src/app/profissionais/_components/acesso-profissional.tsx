@@ -8,7 +8,8 @@ import { BotaoGoogle, SeparadorOu } from "../../_components/botao-google";
 import { FormEntrar, FormEsqueci } from "../../_components/form-entrar";
 import { Aviso } from "../../_components/form-ui";
 
-const AREA = "/profissionais/minha-area";
+// Depois do login todo mundo cai na página principal.
+const AREA = "/";
 
 // Sem cadastro público: contas de profissionais só existem por convite.
 export function AcessoProfissional({ avisoInicial, googleAtivo }: { avisoInicial?: string; googleAtivo: boolean }) {

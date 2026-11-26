@@ -37,7 +37,9 @@ export function rotuloPapel(papel: string | null | undefined, idioma: Idioma = "
   return tabela[papel ?? ""] ?? tabela.congressista;
 }
 
-// Áreas de gestão (Organizador e Acesso total).
+// Áreas de gestão (Organizador e Acesso total). O que já está no menu principal
+// do site (Cronograma, Professores, DJs, Loja, Galeria, Serviços, Jack and Jill)
+// não se repete aqui: a edição é feita na própria página (botão Editar).
 const MENU_GESTAO: ItemBilingue[] = [
   { href: "/administradores/painel", pt: "Painel", en: "Dashboard", es: "Panel" },
   { href: "/administradores/usuarios", pt: "Usuários", en: "Users", es: "Usuarios" },
@@ -45,11 +47,7 @@ const MENU_GESTAO: ItemBilingue[] = [
   { href: "/administradores/auditoria", pt: "Auditoria", en: "Audit log", es: "Auditoría" },
   { href: "/administradores/checkin", pt: "Check-in", en: "Check-in", es: "Check-in" },
   { href: "/financeiro", pt: "Financeiro", en: "Finance", es: "Finanzas" },
-  { href: "/administradores/cronograma", pt: "Cronograma", en: "Schedule", es: "Cronograma" },
-  { href: "/administradores/professores", pt: "Professores", en: "Teachers", es: "Profesores" },
-  { href: "/administradores/dj", pt: "DJ", en: "DJ", es: "DJ" },
   { href: "/administradores/mc", pt: "MC", en: "MC", es: "MC" },
-  { href: "/administradores/jack-and-jill", pt: "Jack and Jill", en: "Jack and Jill", es: "Jack and Jill" },
   { href: "/administradores/fornecedores", pt: "Fornecedores", en: "Suppliers", es: "Proveedores" },
   { href: "/administradores/galeria", pt: "Fotos", en: "Photos", es: "Fotos" },
   { href: "/administradores/audio-video", pt: "Áudio e vídeo", en: "Audio and video", es: "Audio y video" },

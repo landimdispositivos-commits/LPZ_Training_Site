@@ -72,7 +72,8 @@ export function AcessoAdmin({ avisoInicial }: { avisoInicial?: string }) {
       );
     }
     if (!ehAdmin(data?.user.papel)) return recusar();
-    router.push("/administradores/painel");
+    // Depois do login todo mundo cai na página principal.
+    router.push("/");
     router.refresh();
   }
 
