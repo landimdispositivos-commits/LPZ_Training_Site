@@ -142,6 +142,7 @@ Legenda: ✅ já testado pelo Claude · 🔑 precisa do login da organização.
 - [ ] Login (congressista, profissional, organização) cai na página principal; "Comprar" sem login volta para a compra
 - [ ] Data de nascimento: Minha área do profissional, painel da organização e canetinha de professores/DJs
 - [ ] 🔑 Quem somos: botão "Editar Quem somos" → mudar título e texto das caixas, adicionar, remover e ordenar com ◀ ▶
+- [ ] 🔑 Galeria: botão "Editar galeria" → mudar título e descrição de Vídeos, Fotos e Paparazzi (o título novo aparece também na página da seção)
 
 ## 9. Fale conosco
 - [ ] Contatos com ícones: lpztraining@gmail.com, +55 11 94502-6344 (abre o WhatsApp), @lpztrainingsp

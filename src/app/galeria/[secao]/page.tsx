@@ -10,6 +10,7 @@ import { Aviso, Campo, classeBotao, classeInput } from "../../_components/form-u
 import { obterSessao } from "@/modules/auth/sessao";
 import { perfisDo } from "@/modules/auth/papeis";
 import { obterLinksDrive, type SecaoDrive } from "@/modules/midia/links-drive";
+import { obterTextosGaleria, textoGaleriaNoIdioma } from "@/modules/midia/textos-galeria";
 import { situacaoDoComprador } from "@/modules/ingressos";
 import { salvarLinkDriveAction } from "./actions";
 import { RodapeSite } from "../../_components/rodape-site";
@@ -105,8 +106,9 @@ function secaoValida(valor: string): Secao | null {
 
 export async function generateMetadata(props: PageProps<"/galeria/[secao]">): Promise<Metadata> {
   const secao = secaoValida((await props.params).secao);
-  const t = TEXTOS[await obterIdioma()];
-  return { title: secao ? `${t.titulo[secao]} — LPZ Training` : "LPZ Training" };
+  if (!secao) return { title: "LPZ Training" };
+  const titulo = textoGaleriaNoIdioma((await obterTextosGaleria())[secao], await obterIdioma()).titulo;
+  return { title: `${titulo} — LPZ Training` };
 }
 
 // Botão do Google Drive de uma seção + canetinha para colar/trocar o link
@@ -198,7 +200,9 @@ export default async function Page(props: PageProps<"/galeria/[secao]">) {
   const t = TEXTOS[idioma];
   const busca = await props.searchParams;
   const temDrive = secao === "videos" || secao === "fotos";
-  const [links, sessao] = await Promise.all([obterLinksDrive(), obterSessao().catch(() => null)]);
+  const [links, sessao, textosGaleria] = await Promise.all([obterLinksDrive(), obterSessao().catch(() => null), obterTextosGaleria()]);
+  // Título editável em Galeria → Editar galeria.
+  const tituloSecao = textoGaleriaNoIdioma(textosGaleria[secao], idioma).titulo;
   const linkDrive = temDrive ? links[secao] : null;
   // Organização e Mídias editam os links (conferido de novo no servidor ao salvar).
   const editavel =
@@ -222,7 +226,7 @@ export default async function Page(props: PageProps<"/galeria/[secao]">) {
       <SiteHeader />
       <main className="bg-city-glow min-h-[80vh] px-4 py-16">
         <div className="mx-auto max-w-5xl space-y-12">
-          <h1 className="text-center font-display text-2xl uppercase tracking-[0.2em] text-gold-metal sm:text-3xl">{t.titulo[secao]}</h1>
+          <h1 className="text-center font-display text-2xl uppercase tracking-[0.2em] text-gold-metal sm:text-3xl">{tituloSecao}</h1>
 
           {busca.salvo && editavel && <Aviso tipo="ok">{t.salvo}</Aviso>}
           {busca.erro && editavel && <Aviso tipo="erro">{t.erroLink}</Aviso>}
