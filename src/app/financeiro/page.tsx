@@ -9,6 +9,8 @@ import { BotaoSalvar } from "../_components/botao-salvar";
 import { SiteHeader } from "../_components/site-header";
 import { reenviarIngressosAction, criarLoteAction, editarLoteAction, estornarAction } from "./actions";
 import { carregarCatalogo } from "@/modules/ingressos/catalogo";
+import { AbasFinanceiro } from "./_components/abas";
+import { PainelGraficos } from "./_components/painel-graficos";
 
 export const metadata: Metadata = { title: "Financeiro — LPZ Training" };
 
@@ -33,7 +35,26 @@ const MENSAGENS: Record<string, { tipo: "ok" | "erro"; texto: string }> = {
 export default async function Page(props: PageProps<"/financeiro">) {
   await carregarCatalogo();
   await exigirAdmin(["organizador"]);
-  const { status, ok, erro, qtd } = await props.searchParams;
+  const { status, ok, erro, qtd, aba } = await props.searchParams;
+
+  // Aba "Gráficos": só o painel com os gráficos (as tabelas ficam na outra aba).
+  if (aba === "graficos") {
+    return (
+      <>
+        <SiteHeader />
+        <main className="bg-city-glow min-h-[80vh] px-4 py-12">
+          <div className="mx-auto max-w-5xl space-y-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <h1 className="font-display text-2xl uppercase tracking-[0.2em] text-gold-metal">Financeiro</h1>
+              <Link href="/administradores/painel" className="text-sm text-teal-300 hover:underline">Painel</Link>
+            </div>
+            <AbasFinanceiro ativa="graficos" />
+            <PainelGraficos />
+          </div>
+        </main>
+      </>
+    );
+  }
   const filtro = STATUS_PEDIDO.find((s) => s === status);
   const mensagem = MENSAGENS[String(ok ?? erro ?? "")];
 
@@ -56,6 +77,8 @@ export default async function Page(props: PageProps<"/financeiro">) {
               <Link href="/administradores/painel" className="text-teal-300 hover:underline">Painel</Link>
             </div>
           </div>
+
+          <AbasFinanceiro ativa="tabelas" />
 
           {mensagem && (
             <Aviso tipo={mensagem.tipo}>
