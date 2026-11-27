@@ -4,6 +4,10 @@ import type { NextConfig } from "next";
 const MAILPIT_URL = process.env.MAILPIT_URL ?? "http://localhost:8025";
 
 const nextConfig: NextConfig = {
+  // Só em desenvolvimento: deixa o celular da mesma rede Wi-Fi abrir o site pelo
+  // IP do computador (ex.: http://192.168.0.10:3005) para testar o QR code.
+  allowedDevOrigins: ["192.168.*.*", "10.*.*.*", "172.16.*.*", "172.17.*.*", "172.18.*.*", "172.19.*.*", "172.2*.*.*", "172.30.*.*", "172.31.*.*"],
+
   // Fotos de perfil (até 8 MB) e o print do "Reportar problema" vão por
   // Server Action; o padrão de 1 MB não comportaria.
   experimental: {

@@ -22,6 +22,25 @@ export function temPerfil(user: { papel?: string | null; perfisExtras?: readonly
   return perfisDo(user).includes(perfil);
 }
 
+// Perfis do Bar (vendas e estoque do evento). Ficam só em perfis_extras (não
+// são o perfil principal nem dão acesso à área de administração). Quem é
+// Organizador ou Acesso total tem a gestão do Bar automaticamente.
+export const PERFIS_BAR = ["bar_gestao", "bar_admin", "bar_caixa", "bar_balcao"] as const;
+export type PerfilBar = (typeof PERFIS_BAR)[number];
+
+export function acessoBar(user: { papel?: string | null; perfisExtras?: readonly string[] | null }) {
+  const perfis = perfisDo(user);
+  const gestao = perfis.some((p) => p === "acesso_total" || p === "organizador" || p === "bar_gestao");
+  // gestao: vê tudo. admin: cadastra eventos, produtos, estoque e compras.
+  // caixa: vende (caixa e comandas) e consulta produtos e vendas, sem custos.
+  return {
+    gestao,
+    admin: gestao || perfis.includes("bar_admin"),
+    caixa: gestao || perfis.includes("bar_caixa"),
+    balcao: gestao || perfis.includes("bar_balcao"),
+  };
+}
+
 // Perfil principal de uma lista (o de maior nível).
 export function perfilPrincipal(perfis: readonly string[]): Perfil {
   return ORDEM_PERFIS.find((p) => perfis.includes(p)) ?? "congressista";

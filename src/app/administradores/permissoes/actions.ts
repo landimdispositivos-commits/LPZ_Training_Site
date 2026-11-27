@@ -48,7 +48,7 @@ export async function alterarPapelAction(form: FormData) {
   if (mesmos) redirect(comAviso(`ok=sem-mudanca&alvo=${alvo.id}`));
 
   // Ganhar um perfil de administração exige marcar a confirmação.
-  const ganhaAdmin = depois.some((p) => ehAdmin(p) && !antes.includes(p));
+  const ganhaAdmin = depois.some((p) => (ehAdmin(p) || p === "bar_gestao" || p === "bar_admin") && !antes.includes(p));
   if (ganhaAdmin && form.get("confirmo") !== "on") redirect(comAviso("erro=confirmar"));
 
   await alterarPerfis(alvo.id, depois);

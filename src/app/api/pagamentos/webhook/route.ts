@@ -1,5 +1,6 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
+import { confirmarPedidoOnline } from "@/modules/bar/online";
 import { confirmarCompra } from "@/modules/ingressos";
 import { MercadoPagoProvider, paymentProvider } from "@/modules/pagamentos";
 
@@ -47,7 +48,8 @@ export async function POST(request: NextRequest) {
 
   try {
     const referencia = await paymentProvider.referenciaDoPagamento(dataId);
-    if (referencia) await confirmarCompra(referencia);
+    // Pedido online do Bar tem prioridade; senão é compra de ingresso.
+    if (referencia && !(await confirmarPedidoOnline(referencia))) await confirmarCompra(referencia);
   } catch (erro) {
     // 500 faz o Mercado Pago tentar de novo mais tarde.
     console.error("Falha ao processar webhook do Mercado Pago", (erro as Error).message);

@@ -197,6 +197,55 @@
       "when": 1795700500000,
       "tag": "0027_jack_and_jill",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1795742270889,
+      "tag": "0028_bar_base",
+      "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1795742836910,
+      "tag": "0029_bar_caixa",
+      "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1795743298350,
+      "tag": "0030_bar_ficha_tecnica",
+      "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1795744185314,
+      "tag": "0031_bar_comandas",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1795744549996,
+      "tag": "0032_bar_pedido_online",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1795745138801,
+      "tag": "0033_bar_cartoes_salvos",
+      "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1795746858055,
+      "tag": "0034_bar_retiradas",
+      "breakpoints": true
     }
   ]
 }

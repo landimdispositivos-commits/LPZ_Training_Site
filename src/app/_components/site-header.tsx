@@ -1,5 +1,5 @@
 import { comoChamar } from "@/modules/perfil/apelido";
-import { ehGestor, perfisDo, temPerfil } from "@/modules/auth/papeis";
+import { ehAdmin, ehGestor, perfisDo, temPerfil } from "@/modules/auth/papeis";
 import Link from "next/link";
 import { traducoes, type Idioma } from "@/i18n";
 import { obterIdioma } from "@/i18n/servidor";
@@ -33,6 +33,7 @@ const TEXTOS = traducoes(
       { href: "/galeria", label: "Galeria" },
       { href: "/servicos", label: "Serviços" },
       { href: "/jack-and-jill", label: "Jack and Jill" },
+      { href: "/bar", label: "Bar" },
     ],
   },
   {
@@ -56,6 +57,7 @@ const TEXTOS = traducoes(
       { href: "/galeria", label: "Gallery" },
       { href: "/servicos", label: "Services" },
       { href: "/jack-and-jill", label: "Jack and Jill" },
+      { href: "/bar", label: "Bar" },
     ],
   },
   {
@@ -79,13 +81,14 @@ const TEXTOS = traducoes(
       { href: "/galeria", label: "Galería" },
       { href: "/servicos", label: "Servicios" },
       { href: "/jack-and-jill", label: "Jack and Jill" },
+      { href: "/bar", label: "Bar" },
     ],
   },
 );
 
 const classeLink = "text-mist/80 hover:text-gold-300";
 const classeBotaoConta =
-  "bg-gold-metal flex h-11 min-w-0 cursor-pointer list-none items-center gap-2 rounded-full px-3 text-sm font-semibold text-gold-ink shadow-[0_0_20px_rgb(230_181_74/0.25)] transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-300 sm:px-4 [&::-webkit-details-marker]:hidden";
+  "bg-gold-metal flex h-11 w-11 min-w-0 cursor-pointer list-none items-center justify-center gap-2 rounded-full px-0 text-sm sm:w-auto sm:justify-start sm:px-3 font-semibold text-gold-ink shadow-[0_0_20px_rgb(230_181_74/0.25)] transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-300 sm:px-4 [&::-webkit-details-marker]:hidden";
 
 function IconePessoa({ className }: { className?: string }) {
   return (
@@ -130,7 +133,7 @@ async function MenuConta({ idioma }: { idioma: Idioma }) {
     return (
       <Link href="/congressistas" className={classeBotaoConta}>
         <IconePessoa className="h-5 w-5" />
-        <span className="sm:hidden">{t.entrar}</span>
+        <span className="sr-only sm:hidden">{t.entrar}</span>
         <span className="hidden sm:inline">
           {t.cadastre} <span className="font-normal">{t.ou}</span> {t.facaLogin}
         </span>
@@ -147,11 +150,16 @@ async function MenuConta({ idioma }: { idioma: Idioma }) {
       resumoClassName={classeBotaoConta}
       resumo={
         <>
-          <IconePessoa className="h-5 w-5 shrink-0" />
-          {/* No celular só o primeiro nome (o topo tem 360–390px); do tablet para cima, o nome todo. */}
-          <span className="min-w-0 max-w-[6.5rem] truncate sm:hidden">{comoChamar(user).split(" ")[0]}</span>
+          {user.image ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={user.image} alt="" className="-ml-1 h-8 w-8 shrink-0 rounded-full object-cover max-sm:ml-0 max-sm:h-9 max-sm:w-9" />
+          ) : (
+            <IconePessoa className="h-5 w-5 shrink-0" />
+          )}
+          {/* No celular só o ícone (o nome completo aparece dentro do menu); do tablet para cima, o nome todo. */}
+          <span className="sr-only sm:hidden">{comoChamar(user)}</span>
           <span className="hidden min-w-0 max-w-[10rem] truncate sm:inline">{comoChamar(user)}</span>
-          <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4 shrink-0 transition group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth="2">
+          <svg aria-hidden="true" viewBox="0 0 24 24" className="hidden h-4 w-4 shrink-0 transition sm:block group-open:rotate-180" fill="none" stroke="currentColor" strokeWidth="2">
             <path d="M6 9l6 6 6-6" />
           </svg>
         </>
@@ -164,6 +172,11 @@ async function MenuConta({ idioma }: { idioma: Idioma }) {
           <p className="mt-1 text-xs text-teal-300">{rotuloPapel(user.papel, idioma)}</p>
         </div>
         <ul className="max-h-[60vh] overflow-y-auto py-1 text-sm font-medium">
+          <li>
+            <Link href="/perfil" className={`block rounded px-3 py-2.5 hover:bg-white/10 ${classeLink}`}>
+              {idioma === "en" ? "My photo" : idioma === "es" ? "Mi foto" : "Minha foto"}
+            </Link>
+          </li>
           {itens.map((item) => (
             <li key={item.href}>
               <Link href={item.href} className={`block rounded px-3 py-2.5 hover:bg-white/10 ${classeLink}`}>
@@ -217,6 +230,11 @@ async function FaixaVerComo() {
 export async function SiteHeader() {
   const idioma = await obterIdioma();
   const t = TEXTOS[idioma];
+  // Quem entrou com perfil de administração tem o "Bar" dentro do menu do usuário;
+  // para os demais (visitante, cliente, professor) ele fica no menu do topo.
+  const sessaoTopo = await obterSessao().catch(() => null);
+  const adminLogado = Boolean(sessaoTopo && ehAdmin(sessaoTopo.user.papel));
+  const links = adminLogado ? t.links.filter((l) => l.href !== "/bar") : t.links;
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-petrol-950/85 backdrop-blur">
       <FaixaVerComo />
@@ -224,14 +242,13 @@ export async function SiteHeader() {
         aria-label={t.navegacao}
         className="mx-auto flex max-w-[100rem] items-center justify-between gap-2 px-3 py-4 sm:gap-6 sm:px-4"
       >
-        <Link href="/" className="shrink-0 whitespace-nowrap font-display text-xs tracking-[0.18em] text-gold-metal sm:text-sm sm:tracking-[0.25em]">
-          {/* No celular a marca encurta para "LPZ" e sobra espaço para o nome do usuário. */}
-          <span className="sm:hidden">LPZ</span>
-          <span className="hidden sm:inline">LPZ TRAINING</span>
+        <Link href="/" className="shrink-0 whitespace-nowrap font-display text-xs tracking-[0.12em] text-gold-metal sm:text-sm sm:tracking-[0.25em]">
+          {/* No celular a conta vira só um ícone (o nome aparece ao abrir o menu), então a marca cabe inteira. */}
+          LPZ TRAINING
         </Link>
 
         <ul className="hidden items-center gap-5 whitespace-nowrap text-sm font-medium 2xl:flex">
-          {t.links.map((link) => (
+          {links.map((link) => (
             <li key={link.href}>
               <Link href={link.href} className={classeLink}>{link.label}</Link>
             </li>
@@ -308,7 +325,7 @@ export async function SiteHeader() {
                 <SeletorIdioma />
               </div>
               <ul className="text-sm font-medium">
-                {t.links.map((link) => (
+                {links.map((link) => (
                   <li key={link.href}>
                     <Link href={link.href} className={`block rounded px-3 py-2.5 hover:bg-white/10 ${classeLink}`}>
                       {link.label}

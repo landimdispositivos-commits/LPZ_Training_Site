@@ -55,7 +55,44 @@ export interface CriarPreferenciaResultado {
   checkoutUrl: string;
 }
 
+// Cartão guardado no GATEWAY (nunca no nosso servidor): só bandeira, final e
+// validade voltam para a gente, junto com o identificador do cartão.
+export interface CartaoGateway {
+  cartaoId: string;
+  bandeira: string; // ex.: visa, master, elo
+  ultimos4: string;
+  validade: string; // MM/AA
+}
+
+export interface CobrancaCartaoInput {
+  referencia: string; // id do pedido (external_reference)
+  preferenceId: string | null;
+  valorCentavos: number;
+  descricao: string;
+  parcelas: number;
+  clienteId: string;
+  compradorEmail: string;
+  cartaoId: string;
+  bandeira: string;
+  // Token de uso único gerado no navegador (cartão salvo + código de segurança).
+  // Nunca guardamos nem registramos este valor.
+  token: string;
+}
+
+export interface ResultadoCobrancaCartao {
+  status: "aprovado" | "pendente" | "recusado";
+  pagamentoId?: string | null;
+}
+
 export interface PaymentProvider {
+  // Cartão salvo (Checkout Transparente): o cliente cadastra o cartão direto no
+  // gateway, que devolve um identificador. Falso quando o gateway não suporta.
+  readonly suportaCartaoSalvo: boolean;
+  obterOuCriarCliente(email: string): Promise<string>;
+  salvarCartao(clienteId: string, token: string): Promise<CartaoGateway>;
+  removerCartao(clienteId: string, cartaoId: string): Promise<void>;
+  cobrarComCartao(input: CobrancaCartaoInput): Promise<ResultadoCobrancaCartao>;
+
   criarPreferencia(input: CriarPreferenciaInput): Promise<CriarPreferenciaResultado>;
 
   // Sempre consulta a API do gateway — nunca confia apenas no payload do

@@ -1,5 +1,6 @@
 import { comoChamar } from "@/modules/perfil/apelido";
 import { CampoApelido } from "@/app/_components/campo-apelido";
+import { CampoFoto } from "@/app/_components/campo-foto";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
@@ -169,6 +170,7 @@ export default async function Page(props: PageProps<"/congressistas/minha-area">
             </Link>
           </section>
 
+          <CampoFoto foto={user.image ?? null} nome={user.name} />
           <CampoApelido apelido={user.apelido ?? null} primeiroNome={user.name.split(" ")[0]} />
 
           <section className="mt-6 rounded-2xl border border-white/10 bg-petrol-900/80 p-6">

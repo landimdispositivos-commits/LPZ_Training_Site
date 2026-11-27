@@ -1,5 +1,6 @@
 import { comoChamar } from "@/modules/perfil/apelido";
 import { CampoApelido } from "@/app/_components/campo-apelido";
+import { CampoFoto } from "@/app/_components/campo-foto";
 import { CampoNascimento } from "@/app/_components/campo-nascimento";
 import { and, asc, count, eq, isNull } from "drizzle-orm";
 import type { Metadata } from "next";
@@ -114,6 +115,7 @@ export default async function Page(props: PageProps<"/administradores/painel">) 
             ))}
           </nav>
 
+          <CampoFoto foto={user.image ?? null} nome={user.name} />
           <CampoApelido apelido={user.apelido ?? null} primeiroNome={user.name.split(" ")[0]} />
           <CampoNascimento dataNascimento={user.dataNascimento ?? null} />
 

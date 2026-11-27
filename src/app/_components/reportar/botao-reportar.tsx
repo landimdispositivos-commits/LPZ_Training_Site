@@ -90,14 +90,14 @@ export function BotaoReportar() {
         title={t("botao")}
         // Fixo no canto inferior direito de todas as telas, em dourado para ser
         // fácil de achar; no computador mostra também o texto.
-        className="bg-gold-metal fixed bottom-5 right-5 z-50 flex h-14 items-center justify-center gap-2 rounded-full px-4 text-gold-ink shadow-[0_0_24px_rgb(230_181_74/0.45)] ring-2 ring-petrol-950/60 transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-300"
+        className="bg-gold-metal fixed bottom-4 right-4 z-50 flex h-9 items-center justify-center gap-2 rounded-full px-2.5 text-gold-ink sm:bottom-5 sm:right-5 sm:h-14 sm:px-4 shadow-[0_0_24px_rgb(230_181_74/0.45)] ring-2 ring-petrol-950/60 transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-teal-300"
       >
-        <IconeReportar className="h-8 w-8" />
+        <IconeReportar className="h-5 w-5 sm:h-8 sm:w-8" />
         <span className="hidden pr-1 text-sm font-semibold sm:inline">{t("botao")}</span>
       </button>
 
       {(aviso || pendente) && (
-        <p role="status" className="fixed bottom-24 right-5 z-50 max-w-xs rounded-xl border border-teal-400/50 bg-petrol-900/95 px-4 py-3 text-sm text-white shadow-lg">
+        <p role="status" className="fixed bottom-16 right-4 z-50 sm:bottom-24 sm:right-5 max-w-xs rounded-xl border border-teal-400/50 bg-petrol-900/95 px-4 py-3 text-sm text-white shadow-lg">
           {pendente ? t("enviando") : aviso}
         </p>
       )}

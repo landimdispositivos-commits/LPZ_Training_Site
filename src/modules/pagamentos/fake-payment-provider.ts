@@ -1,4 +1,7 @@
 import type {
+  CartaoGateway,
+  CobrancaCartaoInput,
+  ResultadoCobrancaCartao,
   CriarPreferenciaInput,
   CriarPreferenciaResultado,
   PaymentProvider,
@@ -18,6 +21,42 @@ const globalComStatus = globalThis as typeof globalThis & {
 };
 
 export class FakePaymentProvider implements PaymentProvider {
+  // Cartão salvo simulado: nenhum dado real é digitado nem guardado.
+  readonly suportaCartaoSalvo = true;
+
+  async obterOuCriarCliente(email: string): Promise<string> {
+    return `fake-cliente-${Buffer.from(email).toString("hex").slice(0, 24)}`;
+  }
+
+  // O "token" do simulador é "bandeira:final" (ex.: "visa:4242"), gerado pela tela de teste.
+  async salvarCartao(_clienteId: string, token: string): Promise<CartaoGateway> {
+    const [bandeira, ultimos4] = token.split(":");
+    return {
+      cartaoId: `fake-cartao-${Math.random().toString(36).slice(2, 12)}`,
+      bandeira: /^[a-z]{3,10}$/.test(bandeira ?? "") ? bandeira : "visa",
+      ultimos4: /^\d{4}$/.test(ultimos4 ?? "") ? ultimos4 : "4242",
+      validade: "12/30",
+    };
+  }
+
+  async removerCartao(): Promise<void> {
+    // nada a remover fora do nosso banco
+  }
+
+  // Cobrança simulada: termina em 0000 = recusada; o resto aprova.
+  async cobrarComCartao(input: CobrancaCartaoInput): Promise<ResultadoCobrancaCartao> {
+    if (input.token.endsWith(":0000")) return { status: "recusado" };
+    if (input.preferenceId) {
+      this.situacao.set(input.preferenceId, {
+        status: "pago",
+        forma: "credito",
+        parcelas: input.parcelas,
+        pagamentoId: `fake-pay-${input.referencia}`,
+      });
+    }
+    return { status: "aprovado", pagamentoId: `fake-pay-${input.referencia}` };
+  }
+
   private readonly situacao = (globalComStatus.__lpzPagamentosSimulados ??= new Map<string, SituacaoPagamento>());
 
   async criarPreferencia(input: CriarPreferenciaInput): Promise<CriarPreferenciaResultado> {

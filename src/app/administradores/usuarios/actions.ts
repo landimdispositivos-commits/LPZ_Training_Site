@@ -1,5 +1,6 @@
 "use server";
 
+import { removerTodosOsCartoes } from "@/modules/bar/cartoes";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -142,6 +143,8 @@ export async function excluirUsuarioAction(form: FormData) {
     .from(pedidos)
     .where(eq(pedidos.email, alvo.email));
 
+  // LGPD: cartões guardados no gateway saem junto com a conta.
+  await removerTodosOsCartoes(alvo.id);
   await db.delete(usuarios).where(eq(usuarios.id, alvo.id));
   await registrarAuditoria({
     acao: "usuario_excluido",

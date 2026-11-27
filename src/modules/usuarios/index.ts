@@ -3,11 +3,16 @@ import { agruparPorPedido, presencasDosPedidos } from "@/modules/presencas";
 import { db } from "@/db";
 import { contas, ingressos, lotes, pedidos, professores, sessoes, usuarios } from "@/db/schema";
 import { type TipoProduto, tiposDoCatalogo } from "@/modules/ingressos/produtos";
-import { perfilPrincipal } from "@/modules/auth/papeis";
+import { PERFIS_BAR, perfilPrincipal, type PerfilBar } from "@/modules/auth/papeis";
 import { carregarCatalogo } from "@/modules/ingressos/catalogo";
 
-export const PAPEIS = ["congressista", "profissional", "portaria", "midias", "organizador", "acesso_total"] as const;
+export const PAPEIS = ["congressista", "profissional", "portaria", "midias", "organizador", "acesso_total", ...PERFIS_BAR] as const;
 export type Papel = (typeof PAPEIS)[number];
+// Os perfis do Bar vivem só em perfis_extras; o enum do banco (papel principal) não os tem.
+export type PapelPrincipal = Exclude<Papel, PerfilBar>;
+export function ehPerfilBar(p: string): p is PerfilBar {
+  return (PERFIS_BAR as readonly string[]).includes(p);
+}
 
 export const DESCRICAO_PAPEL: Record<Papel, string> = {
   congressista: "Usuário comum: compra ingresso e vê a própria área.",
@@ -16,6 +21,10 @@ export const DESCRICAO_PAPEL: Record<Papel, string> = {
   midias: "Cuida das fotos, vídeos e músicas da galeria. Exige duas etapas.",
   organizador: "Gestão do evento: painel, usuários, financeiro, check-in e conteúdo. Exige duas etapas.",
   acesso_total: "Acesso total a todas as áreas do site, inclusive as que forem criadas. Exige duas etapas.",
+  bar_gestao: "Gestão do Bar: vê tudo — eventos, produtos, custos, estoque, compras, caixa, dashboard e estornos.",
+  bar_admin: "Admin Caixa do Bar: cadastra eventos e produtos e lança estoque e compras. Não vê dashboard nem faz estornos.",
+  bar_caixa: "Caixa do Bar: vende (caixa e comandas) e consulta produtos e vendas. Não vê custos nem lucro.",
+  bar_balcao: "Balcão do Bar: lê o ticket e marca o pedido como entregue.",
 };
 
 function escaparLike(texto: string) {
@@ -28,7 +37,7 @@ export async function listarUsuarios({ busca, papel }: { busca?: string; papel?:
     const padrao = `%${escaparLike(busca.trim())}%`;
     filtros.push(or(ilike(usuarios.name, padrao), ilike(usuarios.email, padrao)));
   }
-  if (papel) filtros.push(or(eq(usuarios.papel, papel), sql`${papel} = any(${usuarios.perfisExtras})`));
+  if (papel) filtros.push(ehPerfilBar(papel) ? sql`${papel} = any(${usuarios.perfisExtras})` : or(eq(usuarios.papel, papel), sql`${papel} = any(${usuarios.perfisExtras})`));
 
   return db
     .select({
@@ -65,7 +74,7 @@ export async function contarPorPapel() {
 // Define TODOS os perfis da pessoa: o de maior nível vira o principal e os
 // outros ficam como extras. Encerra as sessões para valer no próximo login.
 export async function alterarPerfis(usuarioId: string, perfis: Papel[]) {
-  const principal = perfilPrincipal(perfis) as Papel;
+  const principal = perfilPrincipal(perfis) as PapelPrincipal;
   const extras = perfis.filter((p) => p !== principal);
   await db.transaction(async (tx) => {
     await tx.update(usuarios).set({ papel: principal, perfisExtras: extras, updatedAt: new Date() }).where(eq(usuarios.id, usuarioId));
@@ -75,7 +84,7 @@ export async function alterarPerfis(usuarioId: string, perfis: Papel[]) {
 
 // Troca o perfil e encerra as sessões abertas da pessoa, para o novo acesso
 // valer já no próximo login (as páginas também conferem o papel no banco).
-export async function alterarPapel(usuarioId: string, papel: Papel) {
+export async function alterarPapel(usuarioId: string, papel: PapelPrincipal) {
   await db.transaction(async (tx) => {
     await tx.update(usuarios).set({ papel, updatedAt: new Date() }).where(eq(usuarios.id, usuarioId));
     await tx.delete(sessoes).where(eq(sessoes.userId, usuarioId));
@@ -91,7 +100,7 @@ export async function listarCadastros({ busca, papel, limite = 500 }: { busca?: 
     const padrao = `%${escaparLike(busca.trim())}%`;
     filtros.push(or(ilike(usuarios.name, padrao), ilike(usuarios.email, padrao), ilike(usuarios.cidade, padrao)));
   }
-  if (papel) filtros.push(or(eq(usuarios.papel, papel), sql`${papel} = any(${usuarios.perfisExtras})`));
+  if (papel) filtros.push(ehPerfilBar(papel) ? sql`${papel} = any(${usuarios.perfisExtras})` : or(eq(usuarios.papel, papel), sql`${papel} = any(${usuarios.perfisExtras})`));
 
   const lista = await db
     .select({

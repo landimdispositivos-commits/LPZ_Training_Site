@@ -1,4 +1,7 @@
 import type {
+  CartaoGateway,
+  CobrancaCartaoInput,
+  ResultadoCobrancaCartao,
   CriarPreferenciaInput,
   CriarPreferenciaResultado,
   EstornoInput,
@@ -40,6 +43,61 @@ function formaDoMP(p: PagamentoMP): FormaPagamento | null {
 }
 
 export class MercadoPagoProvider implements PaymentProvider {
+  readonly suportaCartaoSalvo = true;
+
+  // Cliente do Mercado Pago (guarda os cartões do comprador do lado deles).
+  async obterOuCriarCliente(email: string): Promise<string> {
+    const busca = await this.chamar<{ results: { id: string }[] }>(`/v1/customers/search?email=${encodeURIComponent(email)}`);
+    if (busca.results[0]?.id) return busca.results[0].id;
+    const novo = await this.chamar<{ id: string }>("/v1/customers", { method: "POST", body: JSON.stringify({ email }) });
+    return novo.id;
+  }
+
+  // Guarda o cartão no cliente a partir do token gerado no navegador (MP.js).
+  async salvarCartao(clienteId: string, token: string): Promise<CartaoGateway> {
+    const c = await this.chamar<{
+      id: string;
+      last_four_digits: string;
+      expiration_month: number;
+      expiration_year: number;
+      payment_method?: { id?: string };
+    }>(`/v1/customers/${encodeURIComponent(clienteId)}/cards`, { method: "POST", body: JSON.stringify({ token }) });
+    return {
+      cartaoId: String(c.id),
+      bandeira: c.payment_method?.id ?? "",
+      ultimos4: c.last_four_digits,
+      validade: `${String(c.expiration_month).padStart(2, "0")}/${String(c.expiration_year).slice(-2)}`,
+    };
+  }
+
+  async removerCartao(clienteId: string, cartaoId: string): Promise<void> {
+    await this.chamar(`/v1/customers/${encodeURIComponent(clienteId)}/cards/${encodeURIComponent(cartaoId)}`, { method: "DELETE" });
+  }
+
+  // Cobra o pedido com o cartão salvo. O token (cartão + código de segurança)
+  // nasce no navegador e vale uma vez; a chave de idempotência evita cobrança dupla.
+  async cobrarComCartao(i: CobrancaCartaoInput): Promise<ResultadoCobrancaCartao> {
+    const pagamento = await this.chamar<{ id: number; status: string }>("/v1/payments", {
+      method: "POST",
+      headers: { "X-Idempotency-Key": `cartao-${i.referencia}-${i.parcelas}-${i.cartaoId}` },
+      body: JSON.stringify({
+        transaction_amount: i.valorCentavos / 100,
+        token: i.token,
+        description: i.descricao,
+        installments: i.parcelas,
+        payment_method_id: i.bandeira,
+        payer: { type: "customer", id: i.clienteId, email: i.compradorEmail },
+        external_reference: i.referencia,
+        statement_descriptor: "LPZ TRAINING",
+        ...(this.appUrl.startsWith("https://") ? { notification_url: `${this.appUrl}/api/pagamentos/webhook` } : {}),
+      }),
+    });
+    const pagamentoId = String(pagamento.id);
+    if (pagamento.status === "approved") return { status: "aprovado", pagamentoId };
+    if (pagamento.status === "in_process" || pagamento.status === "pending" || pagamento.status === "authorized") return { status: "pendente", pagamentoId };
+    return { status: "recusado", pagamentoId };
+  }
+
   constructor(
     private readonly accessToken: string,
     private readonly appUrl: string,

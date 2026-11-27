@@ -12,6 +12,10 @@ export const ROTULO_PAPEL: Record<string, string> = {
   portaria: "Portaria",
   acesso_total: "Acesso total",
   midias: "Mídias",
+  bar_gestao: "Bar — Gestão",
+  bar_admin: "Bar — Admin Caixa",
+  bar_caixa: "Bar — Caixa",
+  bar_balcao: "Bar — Balcão",
 };
 
 const ROTULO_PAPEL_EN: Record<string, string> = {
@@ -21,6 +25,10 @@ const ROTULO_PAPEL_EN: Record<string, string> = {
   portaria: "Door staff",
   acesso_total: "Full access",
   midias: "Media",
+  bar_gestao: "Bar — Management",
+  bar_admin: "Bar — Cashier admin",
+  bar_caixa: "Bar — Cashier",
+  bar_balcao: "Bar — Pickup counter",
 };
 
 const ROTULO_PAPEL_ES: Record<string, string> = {
@@ -30,6 +38,10 @@ const ROTULO_PAPEL_ES: Record<string, string> = {
   portaria: "Portería",
   acesso_total: "Acceso total",
   midias: "Medios",
+  bar_gestao: "Bar — Gestión",
+  bar_admin: "Bar — Admin de caja",
+  bar_caixa: "Bar — Caja",
+  bar_balcao: "Bar — Mostrador",
 };
 
 export function rotuloPapel(papel: string | null | undefined, idioma: Idioma = "pt") {
@@ -51,20 +63,25 @@ const MENU_GESTAO: ItemBilingue[] = [
   { href: "/administradores/fornecedores", pt: "Fornecedores", en: "Suppliers", es: "Proveedores" },
   { href: "/administradores/galeria", pt: "Fotos", en: "Photos", es: "Fotos" },
   { href: "/administradores/audio-video", pt: "Áudio e vídeo", en: "Audio and video", es: "Audio y video" },
+  { href: "/bar", pt: "Bar", en: "Bar", es: "Bar" },
 ];
 
 const MENU_PORTARIA: ItemBilingue[] = [
   { href: "/administradores/painel", pt: "Painel", en: "Dashboard", es: "Panel" },
   { href: "/administradores/checkin", pt: "Check-in", en: "Check-in", es: "Check-in" },
+  { href: "/bar", pt: "Bar", en: "Bar", es: "Bar" },
 ];
 
 const MENU_MIDIAS: ItemBilingue[] = [
   { href: "/administradores/painel", pt: "Painel", en: "Dashboard", es: "Panel" },
   { href: "/administradores/galeria", pt: "Fotos", en: "Photos", es: "Fotos" },
   { href: "/administradores/audio-video", pt: "Áudio e vídeo", en: "Audio and video", es: "Audio y video" },
+  { href: "/bar", pt: "Bar", en: "Bar", es: "Bar" },
 ];
 
-const MENU_PROFISSIONAL: ItemBilingue[] = [{ href: "/profissionais/minha-area", pt: "Minha área", en: "My area", es: "Mi área" }];
+const MENU_PROFISSIONAL: ItemBilingue[] = [
+  { href: "/profissionais/minha-area", pt: "Minha área", en: "My area", es: "Mi área" },
+];
 
 const MENU_CONGRESSISTA: ItemBilingue[] = [
   { href: "/congressistas/minha-area", pt: "Minha área e ingressos", en: "My area and tickets", es: "Mi área y entradas" },

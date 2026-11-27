@@ -15,7 +15,7 @@ export const metadata: Metadata = { title: "Permissões — LPZ Training" };
 const ERROS: Record<string, string> = {
   dados: "Não foi possível alterar. Atualize a página e tente de novo.",
   proprio: "Você não pode mudar o seu próprio perfil. Peça a outro organizador.",
-  confirmar: "Para dar acesso de Portaria, Organizador ou Acesso total, marque a caixa de confirmação.",
+  confirmar: "Para dar acesso de Portaria, Organizador, Acesso total, Gestão ou Admin Caixa do Bar, marque a caixa de confirmação.",
 };
 
 const COR_PAPEL: Record<string, string> = {
@@ -25,6 +25,10 @@ const COR_PAPEL: Record<string, string> = {
   midias: "bg-teal-400/25 text-teal-200",
   profissional: "bg-teal-400/15 text-teal-300",
   congressista: "bg-white/10 text-mist/80",
+  bar_gestao: "bg-gold-400/20 text-gold-300",
+  bar_admin: "bg-gold-400/15 text-gold-300",
+  bar_caixa: "bg-teal-400/15 text-teal-300",
+  bar_balcao: "bg-teal-400/15 text-teal-300",
 };
 
 export default async function Page(props: PageProps<"/administradores/permissoes">) {
@@ -168,7 +172,7 @@ export default async function Page(props: PageProps<"/administradores/permissoes
                             )}
                             <label className="flex items-center gap-2 text-xs text-mist/80">
                               <input type="checkbox" name="confirmo" className="h-4 w-4 accent-gold-400" />
-                              Confirmo (obrigatório ao dar Portaria, Mídias, Organizador ou Acesso total)
+                              Confirmo (obrigatório ao dar Portaria, Mídias, Organizador, Acesso total, Gestão ou Admin Caixa do Bar)
                             </label>
                             <BotaoSalvar>Salvar perfis</BotaoSalvar>
                           </form>

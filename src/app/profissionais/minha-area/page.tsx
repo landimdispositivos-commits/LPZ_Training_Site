@@ -1,6 +1,7 @@
 import { comoChamar } from "@/modules/perfil/apelido";
 import { temPerfil } from "@/modules/auth/papeis";
 import { CampoApelido } from "@/app/_components/campo-apelido";
+import { CampoFoto } from "@/app/_components/campo-foto";
 import { CampoNascimento } from "@/app/_components/campo-nascimento";
 import { tx } from "@/i18n";
 import { asc, eq } from "drizzle-orm";
@@ -68,6 +69,7 @@ export default async function Page() {
             </dl>
           </section>
 
+          <CampoFoto foto={user.image ?? null} nome={user.name} />
           <CampoApelido apelido={user.apelido ?? null} primeiroNome={user.name.split(" ")[0]} />
           <CampoNascimento dataNascimento={user.dataNascimento ?? null} />
 

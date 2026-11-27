@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { usuarios } from "@/db/schema";
 import { redirect } from "next/navigation";
 import { auth } from "./auth";
-import { ehAdmin, ehGestor, PAPEIS_ADMIN, perfisDo, type PapelAdmin } from "./papeis";
+import { acessoBar, ehAdmin, ehGestor, PAPEIS_ADMIN, perfisDo, type PapelAdmin } from "./papeis";
 
 // Sessão de verdade (quem fez login). O apelido e os perfis extras são lidos
 // do banco para refletirem na hora qualquer alteração.
@@ -14,7 +14,7 @@ const obterSessaoReal = cache(async () => {
   const sessao = await auth.api.getSession({ headers: await headers() });
   if (!sessao) return sessao;
   const [linha] = await db
-    .select({ apelido: usuarios.apelido, perfisExtras: usuarios.perfisExtras, dataNascimento: usuarios.dataNascimento })
+    .select({ imagem: usuarios.image, apelido: usuarios.apelido, perfisExtras: usuarios.perfisExtras, dataNascimento: usuarios.dataNascimento })
     .from(usuarios)
     .where(eq(usuarios.id, sessao.user.id))
     .limit(1);
@@ -22,6 +22,7 @@ const obterSessaoReal = cache(async () => {
     ...sessao,
     user: {
       ...sessao.user,
+      image: linha ? linha.imagem : sessao.user.image,
       apelido: linha?.apelido ?? null,
       perfisExtras: linha?.perfisExtras ?? ([] as string[]),
       dataNascimento: linha?.dataNascimento ?? null,
@@ -108,3 +109,18 @@ export async function exigirAdmin(papeisPermitidos: readonly PapelAdmin[] = PAPE
   }
   return { ...sessao, user: { ...sessao.user, papel, perfis } };
 }
+
+// Áreas do Bar: "gestao" (tudo), "caixa" (vendas) ou "balcao" (entrega de tickets).
+// Usa o login de verdade. Quem tem perfil de administração precisa ter as duas etapas.
+export type NivelBar = "gestao" | "admin" | "caixa" | "balcao";
+export async function exigirBar(nivel: NivelBar | NivelBar[]) {
+  const sessao = await obterSessaoReal();
+  if (!sessao) redirect("/congressistas");
+  const acesso = acessoBar(sessao.user);
+  if (!(Array.isArray(nivel) ? nivel : [nivel]).some((n) => acesso[n])) redirect("/bar");
+  if (ehAdmin(sessao.user.papel) && !sessao.user.twoFactorEnabled) redirect("/administradores/ativar-duas-etapas");
+  return sessao;
+}
+
+// Sessão de verdade (sem o modo "ver como"): usada para decidir o que a pessoa pode ver nas áreas do Bar.
+export const sessaoDeVerdade = obterSessaoReal;

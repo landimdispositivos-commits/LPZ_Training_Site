@@ -12,6 +12,10 @@ export async function RodapeSite() {
           {tx(idioma, "Política de Privacidade", "Privacy Policy", "Política de Privacidad")}
         </Link>
         <span aria-hidden="true" className="mx-2">·</span>
+        <Link href="/seguranca" className="hover:text-gold-300 hover:underline">
+          {tx(idioma, "Segurança", "Security", "Seguridad")}
+        </Link>
+        <span aria-hidden="true" className="mx-2">·</span>
         <Link href="/fale-conosco" className="hover:text-gold-300 hover:underline">
           {tx(idioma, "Fale conosco", "Contact us", "Contáctanos")}
         </Link>

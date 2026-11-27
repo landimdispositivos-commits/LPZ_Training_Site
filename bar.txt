@@ -1,0 +1,482 @@
+=====================================================================
+LPZ TRAINING - MENU BAR
+O que foi implementado, regras e como usar
+Atualizado em 27/11/2026
+Site local: http://localhost:3005/bar
+=====================================================================
+
+SUMARIO
+ 1. Visao geral
+ 2. Perfis de acesso (quem ve e faz o que)
+ 3. Eventos do Bar (tudo e separado por evento)
+ 4. Produtos, categorias e ficha tecnica
+ 5. Estoque (como o saldo e calculado)
+ 6. Compras de insumos
+ 7. As quatro formas de venda
+    7.1 Caixa com ticket (venda direta)
+    7.2 Comanda (pulseira ou cartao com numero)
+    7.3 Pedido online pelo site
+    7.4 Cartao salvo
+ 8. Ticket e QR code inteligente (retirada parcial)
+ 9. Menu "Vendas e caixas" e fechamento de caixa
+10. Dashboard
+11. Exportar para Excel
+12. Cardapio publico e QR do cardapio
+13. Foto de perfil
+14. Auditoria e seguranca
+15. Banco de dados (migrations)
+16. Limites conhecidos e pendencias
+17. Guia rapido por perfil
+
+
+---------------------------------------------------------------------
+1. VISAO GERAL
+---------------------------------------------------------------------
+O Bar controla vendas, estoque, compras e financeiro das bebidas e
+comidas vendidas nos eventos (LPZ Training, LPZ Baile etc.).
+
+- Tudo e separado por EVENTO: produtos, estoque, compras, vendas,
+  comandas e caixas pertencem a um evento.
+- Os clientes e o caixa usam o evento marcado como "EM ANDAMENTO".
+- O modulo e isolado (tabelas com prefixo bar_) para poder ser
+  reaproveitado no futuro site LPZ Baile.
+- Valores sao guardados em centavos. Nada e apagado de verdade:
+  vendas, compras e movimentos de estoque ficam como historico.
+
+
+---------------------------------------------------------------------
+2. PERFIS DE ACESSO
+---------------------------------------------------------------------
+Os perfis do Bar sao dados em Administradores > Permissoes. Uma pessoa
+pode ter varios perfis. Dar "Gestao" ou "Admin Caixa" exige marcar a
+caixa de confirmacao. Organizador e Acesso total ja tem a Gestao.
+
+  CLIENTE (qualquer pessoa, logada ou nao)
+    - Ve o cardapio (produtos e precos). Nunca ve custo nem estoque.
+    - Para comprar, precisa entrar (login/cadastro). A sacola fica salva
+      no aparelho e continua depois do login.
+    - Logado: Meus pedidos e Meus cartoes.
+
+  BAR - CAIXA
+    - Usa o Caixa (venda direta) e as Comandas (lancar e receber).
+    - Consulta Produtos (nome, preco, estoque) SEM custo e SEM edicao.
+    - Consulta Vendas e caixas SEM custo, lucro, estorno ou Excel.
+
+  BAR - BALCAO
+    - Le o QR do ticket e entrega os itens (inclusive parcial).
+    - Lanca consumo em comandas (nao cobra).
+
+  BAR - ADMIN CAIXA
+    - Cadastra eventos e produtos, lanca estoque (ajustes) e registra
+      compras. Abas: Eventos, Produtos, Estoque, Compras.
+    - NAO ve dashboard, NAO ve vendas e NAO faz estornos.
+    - NAO vende (se precisar, dar tambem o perfil Caixa).
+
+  BAR - GESTAO
+    - Ve tudo: Resumo, Dashboard, Eventos, Produtos (com custo e lucro),
+      Estoque, Compras, Vendas e caixas (custo, lucro, estorno, Excel),
+      Comandas, Caixa, Balcao.
+
+Menu: para quem NAO e administrador, "Bar" fica no menu do topo. Para
+administradores (Organizador, Acesso total, Portaria, Midias), "Bar"
+aparece dentro do menu vertical do usuario.
+
+Na pagina do Bar aparecem os botoes conforme o perfil: Comandas, Caixa,
+Balcao e "Gestao do Bar" (ou "Cadastros do Bar" / "Produtos e vendas").
+
+
+---------------------------------------------------------------------
+3. EVENTOS DO BAR
+---------------------------------------------------------------------
+Gestao do Bar > Eventos (Gestao e Admin Caixa).
+
+- Criar evento: nome, data inicial e final (opcionais).
+- O primeiro evento ja nasce "em andamento". Apenas UM evento fica em
+  andamento por vez: e o que o cardapio, o caixa e as comandas usam.
+- Formas de venda ligaveis por evento (caixas de marcar):
+    [x] Caixa com ticket (venda direta)
+    [x] Comanda (pulseira ou cartao com numero)
+    [x] Pedido online pelo site (Pix e cartao)   <- ja nasce marcado
+  Se uma forma estiver desligada, a tela correspondente avisa e nao vende.
+- Em todas as telas de gestao ha um seletor de EVENTO. A troca e
+  imediata. Aparece o aviso "Voce esta vendo e editando: [evento]" e se
+  ele e o que os clientes usam agora. Se nao estiver em andamento, ha o
+  botao "Colocar em andamento".
+
+IMPORTANTE: para o cliente ver produtos e comprar, o evento precisa
+estar EM ANDAMENTO e com "Pedido online" ligado (para comprar pelo site).
+
+
+---------------------------------------------------------------------
+4. PRODUTOS, CATEGORIAS E FICHA TECNICA
+---------------------------------------------------------------------
+Gestao do Bar > Produtos (editar: Gestao e Admin Caixa; Caixa so ve).
+
+Campos de um produto:
+  - Nome, Categoria (digitada; cria sozinha), Unidade (ex.: un, ml).
+  - Preco de CUSTO (o que voce paga) e preco de VENDA (o que cobra).
+    Mostra lucro e margem por item (so para quem edita).
+  - Estoque minimo: gera alerta quando o saldo chega nesse valor.
+  - Estoque inicial (so ao criar; ignorado se tiver ficha tecnica).
+  - [ ] Aparece no cardapio dos clientes
+  - [ ] Vendido no caixa (desmarque para INSUMOS, ex.: garrafa de vodka)
+  - [ ] Tem ficha tecnica (receita com insumos)
+  - [ ] Ativo
+
+Copiar produtos de outro evento: quando o evento esta sem produtos, ha
+"Copiar os produtos (sem estoque) de outro evento". As fichas tecnicas
+vao junto. O estoque de cada evento e lancado separadamente.
+
+FICHA TECNICA (receitas)
+  - Para itens PREPARADOS (ex.: caipirinha = 50 ml de cachaca + 1 limao).
+  - Marque "Tem ficha tecnica" no produto e, em Editar, preencha os
+    insumos e a quantidade por unidade vendida.
+  - Insumos sao produtos cadastrados com "Vendido no caixa" desmarcado
+    e comprados na aba Compras. Receita dentro de receita nao e permitida.
+  - Ao vender, o sistema baixa os INSUMOS da receita (nao o produto).
+  - O custo do produto com ficha e a soma dos insumos e se recalcula a
+    cada compra.
+  - "Da para fazer": quantas unidades os insumos permitem. O insumo que
+    acaba primeiro manda. Se for 0, o cliente ve "Esgotado".
+  - Produto pronto (lata, garrafa, agua) NAO usa ficha tecnica.
+  - Dica: use unidades pequenas (ml, g, dose) para a receita ficar
+    precisa (custo e guardado em centavos inteiros).
+  - Cortesia, perda e quebra de um drink com ficha tambem baixam os
+    insumos.
+
+
+---------------------------------------------------------------------
+5. ESTOQUE
+---------------------------------------------------------------------
+Gestao do Bar > Estoque (Gestao e Admin Caixa).
+
+REGRA: o saldo e SEMPRE a soma de todas as movimentacoes do produto no
+evento (livro-razao). Ninguem digita saldo.
+
+  SOMA (+): compras, estoque inicial, ajuste "somar", estorno de venda
+            ou de item de comanda, reserva online liberada.
+  SUBTRAI (-): vendas do caixa, consumo em comanda, pedidos online
+            (reservado enquanto aguarda pagamento), perdas, quebras,
+            cortesias, consumo da equipe, ajuste "tirar".
+
+Tela: saldo atual, alerta de estoque baixo, ajuste com motivo
+(Perda, Quebra, Cortesia, Consumo da equipe, Ajuste de contagem tirar/
+somar) e historico das ultimas movimentacoes (quem, quando, quanto).
+Perdas, quebras, cortesias e consumo da equipe contam como PERDA
+CONTROLADA no dashboard.
+
+O sistema recusa vender ou baixar alem do saldo. Dois lancamentos ao
+mesmo tempo nao furam o estoque (a linha do produto e travada).
+Para ENTRADA de mercadoria use Compras (nao o ajuste), para o custo
+medio e o "gasto em compras" ficarem corretos.
+
+
+---------------------------------------------------------------------
+6. COMPRAS DE INSUMOS
+---------------------------------------------------------------------
+Gestao do Bar > Compras (Gestao e Admin Caixa).
+
+- Registra fornecedor (texto livre), data, observacao e ate 10
+  produtos por compra (quantidade e custo unitario).
+- Soma a quantidade ao estoque.
+- Recalcula o CUSTO MEDIO ponderado: (saldo x custo atual + compra) /
+  (saldo + compra). Atualiza tambem o custo das receitas que usam o item.
+- Produtos com ficha tecnica nao entram em compras (so os insumos).
+- Mostra o total gasto no evento.
+- Nao ha botao de cancelar compra: corrija com ajuste "tirar".
+
+
+---------------------------------------------------------------------
+7. AS QUATRO FORMAS DE VENDA
+---------------------------------------------------------------------
+Todas caem no mesmo estoque, dashboard, Excel e auditoria. Cada venda
+guarda a ORIGEM (caixa, comanda ou online) e o CUSTO DO MOMENTO (o lucro
+historico nao muda se o custo mudar depois).
+
+7.1 CAIXA COM TICKET (venda direta)   Bar > Caixa  (Caixa e Gestao)
+  1. Abrir o caixa com o troco inicial (ou o caixa abre sozinho ao
+     receber uma comanda, com troco zero).
+  2. Tocar nos produtos para montar o pedido.
+  3. Escolher a forma de pagamento: Debito, Credito, Pix ou Dinheiro
+     (a cobranca na maquininha e feita a parte; o sistema so registra).
+     Em dinheiro, informe o valor recebido: o troco e calculado.
+  4. Clicar "Recebido - registrar venda e gerar ticket".
+  5. Sai o TICKET com QR e codigo de 8 caracteres. O estoque baixa na
+     hora. O cliente retira no balcao (ver secao 8).
+  - Forma "Comanda": ver 7.2.
+  - Pode ser desligada por evento.
+  - Estorno: so a Gestao, enquanto NADA foi retirado.
+
+7.2 COMANDA (pulseira ou cartao com numero)
+  Fluxo: consome no bar e paga no final.
+  - LANCAR (Balcao, Caixa, Gestao): Bar > Comandas > digitar o numero
+    (ex.: 20, A12) > tocar nos produtos > "Lancar na comanda". A comanda
+    abre sozinha no primeiro lancamento. O estoque baixa na hora.
+  - Tambem da para lancar pelo CAIXA: escolher a forma "Comanda", digitar
+    o numero e "Lancar na comanda" (o caixa continua aberto).
+  - CANCELAR ITEM (Caixa, Gestao): na comanda > Cancelar item > motivo
+    (minimo 3 letras). O estoque volta e fica registrado na auditoria.
+  - RECEBER (Caixa, Gestao): na lista de Comandas, cada comanda "A
+    receber" mostra o valor e o botao RECEBER: escolher Pix, cartao
+    credito, cartao debito ou dinheiro (com troco) e "Recebido - fechar
+    comanda". A comanda vira VENDA PAGA no caixa de quem recebeu
+    (se ainda nao abriu caixa, abre automaticamente com troco zero).
+  - O numero pode ser reutilizado depois que a comanda e paga.
+  - FILTRO na lista: A receber / Pagas / Todas, com os totais "A
+    receber" e "Ja recebido". Em Pagas: data, forma de pagamento e quem
+    recebeu. O numero da comanda aparece grande, em negrito dourado,
+    no inicio da linha.
+  - Menu Gestao > Comandas (Gestao e Caixa) e Bar > Comandas (Caixa e
+    Balcao; o Balcao nao ve o botao Receber).
+  - Dashboard: cartao "Comandas em aberto" (a receber, ainda nao e
+    receita). Vendas e caixas: "Comandas ainda em aberto - a receber".
+  - Comanda paga nao e estornavel pelo painel (consumo ja entregue).
+  - Pode ser desligada por evento.
+
+7.3 PEDIDO ONLINE PELO SITE   (cliente, pelo celular)
+  1. Cardapio aberto em /bar. Cada item tem "Adicionar" e botoes - e +.
+     A barra da SACOLA mostra itens e total; "Ver sacola e pagar".
+  2. Sem login: botao "Entrar para pagar" (a sacola fica guardada).
+  3. Pedido criado: o estoque fica RESERVADO por 15 minutos. Se nao
+     pagar, a reserva e liberada sozinha. Maximo de 3 pedidos
+     aguardando pagamento por cliente.
+  4. Pagina do pedido: "Como voce quer pagar?":
+       - Cartao salvo (se houver)  - Cartao de credito ou debito  - Pix
+     Cada opcao tem seu botao PAGAR. No Mercado Pago real, "cartao" e
+     "Pix" abrem a pagina segura do Mercado Pago. No modo de teste, um
+     simulador faz esse papel.
+  5. Pagamento confirmado (o gateway e sempre consultado; nunca se
+     confia so na URL): vira venda com origem "online" e gera o ticket
+     com QR. O cliente mostra o QR no balcao.
+  6. "Meus pedidos" mostra todos os pedidos e o saldo de retirada.
+  - Pagou depois de a reserva vencer e o estoque acabou: o pedido vira
+    "pago - a devolver" e aparece em destaque em Vendas e caixas, com o
+    botao "Devolver pagamento" (so Gestao).
+  - Estorno de pedido online: Gestao, enquanto nada foi retirado; o
+    dinheiro volta pelo gateway e o estoque volta.
+  - Modo "ver como outro usuario": nao permite comprar.
+  - Ligado/desligado por evento.
+
+7.4 CARTAO SALVO
+  - Bar > Meus cartoes (cliente logado): cadastrar, escolher o PADRAO e
+    remover. Ate 5 cartoes.
+  - O cartao e guardado NO MERCADO PAGO. O sistema NUNCA guarda numero,
+    CVV nem validade completa; so o identificador do gateway, bandeira,
+    4 ultimos digitos e validade (MM/AA, para avisar de vencido). O
+    momento do consentimento fica gravado.
+  - Cadastro exige marcar a autorizacao para guardar o cartao.
+  - No pedido, o cartao padrao vem escolhido; o cliente escolhe as
+    parcelas e digita so o codigo de seguranca (campo seguro do Mercado
+    Pago). Cartao vencido nao pode ser usado.
+  - Ao excluir um usuario (Administradores > Usuarios), os cartoes dele
+    sao removidos do Mercado Pago e do banco (LGPD).
+  - Modo de teste: nenhum dado de cartao e digitado; escolhe-se bandeira
+    e final de mentira (final 0000 = recusa, para testar).
+  - ATENCAO: a parte do Mercado Pago REAL foi escrita mas ainda NAO foi
+    testada (faltam credenciais). Obrigatorio testar com credenciais de
+    teste antes de ir ao ar. Exige MERCADOPAGO_ACCESS_TOKEN e
+    MERCADOPAGO_PUBLIC_KEY no .env e o recurso de cartoes habilitado na
+    conta do Mercado Pago.
+
+
+---------------------------------------------------------------------
+8. TICKET E QR CODE INTELIGENTE (RETIRADA PARCIAL)
+---------------------------------------------------------------------
+Cada venda (caixa ou online) gera UM ticket com QR e codigo. O QR serve
+ate esgotar a quantidade comprada (ex.: 5 cervejas retiradas em 1, 3 e
+1). Vendas de comanda ja nascem "entregues".
+
+Status: AGUARDANDO RETIRADA > RETIRADA PARCIAL > ENTREGUE (ou CANCELADO).
+
+BALCAO: Bar > Balcao
+  - Ler o QR pela camera (Chrome/Edge) ou digitar o codigo; ha a fila
+    "Aguardando retirada" (pendentes e parciais).
+  - Na pagina do ticket: para cada item, "retirados X de Y, restam Z",
+    botoes - e + para escolher quantos entregar agora, "Confirmar
+    entrega de N itens" ou "Entregar tudo o que falta".
+  - Historico de retiradas no ticket (item, quantidade, quando, quem).
+  - O QR so aponta para a pagina; o saldo e SEMPRE conferido no banco.
+    A pagina do ticket so abre para a equipe (Caixa, Balcao, Gestao).
+  - Estorno so e possivel se NADA foi retirado.
+
+PROVA DE CONSUMO: cada retirada grava uma linha imutavel (tabela
+bar_retiradas) E um registro na Auditoria ("Bar: retirada de itens de
+um ticket", com ticket, venda, cliente, itens e quanto restou).
+
+
+---------------------------------------------------------------------
+9. VENDAS E CAIXAS / FECHAMENTO DE CAIXA
+---------------------------------------------------------------------
+Gestao do Bar > Vendas e caixas (Gestao e Caixa).
+  - Atalhos: "Nova venda" (abre o Caixa) e "Comandas a receber".
+  - "Como as vendas entraram": pagas na hora (caixa), recebidas de
+    comandas, pedidos online e total de comandas ainda a receber.
+  - Cards: vendas, receita (e, SO PARA GESTAO: custo e lucro bruto).
+  - Total por forma de pagamento.
+  - Caixas: operador, abertura/fechamento e diferenca de dinheiro.
+  - Lista de vendas (ate 100): numero, hora, operador, forma, origem
+    (online ou o numero da COMANDA em destaque), valor, situacao.
+  - Estornar (so Gestao): motivo obrigatorio; devolve o estoque.
+
+FECHAR CAIXA (Bar > Caixa > Fechar caixa)
+  - Resumo do turno por forma de pagamento.
+  - Dinheiro esperado = troco inicial + vendas em dinheiro. O operador
+    informa o contado e a DIFERENCA fica registrada para a gestao.
+  - Cada operador tem o seu caixa; uma venda de comanda entra no caixa
+    de quem recebeu.
+
+
+---------------------------------------------------------------------
+10. DASHBOARD   (somente Gestao)
+---------------------------------------------------------------------
+Gestao do Bar > Dashboard (por evento):
+  - Receita, custo das vendas, lucro bruto e margem, ticket medio.
+  - Lucro apos perdas (perdas controladas ao custo).
+  - Caixa do evento: gasto em compras, resultado de caixa (receita -
+    compras; negativo = ainda nao pagou o que comprou), comandas em
+    aberto, estoque restante e PROJECAO se vender tudo.
+  - Quanto falta vender para cobrir as compras.
+  - Graficos (SVG): vendas por hora e por dia (horario de Brasilia).
+  - Mais vendidos (unidades, receita, lucro), por forma de pagamento,
+    perdas e estornos.
+  - Alerta de produtos vendidos ABAIXO DO CUSTO.
+  - Comparativo entre eventos.
+  Limite: a projecao considera so produtos de estoque direto (drinks de
+  receita nao entram no potencial de venda).
+
+
+---------------------------------------------------------------------
+11. EXPORTAR PARA EXCEL
+---------------------------------------------------------------------
+Links "Exportar para Excel (CSV)" (Gestao) em Vendas e caixas, Estoque
+e Compras. Arquivo em UTF-8 com separador ";" e virgula decimal (abre
+direto no Excel em portugues). Protegido contra injecao de formula.
+
+
+---------------------------------------------------------------------
+12. CARDAPIO PUBLICO E QR DO CARDAPIO
+---------------------------------------------------------------------
+- /bar e ABERTO para todos, sem login: produtos, precos e "Esgotado".
+  Nunca mostra custo nem quantidade em estoque. Textos em portugues,
+  ingles e espanhol.
+- Lateral direita (computador): QR do cardapio para quem esta na tela;
+  no celular so a gestao ve. Botao "Imprimir / salvar PDF" abre a
+  plaquinha (/bar/qr) e a janela de impressao (escolha "Salvar como PDF").
+  Gestao tambem tem "Baixar QR (SVG)" (vetorial, bom para grafica).
+- O QR usa o endereco oficial (APP_URL) em producao. Em desenvolvimento
+  usa o endereco pelo qual o site foi aberto. Para testar no celular:
+  abra no PC http://IP-DO-COMPUTADOR:3005/bar (nao localhost), na mesma
+  rede Wi-Fi.
+- ATENCAO: IMPRIMA AS PLAQUINHAS SO DEPOIS DE PUBLICAR, senao o QR
+  aponta para o IP local.
+
+
+---------------------------------------------------------------------
+13. FOTO DE PERFIL
+---------------------------------------------------------------------
+- Menu do usuario > "Minha foto" (todos os perfis, inclusive
+  administradores): enviar, trocar ou remover foto (JPG, PNG ou WebP ate
+  8 MB) e definir o apelido. A foto aparece no topo no lugar do
+  bonequinho. Tambem ha o cartao "Sua foto" no Painel e na area do
+  congressista/profissional.
+
+
+---------------------------------------------------------------------
+14. AUDITORIA E SEGURANCA
+---------------------------------------------------------------------
+Registradas na Auditoria (Administradores > Auditoria):
+  evento criado/alterado, produto criado/alterado, estoque ajustado,
+  compra registrada, item de comanda cancelado, venda estornada
+  (inclusive devolucao de pedido online) e RETIRADA de itens do ticket.
+
+Seguranca:
+  - Toda checagem de acesso e no servidor (nunca so no menu).
+  - Quem tem perfil de administracao precisa da verificacao em duas
+    etapas para entrar nas areas do Bar.
+  - Cliente nunca recebe custo nem quantidade em estoque.
+  - Vendas, comandas, reservas e retiradas usam transacao no banco; o
+    ticket e conferido no banco, nunca so pelo QR.
+  - Dados de cartao nunca passam pelo nosso servidor.
+  - O Bar nao coleta dados pessoais do cliente alem de nome e e-mail do
+    pedido online (LGPD).
+
+
+---------------------------------------------------------------------
+15. BANCO DE DADOS (MIGRATIONS)
+---------------------------------------------------------------------
+Tabelas bar_*: eventos, categorias, produtos, estoque_movimentos,
+compras, compras_itens, receitas_itens, caixas, vendas, vendas_itens,
+tickets, retiradas, comandas, comanda_itens, pedidos_online,
+pedidos_online_itens, cartoes_salvos.
+
+Migrations (apenas ACRESCENTAM; nada existente foi apagado):
+  0028 bar_base            eventos, produtos, estoque, compras
+  0029 bar_caixa           caixas, vendas, itens, tickets
+  0030 bar_ficha_tecnica   receitas; produto "vendido" e "com ficha"
+  0031 bar_comandas        comandas; origem da venda; formas por evento
+  0032 bar_pedido_online   pedidos online; reserva; caixa opcional na venda
+  0033 bar_cartoes_salvos  cartoes guardados no gateway
+  0034 bar_retiradas       retiradas do ticket (QR inteligente)
+Estao aplicadas SO no banco local. Antes de ir para a VPS: BACKUP do
+banco e deploy com o OK do responsavel.
+Os perfis do Bar (bar_gestao, bar_admin, bar_caixa, bar_balcao) ficam
+no campo de perfis extras do usuario (sem mudar o perfil principal).
+
+
+---------------------------------------------------------------------
+16. LIMITES CONHECIDOS E PENDENCIAS
+---------------------------------------------------------------------
+Antes de publicar:
+  - Credenciais do Mercado Pago (token, chave publica, segredo do
+    webhook) e TESTE com credenciais de teste (Pix, cartao novo, cartao
+    salvo e parcelas). Hoje tudo foi testado so no simulador.
+  - SMTP (Brevo) para e-mails.
+  - Atualizar a Politica de Privacidade (cartao salvo, foto, pedidos).
+  - Termos do Mercado Pago (recurso de cartoes do cliente).
+  - Commit, backup e deploy; depois imprimir o QR do cardapio.
+
+Melhorias ja identificadas:
+  - Taxa do gateway no dashboard.
+  - Foto do produto no cardapio.
+  - Cancelar uma comanda inteira (hoje se cancelam os itens).
+  - Cancelar compra de insumos.
+  - Aviso de comandas/caixas abertos ao encerrar o evento.
+  - Compra por embalagem (1 garrafa = 20 doses).
+  - Integracao com a maquininha (hoje a cobranca e so registrada).
+  - Dividir uma comanda em duas; sangria de caixa.
+  - Cartao salvo tambem para ingressos (hoje so no Bar).
+  - Testes automatizados dos fluxos de venda e pagamento.
+
+
+---------------------------------------------------------------------
+17. GUIA RAPIDO POR PERFIL
+---------------------------------------------------------------------
+PREPARAR O EVENTO (Gestao ou Admin Caixa)
+  1. Gestao do Bar > Eventos: criar o evento e deixar EM ANDAMENTO;
+     marcar as formas de venda.
+  2. Produtos: cadastrar (custo, venda, estoque minimo). Insumos com
+     "Vendido no caixa" desmarcado; drinks com ficha tecnica.
+  3. Compras: lancar a entrada de mercadoria (soma o estoque e acerta
+     o custo medio).
+  4. Estoque: conferir saldos e alertas.
+
+DURANTE O BAILE
+  Caixa: Bar > Caixa > abrir caixa > vender (ou lancar em comanda).
+  Caixa/Balcao: Bar > Comandas > lancar consumo pelo numero.
+  Balcao: Bar > Balcao > ler o QR do ticket > entregar (total ou parcial).
+  Caixa: Bar > Comandas > filtro "A receber" > Receber (Pix/cartao/
+         dinheiro) quando a pessoa for embora.
+  Gestao: acompanhar Vendas e caixas, Comandas e Dashboard; estornar
+         quando necessario.
+
+AO FINAL
+  Caixa: Bar > Caixa > Fechar caixa (informar o dinheiro contado).
+  Gestao: Dashboard (lucro, perdas, projecao), conferir comandas em
+         aberto, exportar para Excel.
+
+CLIENTE
+  Abrir o cardapio (QR ou site) > Adicionar > Ver sacola e pagar >
+  entrar > escolher Cartao salvo, Cartao ou Pix > Pagar > mostrar o QR
+  no balcao. Acompanhar em Meus pedidos; gerenciar em Meus cartoes.
+
+=====================================================================

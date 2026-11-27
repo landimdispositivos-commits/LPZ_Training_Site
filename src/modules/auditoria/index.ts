@@ -18,6 +18,13 @@ export const ACOES = {
   compra_cancelada: "Compra cancelada pelo cliente",
   estorno_aprovado: "Estorno aprovado",
   problema_reportado: "Problema reportado",
+  bar_evento_salvo: "Bar: evento criado ou alterado",
+  bar_produto_salvo: "Bar: produto criado ou alterado",
+  bar_estoque_ajustado: "Bar: estoque ajustado",
+  bar_compra_registrada: "Bar: compra de insumos registrada",
+  bar_comanda_item_cancelado: "Bar: item de comanda cancelado",
+  bar_retirada: "Bar: retirada de itens de um ticket",
+  bar_venda_estornada: "Bar: venda estornada",
   ver_como_iniciado: "Organização passou a ver o site como o usuário",
   ver_como_encerrado: "Organização voltou para a própria conta",
 } as const;
